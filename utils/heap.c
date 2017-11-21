@@ -23,77 +23,10 @@ void swap(void** a, void** b) {
   *b=tmp;
 }
 
-void initialize(Heap* h, long size) {
-  h->data = GC_MALLOC(size*sizeof(void*));
-  h->size = size;
-  h->index = 0;
-}
-
-void insert(Heap *h, void* data, int(*compare)()) {
-  int i, parent, compRes;
-  void *tmp;
-
-  i=h->index;
-  (h->index)++;
-  h->data[i]=data;
-  parent = getParent(i);
-
-  while(i>0) {
-    compRes=(*compare)(h->data[i], h->data[parent]);
-    if(compRes>0) break;
-    swap(&(h->data[i]),&(h->data[parent]));
-    i=parent;
-    parent=getParent(i);
-  }
-}
-
-//TODO: copia pop da max-heapify in binary heap wikipedia con tutta la ricorsione 
-/*
-void heapify(Heap* h, int i, int(*compare)() ){
-  int leftChild, rightChild, compResL, compResR;
-  void* tmp;
-
-  i=0;
-  while(i<h->index) {
-
-    leftChild = getLeftChild(i);
-    rightChild = getRightChild(i);
-  
-    //  printEvent(h->data[i]);
-
-    if(leftChild < (h->index))
-      compResL = (*compare)(h->data[i], h->data[leftChild]);
-    else
-      compResL=-1;
-
-    if(rightChild < (h->index))
-      compResR = (*compare)(h->data[i], h->data[rightChild]);
-    else
-      compResR=-1;
-
-  
-
-    if(compResL>0) {
-      tmp=h->data[i];
-      h->data[i]=h->data[leftChild];
-      h->data[leftChild]=tmp;
-      i = leftChild;
-    }
-    if (compResR>0) {
-      tmp=h->data[i];
-      h->data[i]=h->data[rightChild];
-      h->data[rightChild]=tmp;
-      i = rightChild;
-    }
-    if(compResR<=0 && compResL<=0) break;
-
-  }
-  }*/
-
 void heapify(Heap* h, long i, int(*compare)() ){
   long leftChild, rightChild, smallest;
   int compRes;
-  void* tmp;
+
   smallest=i;
   leftChild = getLeftChild(smallest);
   rightChild = getRightChild(smallest);
@@ -114,6 +47,29 @@ void heapify(Heap* h, long i, int(*compare)() ){
 }
 
 
+void initialize(Heap* h, long size) {
+  h->data = GC_MALLOC(size*sizeof(void*));
+  h->size = size;
+  h->index = 0;
+}
+
+void insert(Heap *h, void* data, int(*compare)()) {
+  int i, parent, compRes;
+
+  i=h->index;
+  (h->index)++;
+  h->data[i]=data;
+  parent = getParent(i);
+
+  while(i>0) {
+    compRes=(*compare)(h->data[i], h->data[parent]);
+    if(compRes>0) break;
+    swap(&(h->data[i]),&(h->data[parent]));
+    i=parent;
+    parent=getParent(i);
+  }
+}
+
 void* pop(Heap* h, int(*compare)()) {
   void* min;
 
@@ -129,38 +85,45 @@ void* pop(Heap* h, int(*compare)()) {
   return min;
 }
 
+/*
+  void heapify(Heap* h, int i, int(*compare)() ){
+  int leftChild, rightChild, compResL, compResR;
+  void* tmp;
 
-/*  i=0;
+  i=0;
   while(i<h->index) {
+
+  leftChild = getLeftChild(i);
+  rightChild = getRightChild(i);
   
-    //  printEvent(h->data[i]);
+  //  printEvent(h->data[i]);
 
-    if(leftChild < (h->index))
-      compResL = (*compare)(h->data[i], h->data[leftChild]);
-    else
-      compResL=-1;
+  if(leftChild < (h->index))
+  compResL = (*compare)(h->data[i], h->data[leftChild]);
+  else
+  compResL=-1;
 
-    if(rightChild < (h->index))
-      compResR = (*compare)(h->data[i], h->data[rightChild]);
-    else
-      compResR=-1;
+  if(rightChild < (h->index))
+  compResR = (*compare)(h->data[i], h->data[rightChild]);
+  else
+  compResR=-1;
 
   
 
-    if(compResL>0) {
-      tmp=h->data[i];
-      h->data[i]=h->data[leftChild];
-      h->data[leftChild]=tmp;
-      i = leftChild;
-    }
- if (compResR>0) {
-      tmp=h->data[i];
-      h->data[i]=h->data[rightChild];
-      h->data[rightChild]=tmp;
-      i = rightChild;
-    }
-    if(compResR<=0 && compResL<=0) break;
+  if(compResL>0) {
+  tmp=h->data[i];
+  h->data[i]=h->data[leftChild];
+  h->data[leftChild]=tmp;
+  i = leftChild;
+  }
+  if (compResR>0) {
+  tmp=h->data[i];
+  h->data[i]=h->data[rightChild];
+  h->data[rightChild]=tmp;
+  i = rightChild;
+  }
+  if(compResR<=0 && compResL<=0) break;
 
   }
-  
   }*/
+
