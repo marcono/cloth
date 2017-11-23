@@ -19,7 +19,6 @@ int main() {
   int k;
 
   k=1;
-  k=2;
  
 
   h = GC_MALLOC(sizeof(Heap));
