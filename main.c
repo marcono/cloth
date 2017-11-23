@@ -16,12 +16,6 @@ int main() {
   Event *e;
   long i;
   Heap* h;
-  double x = 5.0;
-  double y = gsl_sf_bessel_J0 (x);
-  
-  printf ("J0(%g) = %.18e\n", x, y);
-
-
 
   h = GC_MALLOC(sizeof(Heap));
   initialize(h, N);
