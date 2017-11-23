@@ -1,4 +1,4 @@
-LIBS=/home/Dottorato/GitHub/ScalingtheBlockchainSim/gc/lib/libgc.a
+LIBS=/home/Dottorato/GitHub/ScalingtheBlockchainSim/gc/lib/libgc.a -lgsl -lgslcblas -lm
 INCLUDES=-I/home/Dottorato/GitHub/ScalingtheBlockchainSim/gc/include
 
 build:  main.o ./utils/heap.o ./simulator/event.o

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
+#include <gsl/gsl_sf_bessel.h>
 
 #include "./simulator/event.h"
 #include "./utils/heap.h"
@@ -14,6 +16,10 @@ int main() {
   Event *e;
   long i;
   Heap* h;
+  double x = 5.0;
+  double y = gsl_sf_bessel_J0 (x);
+  
+  printf ("J0(%g) = %.18e\n", x, y);
 
 
 
@@ -29,8 +35,7 @@ int main() {
     strcpy(e->type,"Send");
 		insert(h, e, compareEvent);
 	}
-
-  i=0;
+i=0;
   while((e=pop(h, compareEvent))!=NULL) {
     printf("%ld: %lf\n",e->ID,  e->time);
     i++;
