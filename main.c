@@ -16,6 +16,9 @@ int main() {
   Event *e;
   long i;
   Heap* h;
+  int k;
+
+  k=1;
  
 
   h = GC_MALLOC(sizeof(Heap));
