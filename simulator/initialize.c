@@ -21,12 +21,12 @@ void initialize() {
   }
 
 
-  long j, edgeID, counterpartyID, edgeIndex;
+  long j, edgeID=-1, counterpartyID, edgeIndex;
   Node* counterparty;
   srand(time(NULL));
   for(i=0; i<5; i++) {
+    node = get(nodes, i);
     for(j=0; j<edgeSize; j++){
-      node = get(nodes, i);
       if(node->edge[j]!=-1) continue;
 
  
@@ -38,7 +38,7 @@ void initialize() {
       edgeIndex = getEdgeIndex(counterparty);
       if(edgeIndex==-1) continue;
 
-      edgeID = rand()%100;
+      edgeID++;
       edge=createEdge(edgeID, counterpartyID, 0.0  );
       put(edges, edge->ID, edge);
       node->edge[j]=edge->ID;
@@ -51,7 +51,7 @@ void initialize() {
     for(j=0; j<edgeSize; j++) {
       if(node->edge[j]==-1) continue;
       edge = get(edges, node->edge[j]);
-      printf("Node %ld is connected to node %ld through edge %ld", i, edge->ID, edge->counterparty);
+      printf("Node %ld is connected to node %ld through edge %ld\n", i, edge->counterparty, edge->ID);
     } 
   }
 

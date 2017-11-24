@@ -59,7 +59,6 @@ unsigned long hashv(long i) {
 void put(HashTable* ht, long key, void *val) {
 	unsigned long index;
 	index = hashv(key) % ht->dim;
- printf("%ld => %ld\n", key, index);
 	ht->table[index] = lput(key, val, ht->table[index]);
 }
 

@@ -18,7 +18,6 @@ int main() {
   initialize();
   return 0;
 }
-
 /*
 int main() {
   HashTable *ht;
