@@ -3,43 +3,85 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <gsl/gsl_sf_bessel.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
+#include "./protocol/protocol.h"
 #include "./simulator/event.h"
+#include "./simulator/initialize.h"
 #include "./utils/heap.h"
+#include "./utils/hashTable.h"
 #include "./gc-7.2/include/gc.h"
 
 
 int main() {
-  long N=10;
-  int times[]={15, 15, 96, 7, 1, 14, 7, 18, 3, 82};
-  Event *e;
+  initialize();
+  return 0;
+}
+
+/*
+int main() {
+  HashTable *ht;
   long i;
-  Heap* h;
-  int k;
+  Event *e;
+  long N=100000;
 
-  k=1;
- 
+  ht = initializeHashTable(10);
 
-  h = GC_MALLOC(sizeof(Heap));
-  initialize(h, N);
-
-  srand(time(NULL));
-  for(i=0; i<N; i++){
+  for(i=0; i<N; i++) {
     e = GC_MALLOC(sizeof(Event));
+    e->time=0.0;
     e->ID=i;
-    e->time=times[i];
-    //    printf("%ld: %lf\n",e->ID, e->time);
-    strcpy(e->type,"Send");
-		insert(h, e, compareEvent);
-	}
-i=0;
-  while((e=pop(h, compareEvent))!=NULL) {
-    printf("%ld: %lf\n",e->ID,  e->time);
-    i++;
+    strcpy(e->type, "Send");
+
+    put(ht, e->ID, e);
+
+}
+
+  long listDim[10]={0};
+  Element* el;
+  for(i=0; i<10;i++) {
+    el =ht->table[i];
+    while(el!=NULL){
+      listDim[i]++;
+      el = el->next;
+    }
   }
 
-  printf("heap size: \n");
+  for(i=0; i<10; i++)
+   printf("%ld ", listDim[i]);
 
-	return 0;
-  }
+  printf("\n");
+
+  return 0;
+}
+
+
+/*
+int main() {
+
+  const gsl_rng_type * T;
+  gsl_rng * r;
+
+  int i, n = 10;
+  double mu = 0.1;
+
+
+  gsl_rng_env_setup();
+
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+
+
+  for (i = 0; i < n; i++)
+    {
+      double  k = gsl_ran_exponential (r, mu);
+      printf (" %lf", k);
+    }
+
+  printf ("\n");
+  gsl_rng_free (r);
+
+  return 0;
+   }
+*/

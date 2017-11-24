@@ -47,7 +47,7 @@ void heapify(Heap* h, long i, int(*compare)() ){
 }
 
 
-void initialize(Heap* h, long size) {
+void initializeHeap(Heap* h, long size) {
   h->data = GC_MALLOC(size*sizeof(void*));
   h->size = size;
   h->index = 0;

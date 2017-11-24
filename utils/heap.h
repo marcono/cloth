@@ -1,9 +1,6 @@
 #ifndef heap_h
 #define heap_h
 
-typedef struct element {
-  void* data; 
-} Element;
 
 typedef struct heap {
   long size;
@@ -12,7 +9,7 @@ typedef struct heap {
 } Heap;
 
 
-void initialize(Heap* h, long size);
+void initializeHeap(Heap* h, long size);
 
 void insert(Heap *h, void* data, int(*compare)());
 

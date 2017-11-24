@@ -1,5 +1,13 @@
 #ifndef EVENT_H
 #define EVENT_H
+/*
+typedef struct payment {
+  Peer sender;
+  Peer receiver;
+  double amount;
+  List route;
+} Payment;
+*/
 
 typedef struct event {
   long ID;
