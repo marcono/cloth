@@ -5,7 +5,7 @@
 #include <math.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include <limit.h>
+#include <limits.h>
 #include "./protocol/protocol.h"
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
