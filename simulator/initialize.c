@@ -12,12 +12,12 @@ void initialize() {
   Edge* edge;
   long edgeSize=2;
 
-  nodes = initializeHashTable(2);
-  edges = initializeHashTable(2);
+  nodes = hashTableInitialize(2);
+  edges = hashTableInitialize(2);
 
   for(i=0; i<5; i++) {
     node = initializeNode(i, edgeSize);
-    put(nodes, node->ID, node);
+    hashTablePut(nodes, node->ID, node);
   }
 
 
@@ -25,7 +25,7 @@ void initialize() {
   Node* counterparty;
   srand(time(NULL));
   for(i=0; i<5; i++) {
-    node = get(nodes, i);
+    node = hashTableGet(nodes, i);
     for(j=0; j<edgeSize; j++){
       if(node->edge[j]!=-1) continue;
 
@@ -34,23 +34,23 @@ void initialize() {
         counterpartyID = rand()%5;
       }while(counterpartyID==node->ID);
 
-      counterparty = get(nodes, counterpartyID);
+      counterparty = hashTableGet(nodes, counterpartyID);
       edgeIndex = getEdgeIndex(counterparty);
       if(edgeIndex==-1) continue;
 
       edgeID++;
       edge=createEdge(edgeID, counterpartyID, 0.0  );
-      put(edges, edge->ID, edge);
+      hashTablePut(edges, edge->ID, edge);
       node->edge[j]=edge->ID;
       counterparty->edge[edgeIndex]=edge->ID;
     } 
   }
 
   for(i=0; i<5; i++) {
-    node = get(nodes, i);
+    node = hashTableGet(nodes, i);
     for(j=0; j<edgeSize; j++) {
       if(node->edge[j]==-1) continue;
-      edge = get(edges, node->edge[j]);
+      edge = hashTableGet(edges, node->edge[j]);
       printf("Node %ld is connected to node %ld through edge %ld\n", i, edge->counterparty, edge->ID);
     } 
   }

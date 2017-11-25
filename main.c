@@ -18,13 +18,13 @@ int main() {
   Array *a;
   long i;
 
-  a=initializeArray(10);
+  a=arrayInitialize(10);
 
   for(i=0; i< 21; i++)
-    insert(a,i);
+    arrayInsert(a,i);
 
   for(i=0; i<21; i++)
-    printf("%ld ", get(a, i));
+    printf("%ld ", arrayGet(a, i));
 
   return 0;
 }
