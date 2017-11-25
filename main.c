@@ -5,18 +5,27 @@
 #include <math.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-#include <limits.h>
+
 #include "./protocol/protocol.h"
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
 #include "./utils/heap.h"
 #include "./utils/hashTable.h"
 #include "./gc-7.2/include/gc.h"
-
+#include "./utils/array.h"
 
 int main() {
-  //  initialize();
-  printf("%d\n", INT_MAX);
+  Array *a;
+  long i;
+
+  a=initializeArray(10);
+
+  for(i=0; i< 21; i++)
+    insert(a,i);
+
+  for(i=0; i<21; i++)
+    printf("%ld ", get(a, i));
+
   return 0;
 }
 /*

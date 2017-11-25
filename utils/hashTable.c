@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include "../gc-7.2/include/gc.h"
 #include "hashTable.h"
-#define MAXLEN 64
-#define NUMLISTE 1024
+
+
 
 
 /**************************/
@@ -30,8 +30,8 @@ void* lget(long key, Element *list) {
 
 /********************************/
 
-HashTable* initializeHashTable(long dim) {
-	long i;
+HashTable* initializeHashTable(int dim) {
+	int i;
 	HashTable* ht;
   ht = GC_MALLOC(sizeof(HashTable));
 	ht->dim = dim;
