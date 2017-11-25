@@ -9,10 +9,10 @@ typedef struct heap {
 } Heap;
 
 
-void initializeHeap(Heap* h, long size);
+Heap* heapInitialize(long size);
 
-void insert(Heap *h, void* data, int(*compare)());
+void heapInsert(Heap *h, void* data, int(*compare)());
 
-void* pop(Heap* h, int(*compare)());
+void* heapPop(Heap* h, int(*compare)());
 
 #endif

@@ -12,10 +12,10 @@ typedef struct {
   int dim;
 } HashTable;
 
-HashTable* initializeHashTable(int dim);
+HashTable* hashTableInitialize(int dim);
 
-void put(HashTable* ht, long key, void *val);
+void hashTablePut(HashTable* ht, long key, void *val);
 
-void* get(HashTable *ht, long key);
+void* hashTableGet(HashTable *ht, long key);
 
 #endif

@@ -8,7 +8,6 @@
 
 /**************************/
 
-
 Element *lput(long key, void *value, Element *list) {
 		Element *first;
 		first = (Element *) GC_MALLOC(sizeof(Element));
@@ -18,7 +17,6 @@ Element *lput(long key, void *value, Element *list) {
 		return first;
 	}
 
-//funzione che, in una list, restituisce il valore del nodo corrispondente alla chiave
 void* lget(long key, Element *list) {
 	if (list == NULL)
 		return NULL;
@@ -30,7 +28,7 @@ void* lget(long key, Element *list) {
 
 /********************************/
 
-HashTable* initializeHashTable(int dim) {
+HashTable* hashTableInitialize(int dim) {
 	int i;
 	HashTable* ht;
   ht = GC_MALLOC(sizeof(HashTable));
@@ -42,28 +40,22 @@ HashTable* initializeHashTable(int dim) {
 	return ht;
 }
 
-
-//funzione di hashing, che fa uso del finto generatore di numeri casuali (infatti srand è inizializzato a zero) e dello xor
 unsigned long hashv(long i) {
 	unsigned long hval=0;
-	srand(0);
 
-	
+  srand(0);
 	hval = i ^ rand();
-	
 
 	return hval;
 }
 
-//funzione che inserice nella hashtable; l'indice del vettore si trova facendo il modulo dell'hashing value
-void put(HashTable* ht, long key, void *val) {
+void hashTablePut(HashTable* ht, long key, void *val) {
 	unsigned long index;
 	index = hashv(key) % ht->dim;
 	ht->table[index] = lput(key, val, ht->table[index]);
 }
 
-//funzione che, nella hash table, restituisce il valore del nodo corrispondente a key
-void* get(HashTable *ht, long key) {
+void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
 	index = hashv(key) % ht->dim;
     return lget(key, ht->table[index]);

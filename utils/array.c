@@ -16,7 +16,7 @@ Array* resize(Array* a) {
   return new;
 }
 
-Array* initializeArray(long size) {
+Array* arrayInitialize(long size) {
   Array* a;
   long i;
   a = GC_MALLOC(sizeof(Array));
@@ -29,7 +29,7 @@ Array* initializeArray(long size) {
 }
 
 
-void insert (Array* a, long data) {
+void arrayInsert(Array* a, long data) {
   if(a->index >= a->size)
     a = resize(a);
 
@@ -37,7 +37,7 @@ void insert (Array* a, long data) {
   (a->index)++;
 }
 
-long get(Array* a,long i) {
+long arrayGet(Array* a,long i) {
   if(i>=a->size) return -1;
   return a->element[i];
 }

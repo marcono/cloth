@@ -47,13 +47,16 @@ void heapify(Heap* h, long i, int(*compare)() ){
 }
 
 
-void initializeHeap(Heap* h, long size) {
+Heap* heapInitialize(long size) {
+  Heap *h;
+  h=GC_MALLOC(sizeof(Heap));
   h->data = GC_MALLOC(size*sizeof(void*));
   h->size = size;
   h->index = 0;
+  return h;
 }
 
-void insert(Heap *h, void* data, int(*compare)()) {
+void heapInsert(Heap *h, void* data, int(*compare)()) {
   int i, parent, compRes;
 
   i=h->index;
@@ -70,7 +73,7 @@ void insert(Heap *h, void* data, int(*compare)()) {
   }
 }
 
-void* pop(Heap* h, int(*compare)()) {
+void* heapPop(Heap* h, int(*compare)()) {
   void* min;
 
   if(h->index==0) return NULL;

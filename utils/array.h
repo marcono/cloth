@@ -7,11 +7,11 @@ typedef struct array {
   long index;
 } Array;
 
-Array* initializeArray(long size);
+Array* arrayInitialize(long size);
 
-void insert (Array* a, long data);
+void arrayInsert(Array* a, long data);
 
-long get(Array* a,long i);
+long arrayGet(Array* a,long i);
 
 
 
