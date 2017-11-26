@@ -3,6 +3,12 @@
 #include "protocol.h"
 #include "../utils/array.h"
 
+void initializeProtocol() {
+  peerID=0;
+  channelInfoID=0;
+  channelID=0;
+}
+
 Peer* createPeer(long channelsSize) {
   Peer* peer;
 

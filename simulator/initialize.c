@@ -13,6 +13,7 @@ void initialize() {
   Channel* channel;
   ChannelInfo* channelInfo;
 
+  initializeProtocol();
 
   peers = hashTableInitialize(2);
   channels = hashTableInitialize(2);

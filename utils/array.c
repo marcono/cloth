@@ -42,7 +42,7 @@ long arrayGet(Array* a,long i) {
   return a->element[i];
 }
 
-long arrayGetNElemns(Array *a) {
+long arrayGetNElems(Array *a) {
   long nElems=0, i;
   for(i=0; i<a->index; i++)
     if(a->element[i]!=-1) ++nElems;

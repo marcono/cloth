@@ -3,7 +3,7 @@
 
 #include "../utils/array.h"
 
-long channelID=0, peerID=0, channelInfoID=0;
+extern long channelID, peerID, channelInfoID;
 
 typedef struct policy {
   double fee;
@@ -45,6 +45,8 @@ typedef struct channel{
   Policy policy;
 } Channel;
 */
+
+void initializeProtocol();
 
 Peer* createPeer(long channelsSize);
 
