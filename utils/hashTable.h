@@ -9,10 +9,10 @@ typedef struct element {
 
 typedef struct {
   Element **table;
-  int dim;
+  int size;
 } HashTable;
 
-HashTable* hashTableInitialize(int dim);
+HashTable* hashTableInitialize(int size);
 
 void hashTablePut(HashTable* ht, long key, void *val);
 

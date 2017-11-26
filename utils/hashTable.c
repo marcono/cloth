@@ -28,14 +28,14 @@ void* lget(long key, Element *list) {
 
 /********************************/
 
-HashTable* hashTableInitialize(int dim) {
+HashTable* hashTableInitialize(int size) {
 	int i;
 	HashTable* ht;
   ht = GC_MALLOC(sizeof(HashTable));
-	ht->dim = dim;
-	ht->table = (Element **) GC_MALLOC(dim*sizeof(Element *));
+	ht->size = size;
+	ht->table = (Element **) GC_MALLOC(size*sizeof(Element *));
 
-	for(i=0; i < dim; i++)
+	for(i=0; i < size; i++)
 		ht->table[i] = NULL;
 	return ht;
 }
@@ -51,13 +51,13 @@ unsigned long hashv(long i) {
 
 void hashTablePut(HashTable* ht, long key, void *val) {
 	unsigned long index;
-	index = hashv(key) % ht->dim;
+	index = hashv(key) % ht->size;
 	ht->table[index] = lput(key, val, ht->table[index]);
 }
 
 void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
-	index = hashv(key) % ht->dim;
+	index = hashv(key) % ht->size;
     return lget(key, ht->table[index]);
 }
 

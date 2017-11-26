@@ -3,55 +3,67 @@
 #include <time.h>
 #include "../gc-7.2/include/gc.h"
 #include "../utils/hashTable.h"
+#include "../utils/array.h"
 #include "../protocol/protocol.h"
 
 void initialize() {
-  HashTable* nodes, *edges;
-  long i;
-  Node* node;
-  Edge* edge;
-  long edgeSize=2;
+  HashTable* peers, *channels, *channelInfos;
+  long i, channelsSize=2, peersNumber=5;
+  Peer* peer;
+  Channel* channel;
+  ChannelInfo* channelInfo;
 
-  nodes = hashTableInitialize(2);
-  edges = hashTableInitialize(2);
 
-  for(i=0; i<5; i++) {
-    node = initializeNode(i, edgeSize);
-    hashTablePut(nodes, node->ID, node);
+  peers = hashTableInitialize(2);
+  channels = hashTableInitialize(2);
+  channelInfos= hashTableInitialize(2);
+
+
+  for(i=0; i<peersNumber; i++) {
+    peer = createPeer(channelsSize);
+    hashTablePut(peers, peer->ID, peer);
   }
 
 
-  long j, edgeID=-1, counterpartyID, edgeIndex;
-  Node* counterparty;
+  long j, counterpartyID;
+  Peer* counterparty;
+  Policy policy;
+  policy.fee=0.0;
+  policy.timelock=0.0;
   srand(time(NULL));
-  for(i=0; i<5; i++) {
-    node = hashTableGet(nodes, i);
-    for(j=0; j<edgeSize; j++){
-      if(node->edge[j]!=-1) continue;
+  for(i=0; i<peersNumber; i++) {
+    peer = hashTableGet(peers, i);
+    for(j=0; j<channelsSize && (arrayGetNElems(peer->channel) < channelsSize); j++){
 
- 
       do {
-        counterpartyID = rand()%5;
-      }while(counterpartyID==node->ID);
+        counterpartyID = rand()%peersNumber;
+      }while(counterpartyID==peer->ID);
 
-      counterparty = hashTableGet(nodes, counterpartyID);
-      edgeIndex = getEdgeIndex(counterparty);
-      if(edgeIndex==-1) continue;
+      counterparty = hashTableGet(peers, counterpartyID);
+      if(arrayGetNElems(counterparty->channel)>=channelsSize) continue;
 
-      edgeID++;
-      edge=createEdge(edgeID, counterpartyID, 0.0  );
-      hashTablePut(edges, edge->ID, edge);
-      node->edge[j]=edge->ID;
-      counterparty->edge[edgeIndex]=edge->ID;
+      channelInfo=createChannelInfo(peer->ID, counterparty->ID, 0.0);
+      hashTablePut(channelInfos, channelInfo->ID,channelInfo);
+
+      channel=createChannel(channelInfo->ID, counterparty->ID, policy);
+      hashTablePut(channels, channel->ID, channel);
+      arrayInsert(peer->channel, channel->ID);
+
+      channel = createChannel(channelInfo->ID, peer->ID, policy);
+      hashTablePut(channels, channel->ID, channel);
+      arrayInsert(counterparty->channel, channel->ID);
+      
     } 
   }
 
-  for(i=0; i<5; i++) {
-    node = hashTableGet(nodes, i);
-    for(j=0; j<edgeSize; j++) {
-      if(node->edge[j]==-1) continue;
-      edge = hashTableGet(edges, node->edge[j]);
-      printf("Node %ld is connected to node %ld through edge %ld\n", i, edge->counterparty, edge->ID);
+  long currChannelID;
+  for(i=0; i<peersNumber; i++) {
+    peer = hashTableGet(peers, i);
+    for(j=0; j<channelsSize; j++) {
+      currChannelID=arrayGet(peer->channel, j);
+      if(currChannelID==-1) continue;
+      channel = hashTableGet(channels, currChannelID);
+      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
     } 
   }
 
