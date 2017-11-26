@@ -42,7 +42,7 @@ void initialize() {
       //}while(counterpartyID==peer->ID);
 
       counterpartyID= (i^j)%peersNumber;
-      if(counterpartyID==i) counterpartyID = 0;
+      if(counterpartyID==i) counterpartyID = i < (peersNumber-1) ? i+1 : 0;
 
       counterparty = hashTableGet(peers, counterpartyID);
       if(arrayGetNElems(counterparty->channel)>=channelsSize) continue;
