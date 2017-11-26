@@ -14,7 +14,13 @@
 #include "./gc-7.2/include/gc.h"
 #include "./utils/array.h"
 
+
 int main() {
+  initialize();
+  return 0;
+}
+
+/*int main() {
   Array *a;
   long i;
 
@@ -28,6 +34,7 @@ int main() {
 
   return 0;
 }
+*/
 /*
 int main() {
   HashTable *ht;
