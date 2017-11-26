@@ -8,7 +8,7 @@
 
 void initialize() {
   HashTable* peers, *channels, *channelInfos;
-  long i, channelsSize=5, peersNumber=10;
+  long i, channelsSize=2, peersNumber=5;
   Peer* peer;
   Channel* channel;
   ChannelInfo* channelInfo;
