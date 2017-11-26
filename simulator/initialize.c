@@ -8,7 +8,7 @@
 
 void initialize() {
   HashTable* peers, *channels, *channelInfos;
-  long i, channelsSize=2, peersNumber=5;
+  long i, channelsSize=2, peersNumber=10;
   Peer* peer;
   Channel* channel;
   ChannelInfo* channelInfo;
@@ -64,7 +64,7 @@ void initialize() {
       currChannelID=arrayGet(peer->channel, j);
       if(currChannelID==-1) continue;
       channel = hashTableGet(channels, currChannelID);
-      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
+      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->channelInfoID);
     } 
   }
 
