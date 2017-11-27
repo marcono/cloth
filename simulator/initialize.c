@@ -5,23 +5,39 @@
 #include "../utils/hashTable.h"
 #include "../utils/array.h"
 #include "../protocol/protocol.h"
+#include "initialize.h"
+#include <gsl/gsl_rng.h>
+
+HashTable* peers, *channels, *channelInfos;
+long nPeers, nChannels;
 
 void initialize() {
-  HashTable* peers, *channels, *channelInfos;
-  long i, channelsSize=2, peersNumber=5;
+  long i;
   Peer* peer;
   Channel* channel;
   ChannelInfo* channelInfo;
+  
 
-  initializeProtocol();
+  gsl_rng *r;
+  const gsl_rng_type * T;
+
+  gsl_rng_env_setup();
+
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+
+  nPeers=5;
+  nChannels=2;
+
+
 
   peers = hashTableInitialize(2);
   channels = hashTableInitialize(2);
   channelInfos= hashTableInitialize(2);
 
 
-  for(i=0; i<peersNumber; i++) {
-    peer = createPeer(channelsSize);
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(nChannels);
     hashTablePut(peers, peer->ID, peer);
   }
 
@@ -30,22 +46,20 @@ void initialize() {
   Peer* counterparty;
   Policy policy;
   policy.fee=0.0;
-  policy.timelock=0.0;
+  policy.timelock=1.0;
   srand(time(NULL));
-  for(i=0; i<peersNumber; i++) {
+  for(i=0; i<nPeers; i++) {
     peer = hashTableGet(peers, i);
-    for(j=0; j<channelsSize && (arrayGetNElems(peer->channel) < channelsSize); j++){
+    for(j=0; j<nChannels && (arrayGetNElems(peer->channel) < nChannels); j++){
 
 
-      //  do {
-      //counterpartyID = rand()%peersNumber;
-      //}while(counterpartyID==peer->ID);
+    do {
+          counterpartyID = gsl_rng_uniform_int(r,nPeers);
+      }while(counterpartyID==peer->ID);
 
-      counterpartyID= (i^j)%peersNumber;
-      if(counterpartyID==i) counterpartyID = i < (peersNumber-1) ? i+1 : 0;
 
       counterparty = hashTableGet(peers, counterpartyID);
-      if(arrayGetNElems(counterparty->channel)>=channelsSize) continue;
+      if(arrayGetNElems(counterparty->channel)>=nChannels) continue;
 
       channelInfo=createChannelInfo(peer->ID, counterparty->ID, 0.0);
       hashTablePut(channelInfos, channelInfo->ID,channelInfo);
@@ -62,9 +76,9 @@ void initialize() {
   }
 
   long currChannelID;
-  for(i=0; i<peersNumber; i++) {
+  for(i=0; i<nPeers; i++) {
     peer = hashTableGet(peers, i);
-    for(j=0; j<channelsSize; j++) {
+    for(j=0; j<nChannels; j++) {
       currChannelID=arrayGet(peer->channel, j);
       if(currChannelID==-1) continue;
       channel = hashTableGet(channels, currChannelID);

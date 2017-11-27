@@ -15,4 +15,6 @@ void heapInsert(Heap *h, void* data, int(*compare)());
 
 void* heapPop(Heap* h, int(*compare)());
 
+long heapLen(Heap*h);
+
 #endif

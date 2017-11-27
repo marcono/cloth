@@ -23,6 +23,18 @@ void swap(void** a, void** b) {
   *b=tmp;
 }
 
+Heap* resizeHeap(Heap* h) {
+  Heap* new;
+  long i;
+  new=GC_MALLOC(sizeof(Heap));
+  new->size = h->size*2;
+  new->index = h->index;
+  new->data = GC_MALLOC(new->size*sizeof(void*));
+  for(i=0; i<new->index; i++)
+    new->data[i]=h->data[i];
+  return new;
+}
+
 void heapify(Heap* h, long i, int(*compare)() ){
   long leftChild, rightChild, smallest;
   int compRes;
@@ -59,6 +71,9 @@ Heap* heapInitialize(long size) {
 void heapInsert(Heap *h, void* data, int(*compare)()) {
   int i, parent, compRes;
 
+  if(h->index>=h->size)
+    h = resizeHeap(h);
+
   i=h->index;
   (h->index)++;
   h->data[i]=data;
@@ -86,6 +101,10 @@ void* heapPop(Heap* h, int(*compare)()) {
   
 
   return min;
+}
+
+long heapLen(Heap*h){
+  return h->index;
 }
 
 /*

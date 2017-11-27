@@ -6,18 +6,21 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
-#include "./protocol/protocol.h"
+
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
 #include "./utils/heap.h"
 #include "./utils/hashTable.h"
 #include "./gc-7.2/include/gc.h"
 #include "./utils/array.h"
-
+#include "./protocol/findRoute.h"
+#include "./protocol/protocol.h"
 
 int main() {
   initialize();
-  return 0;
+  printf("\nDijkstra\n");
+  dijkstra(4, 3, 0.0 );
+   return 0;
 }
 
 /*int main() {
