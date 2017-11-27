@@ -13,7 +13,8 @@ void arrayInsert(Array* a, long data);
 
 long arrayGet(Array* a,long i);
 
-long arrayGetNElems(Array* a);
+long arrayLen(Array* a);
 
+void arrayReverse(Array* a);
 
 #endif

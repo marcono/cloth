@@ -50,7 +50,7 @@ void initialize() {
   srand(time(NULL));
   for(i=0; i<nPeers; i++) {
     peer = hashTableGet(peers, i);
-    for(j=0; j<nChannels && (arrayGetNElems(peer->channel) < nChannels); j++){
+    for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
 
 
     do {
@@ -59,7 +59,7 @@ void initialize() {
 
 
       counterparty = hashTableGet(peers, counterpartyID);
-      if(arrayGetNElems(counterparty->channel)>=nChannels) continue;
+      if(arrayLen(counterparty->channel)>=nChannels) continue;
 
       channelInfo=createChannelInfo(peer->ID, counterparty->ID, 0.0);
       hashTablePut(channelInfos, channelInfo->ID,channelInfo);
@@ -82,7 +82,7 @@ void initialize() {
       currChannelID=arrayGet(peer->channel, j);
       if(currChannelID==-1) continue;
       channel = hashTableGet(channels, currChannelID);
-      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->channelInfoID);
+      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
     } 
   }
 

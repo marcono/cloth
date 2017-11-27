@@ -2,7 +2,7 @@
 #include "array.h"
 #include "../gc-7.2/include/gc.h"
 
-Array* resize(Array* a) {
+Array* resizeArray(Array* a) {
   Array* new;
   long i;
   new=GC_MALLOC(sizeof(Array));
@@ -31,7 +31,7 @@ Array* arrayInitialize(long size) {
 
 void arrayInsert(Array* a, long data) {
   if(a->index >= a->size)
-    a = resize(a);
+    a = resizeArray(a);
 
   a->element[a->index]=data;
   (a->index)++;
@@ -42,11 +42,21 @@ long arrayGet(Array* a,long i) {
   return a->element[i];
 }
 
-long arrayGetNElems(Array *a) {
-  long nElems=0, i;
+long arrayLen(Array *a) {
+  long len=0, i;
   for(i=0; i<a->index; i++)
-    if(a->element[i]!=-1) ++nElems;
-  return nElems;
+    if(a->element[i]!=-1) ++len;
+  return len;
 }
 
+void arrayReverse(Array *a) {
+  long i, tmp, n;
 
+  n = arrayLen(a);
+
+  for(i=0; i<n/2; i++) {
+    tmp = a->element[i];
+    a->element[i] = a->element[n-i-1];
+    a->element[n-i-1] = tmp;
+  }
+}

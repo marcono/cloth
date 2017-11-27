@@ -17,9 +17,13 @@
 #include "./protocol/protocol.h"
 
 int main() {
+  Array *hops;
+  long i;
   initialize();
   printf("\nDijkstra\n");
-  dijkstra(4, 3, 0.0 );
+  hops=dijkstra(4, 3, 0.0 );
+  for(i=0; i<arrayLen(hops); i++)
+    printf("%ld ", arrayGet(hops, i));
    return 0;
 }
 

@@ -4,7 +4,9 @@
 #include "../simulator/initialize.h"
 #include "../protocol/protocol.h"
 #include "../utils/heap.h"
+#include "../utils/array.h"
 #define INF 10000000.0
+#define HOPSLIMIT 20
 
 typedef struct distance{
   long peer;
@@ -29,7 +31,7 @@ int compareDistance(Distance* a, Distance* b) {
 }
 
 
-void dijkstra(long source, long target, double amount) {
+Array* dijkstra(long source, long target, double amount) {
   Distance distance[nPeers], *d;
   long i, bestPeerID, j, channelID, nextPeerID, prev;
   Heap *distanceHeap;
@@ -38,6 +40,7 @@ void dijkstra(long source, long target, double amount) {
   ChannelInfo* channelInfo;
   double tmpDist, capacity;
   PreviousPeer previousPeer[nPeers];
+  Array* hops;
 
   distanceHeap = heapInitialize(10);
 
@@ -75,7 +78,7 @@ void dijkstra(long source, long target, double amount) {
 
       channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
       capacity = channelInfo->capacity;
-      //TODO: aggiungi vincolo su capacity canale
+
       if(tmpDist < distance[nextPeerID].distance && amount<=capacity) {
         distance[nextPeerID].peer = nextPeerID;
         distance[nextPeerID].distance = tmpDist;
@@ -91,15 +94,21 @@ void dijkstra(long source, long target, double amount) {
 
   if(previousPeer[target].peer == -1) {
     printf ("no path available!\n");
-    return;
+    return NULL;
   }
 
+  hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
-    printf("%ld ", previousPeer[prev].peer);
+    //    printf("%ld ", previousPeer[prev].peer);
+    arrayInsert(hops, previousPeer[prev].channel);
     prev = previousPeer[prev].peer;
   }
 
+  if(arrayLen(hops)>HOPSLIMIT)
+    return NULL;
 
-  return;
+  arrayReverse(hops);
+
+  return hops;
 }
