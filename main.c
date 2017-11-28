@@ -37,7 +37,7 @@ int main() {
   for(i=0; i< 21; i++){
     data = GC_MALLOC(sizeof(long));
     *data = i;
-    arrayInsert(a,data);
+   a = arrayInsert(a,data);
   }
 
   for(i=0; i<21; i++) {

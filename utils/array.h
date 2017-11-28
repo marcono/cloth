@@ -9,7 +9,7 @@ typedef struct array {
 
 Array* arrayInitialize(long size);
 
-void arrayInsert(Array* a, void* data);
+Array*  arrayInsert(Array* a, void* data);
 
 void* arrayGet(Array* a,long i);
 
