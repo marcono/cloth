@@ -97,11 +97,11 @@ Array* dijkstra(long source, long target, double amount) {
     return NULL;
   }
 
-  /*  hops=arrayInitialize(HOPSLIMIT);
+  /* hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
-    arrayInsert(hops, previousPeer[prev].channel);
+    hops=arrayInsert(hops, previousPeer[prev].channel);
     prev = previousPeer[prev].peer;
   }
 

@@ -16,18 +16,18 @@
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
 
-/*int main() {
+int main() {
   Array *hops;
   long i;
   initialize();
   /*printf("\nDijkstra\n");
   hops=dijkstra(4, 3, 0.0 );
   for(i=0; i<arrayLen(hops); i++)
-    printf("%ld ", arrayGet(hops, i));
+  printf("%ld ", arrayGet(hops, i)); */
     return 0;
 }
-*/
 
+/*
 int main() {
   Array *a;
   long i, *data;
@@ -49,7 +49,7 @@ int main() {
   printf("\n%ld ", a->size);
 
   return 0;
-}
+}*/
 
 /*
 int main() {

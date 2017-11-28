@@ -66,12 +66,12 @@ void initialize() {
 
       channel=createChannel(channelInfo->ID, counterparty->ID, policy);
       hashTablePut(channels, channel->ID, channel);
-      arrayInsert(peer->channel, &(channel->ID));
+      peer->channel=arrayInsert(peer->channel, &(channel->ID));
 
       channel = createChannel(channelInfo->ID, peer->ID, policy);
       hashTablePut(channels, channel->ID, channel);
-      arrayInsert(counterparty->channel, &(channel->ID));
-      
+      counterparty->channel=arrayInsert(counterparty->channel, &(channel->ID));
+
     } 
   }
 
