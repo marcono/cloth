@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "array.h"
 #include "../gc-7.2/include/gc.h"
@@ -31,8 +32,10 @@ Array* arrayInitialize(long size) {
 
 
 void arrayInsert(Array* a, void* data) {
-  if(a->index >= a->size)
+  if(a->index >= a->size) {
+    printf("array overflow");
     a = resizeArray(a);
+  }
 
   a->element[a->index]=data;
   (a->index)++;
