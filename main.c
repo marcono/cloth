@@ -18,13 +18,17 @@
 
 int main() {
   Array *hops;
+  Hop* hop;
   long i;
   initialize();
-  /*printf("\nDijkstra\n");
+  printf("\nDijkstra\n");
   hops=dijkstra(4, 3, 0.0 );
-  for(i=0; i<arrayLen(hops); i++)
-  printf("%ld ", arrayGet(hops, i)); */
-    return 0;
+  for(i=0; i<arrayLen(hops); i++) {
+    hop = arrayGet(hops, i);
+    printf("(Channel, Peer) = (%ld, %ld) ", hop->channel, hop->peer);
+  }
+
+  return 0;
 }
 
 /*

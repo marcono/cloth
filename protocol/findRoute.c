@@ -5,18 +5,10 @@
 #include "../protocol/protocol.h"
 #include "../utils/heap.h"
 #include "../utils/array.h"
+#include "findRoute.h"
 #define INF 10000000.0
 #define HOPSLIMIT 20
 
-typedef struct distance{
-  long peer;
-  double distance;
-} Distance;
-
-typedef struct previousPeer{
-  long peer;
-  long channel;
-} PreviousPeer;
 
 int compareDistance(Distance* a, Distance* b) {
   double d1, d2;
@@ -33,14 +25,15 @@ int compareDistance(Distance* a, Distance* b) {
 
 Array* dijkstra(long source, long target, double amount) {
   Distance distance[nPeers], *d;
-  long i, bestPeerID, j, channelID, nextPeerID, prev;
+  long i, bestPeerID, j,*channelID, nextPeerID, prev;
   Heap *distanceHeap;
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
   double tmpDist, capacity;
-  PreviousPeer previousPeer[nPeers];
+  Hop previousPeer[nPeers];
   Array* hops;
+  Hop* hop;
 
   distanceHeap = heapInitialize(10);
 
@@ -66,9 +59,9 @@ Array* dijkstra(long source, long target, double amount) {
 
     for(j=0; j<nChannels; j++) {
       channelID = arrayGet(bestPeer->channel, j);
-      if(channelID==-1) continue;
+      if(channelID==NULL) continue;
 
-      channel = hashTableGet(channels, channelID);
+      channel = hashTableGet(channels, *channelID);
       nextPeerID = channel->counterparty;
 
       tmpDist = distance[bestPeerID].distance + channel->policy.timelock;
@@ -83,7 +76,7 @@ Array* dijkstra(long source, long target, double amount) {
         distance[nextPeerID].peer = nextPeerID;
         distance[nextPeerID].distance = tmpDist;
 
-        previousPeer[nextPeerID].channel = channelID;
+        previousPeer[nextPeerID].channel = *channelID;
         previousPeer[nextPeerID].peer = bestPeerID;
 
         heapInsert(distanceHeap, &distance[nextPeerID], compareDistance);
@@ -97,18 +90,21 @@ Array* dijkstra(long source, long target, double amount) {
     return NULL;
   }
 
-  /* hops=arrayInitialize(HOPSLIMIT);
+  hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
-    hops=arrayInsert(hops, previousPeer[prev].channel);
+    hop = GC_MALLOC(sizeof(Hop));
+    hop->peer = previousPeer[prev].peer;
+    hop->channel = previousPeer[prev].channel;
+    hops=arrayInsert(hops, hop );
     prev = previousPeer[prev].peer;
   }
 
   if(arrayLen(hops)>HOPSLIMIT)
     return NULL;
 
-    arrayReverse(hops); */
+  arrayReverse(hops);
 
   return hops;
 }
