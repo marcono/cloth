@@ -97,7 +97,7 @@ Array* dijkstra(long source, long target, double amount) {
     return NULL;
   }
 
-  hops=arrayInitialize(HOPSLIMIT);
+  /*  hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
@@ -108,7 +108,7 @@ Array* dijkstra(long source, long target, double amount) {
   if(arrayLen(hops)>HOPSLIMIT)
     return NULL;
 
-  arrayReverse(hops);
+    arrayReverse(hops); */
 
   return hops;
 }

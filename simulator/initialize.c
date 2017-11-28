@@ -66,22 +66,22 @@ void initialize() {
 
       channel=createChannel(channelInfo->ID, counterparty->ID, policy);
       hashTablePut(channels, channel->ID, channel);
-      arrayInsert(peer->channel, channel->ID);
+      arrayInsert(peer->channel, &(channel->ID));
 
       channel = createChannel(channelInfo->ID, peer->ID, policy);
       hashTablePut(channels, channel->ID, channel);
-      arrayInsert(counterparty->channel, channel->ID);
+      arrayInsert(counterparty->channel, &(channel->ID));
       
     } 
   }
 
-  long currChannelID;
+  long *currChannelID;
   for(i=0; i<nPeers; i++) {
     peer = hashTableGet(peers, i);
     for(j=0; j<nChannels; j++) {
       currChannelID=arrayGet(peer->channel, j);
-      if(currChannelID==-1) continue;
-      channel = hashTableGet(channels, currChannelID);
+      if(currChannelID==NULL) continue;
+      channel = hashTableGet(channels, *currChannelID);
       printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
     } 
   }

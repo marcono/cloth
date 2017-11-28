@@ -5,31 +5,32 @@
 Array* resizeArray(Array* a) {
   Array* new;
   long i;
+
   new=GC_MALLOC(sizeof(Array));
   new->size = a->size*2;
   new->index = a->index;
-  new->element = GC_MALLOC(new->size*sizeof(long));
+  new->element = GC_MALLOC(new->size*sizeof(void*));
   for(i=0; i<new->index; i++)
     new->element[i]=a->element[i];
   for(;i<new->size;i++)
-    new->element[i] = -1;
+    new->element[i] = NULL;
+
   return new;
 }
 
 Array* arrayInitialize(long size) {
   Array* a;
-  long i;
+
   a = GC_MALLOC(sizeof(Array));
   a->size = size;
   a->index = 0;
-  a->element = GC_MALLOC(a->size*sizeof(long));
-  for(i=0; i<a->size; i++)
-    a->element[i]=-1;
+  a->element = GC_MALLOC(a->size*sizeof(void*));
+
   return a;
 }
 
 
-void arrayInsert(Array* a, long data) {
+void arrayInsert(Array* a, void* data) {
   if(a->index >= a->size)
     a = resizeArray(a);
 
@@ -37,20 +38,18 @@ void arrayInsert(Array* a, long data) {
   (a->index)++;
 }
 
-long arrayGet(Array* a,long i) {
-  if(i>=a->size) return -1;
+void* arrayGet(Array* a,long i) {
+  if(i>=a->size) return NULL;
   return a->element[i];
 }
 
 long arrayLen(Array *a) {
-  long len=0, i;
-  for(i=0; i<a->index; i++)
-    if(a->element[i]!=-1) ++len;
-  return len;
+  return a->index;
 }
 
 void arrayReverse(Array *a) {
-  long i, tmp, n;
+  long i, n;
+  void*tmp;
 
   n = arrayLen(a);
 
