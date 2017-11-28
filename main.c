@@ -16,7 +16,7 @@
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
 
-int main() {
+/*int main() {
   Array *hops;
   long i;
   initialize();
@@ -24,24 +24,33 @@ int main() {
   hops=dijkstra(4, 3, 0.0 );
   for(i=0; i<arrayLen(hops); i++)
     printf("%ld ", arrayGet(hops, i));
-    return 0;*/
+    return 0;
 }
+*/
 
-/*int main() {
+int main() {
   Array *a;
-  long i;
+  long i, *data;
 
   a=arrayInitialize(10);
 
-  for(i=0; i< 21; i++)
-    arrayInsert(a,i);
+  for(i=0; i< 21; i++){
+    data = GC_MALLOC(sizeof(long));
+    *data = i;
+    arrayInsert(a,data);
+  }
 
-  for(i=0; i<21; i++)
-    printf("%ld ", arrayGet(a, i));
+  for(i=0; i<21; i++) {
+    data = arrayGet(a,i);
+    if(data!=NULL) printf("%ld ", *data);
+    else printf("null ");
+  }
+
+  printf("\n%ld ", a->size);
 
   return 0;
 }
-*/
+
 /*
 int main() {
   HashTable *ht;
