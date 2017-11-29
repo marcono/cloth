@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../gc-7.2/include/gc.h"
 #include "../simulator/initialize.h"
 #include "../protocol/protocol.h"
@@ -9,6 +10,8 @@
 #define INF 10000000.0
 #define HOPSLIMIT 20
 
+//FIXME: non globale ma passato per riferimento a dijkstra
+char error[100];
 
 int compareDistance(Distance* a, Distance* b) {
   double d1, d2;
@@ -22,6 +25,14 @@ int compareDistance(Distance* a, Distance* b) {
     return 1;
 }
 
+int isPresent(long element, Array* longArray) {
+  long i, *curr;
+  for(i=0; i<arrayLen(longArray); i++) {
+    curr = arrayGet(longArray, i);
+    if(*curr==element) return 1;
+  }
+  return 0;
+}
 
 Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Array* ignoredChannels) {
   Distance distance[nPeers], *d;
@@ -57,17 +68,17 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
 
     bestPeer = hashTableGet(peers, bestPeerID);
 
-    for(j=0; j<nChannels; j++) {
+    for(j=0; j<arrayLen(bestPeer->channel); j++) {
       channelID = arrayGet(bestPeer->channel, j);
       if(channelID==NULL) continue;
 
       channel = hashTableGet(channels, *channelID);
       nextPeerID = channel->counterparty;
 
+      if(isPresent(nextPeerID, ignoredPeers)) continue;
+      if(isPresent(*channelID, ignoredChannels)) continue;
+
       tmpDist = distance[bestPeerID].distance + channel->policy.timelock;
-
-      //TODO: escludi blacklisted peer e channels
-
 
       channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
       capacity = channelInfo->capacity;
@@ -87,6 +98,7 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
 
   if(previousPeer[target].peer == -1) {
     printf ("no path available!\n");
+    strcpy(error, "noPath");
     return NULL;
   }
 
@@ -102,8 +114,10 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
     prev = previousPeer[prev].peer;
   }
 
-  if(arrayLen(hops)>HOPSLIMIT)
+  if(arrayLen(hops)>HOPSLIMIT) {
+    strcpy(error, "limitExceeded");
     return NULL;
+  }
 
   arrayReverse(hops);
 
@@ -124,7 +138,17 @@ int isSamePath(Array*rootPath, Array*path) {
   return 1;
 }
 
-Array* findPath(long source, long target, double amount){
+int comparePath(Array* path1, Array* path2){
+  long len1, len2;
+  len1 = arrayLen(path1);
+  len2=arrayLen(path2);
+
+  if(len1==len2) return 0;
+  else if (len1<len2) return -1;
+  else return 1;
+}
+
+Array* findPaths(long source, long target, double amount){
   Array* startingPath, *firstPath, *prevShortest, *rootPath, *path, *spurPath, *newPath, *nextShortestPath;
   Array* ignoredChannels, *ignoredPeers;
   Hop *hop;
@@ -139,7 +163,7 @@ Array* findPath(long source, long target, double amount){
 
   shortestPaths = arrayInitialize(100);
 
-  startingPath=dijkstra(source, target, amount);
+  startingPath=dijkstra(source, target, amount, ignoredPeers, ignoredChannels);
   if(startingPath==NULL) return NULL;
 
   firstPath = arrayInitialize(arrayLen(startingPath)+1);
@@ -169,9 +193,11 @@ Array* findPath(long source, long target, double amount){
 
       for(j=0; j<arrayLen(shortestPaths); j++) {
         path=arrayGet(shortestPaths, j);
-        if(arrayLen(path)>i+1 && isSamePath(rootPath, path)) {
-          hop = arrayGet(path, i+1);
-          ignoredChannels = arrayInsert(ignoredChannels, &(hop->channel));
+        if(arrayLen(path)>i+1) {
+          if(isSamePath(rootPath, path)) {
+            hop = arrayGet(path, i+1);
+            ignoredChannels = arrayInsert(ignoredChannels, &(hop->channel));
+          }
         }
       }
 
@@ -183,7 +209,10 @@ Array* findPath(long source, long target, double amount){
 
       spurPath = dijkstra(spurNode, target, amount, ignoredPeers, ignoredChannels);
 
-      if(spurPath==NULL) continue;
+      if(spurPath==NULL) {
+        if(strcmp(error, "noPath")==0) continue;
+        else return NULL;
+      }
 
       newPathLen = arrayLen(rootPath) + arrayLen(spurPath);
       newPath = arrayInitialize(newPathLen);

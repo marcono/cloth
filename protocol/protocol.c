@@ -2,6 +2,8 @@
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
+#include "../utils/hashTable.h"
+#include "../simulator/initialize.h"
 
 long peerID=0, channelInfoID=0, channelID=0;
 
@@ -41,6 +43,32 @@ Channel* createChannel(long channelInfoID, long counterparty, Policy policy){
   channel->policy = policy;
 
   return channel;
+}
+
+void connectPeers(long peerID1, long peerID2) {
+  Peer* peer1, *peer2;
+  Policy policy;
+  Channel* channel;
+  ChannelInfo *channelInfo;
+
+  policy.fee = 0.0;
+  policy.timelock = 1.0;
+
+  peer1 = hashTableGet(peers, peerID1);
+  peer2 = hashTableGet(peers, peerID2);
+
+  channelInfo = createChannelInfo(peer1->ID, peer2->ID, 0.0);
+  hashTablePut(channelInfos, channelInfo->ID, channelInfo);
+
+  channel = createChannel(channelInfo->ID, peer2->ID, policy);
+  hashTablePut(channels, channel->ID, channel);
+  peer1->channel = arrayInsert(peer1->channel, &(channel->ID));
+
+  channel = createChannel(channelInfo->ID, peer1->ID, policy);
+  hashTablePut(channels, channel->ID, channel);
+  peer2->channel =arrayInsert(peer2->channel, &(channel->ID)); 
+
+
 }
 
 /*

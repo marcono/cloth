@@ -54,6 +54,8 @@ ChannelInfo* createChannelInfo(long peer1, long peer2, double capacity);
 
 Channel* createChannel(long channelInfoID, long counterparty, Policy policy);
 
+void connectPeers(long peer1, long peer2);
+
 long getEdgeIndex(Peer*n);
 
 #endif

@@ -16,6 +16,83 @@
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
 
+HashTable* peers, *channels, *channelInfos;
+long nPeers, nChannels;
+
+
+int main() {
+  Array *paths;
+  Array* path;
+  Hop* hop;
+  long i, j;
+  Peer* peer;
+  Channel* channel;
+  ChannelInfo * channelInfo;
+
+  peers = hashTableInitialize(2);
+  channels = hashTableInitialize(2);
+  channelInfos= hashTableInitialize(2);
+
+  nPeers=8;
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+  Policy policy;
+  policy.fee=0.0;
+  policy.timelock=1.0;
+
+  for(i=1; i<5; i++) {
+    connectPeers(i-1, i);
+  }
+
+  connectPeers(0, 5);
+  connectPeers(5,6);
+  connectPeers(6,4);
+
+  connectPeers(0,7);
+  connectPeers(7,4);
+
+
+  //TODO non mette i riferimenti ai canali negli array channels dei peer. perche'?
+
+
+
+
+  long *currChannelID;
+  for(i=0; i<nPeers; i++) {
+    peer = hashTableGet(peers, i);
+    //    printf("%ld ", arrayLen(peer->channel));
+    for(j=0; j<arrayLen(peer->channel); j++) {
+      currChannelID=arrayGet(peer->channel, j);
+      if(currChannelID==NULL) {
+        printf("null\n");
+        continue;
+      }
+      channel = hashTableGet(channels, *currChannelID);
+      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
+      }
+  }
+
+
+    //initialize();
+  printf("\nYen\n");
+  paths=findPaths(0, 4, 0.0);
+  printf("%ld\n", arrayLen(paths));
+  for(i=0; i<arrayLen(paths); i++) {
+    printf("\n");
+     path = arrayGet(paths, i);
+     for(j=0;j<arrayLen(path); j++) {
+       hop = arrayGet(path, j);
+       printf("(Channel, Peer) = (%ld, %ld) ", hop->channel, hop->peer);
+     }
+     } 
+
+  return 0;
+}
+/*
 int main() {
   Array *hops;
   Hop* hop;
@@ -30,6 +107,7 @@ int main() {
 
   return 0;
 }
+*/
 
 /*
 int main() {

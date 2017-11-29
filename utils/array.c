@@ -32,10 +32,8 @@ Array* arrayInitialize(long size) {
 
 
 Array* arrayInsert(Array* a, void* data) {
-  if(a->index >= a->size) {
-    printf("array overflow");
+  if(a->index >= a->size)
     a = resizeArray(a);
-  }
 
   a->element[a->index]=data;
   (a->index)++;
