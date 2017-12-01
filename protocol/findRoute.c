@@ -237,3 +237,14 @@ Array* findPaths(long source, long target, double amount){
   return shortestPaths;
 
 }
+
+typedef struct route {
+  int timelock;
+  Array *hops;
+
+}
+
+Array* transformPathIntoRoute(Array* path, double amount) {
+
+
+}
