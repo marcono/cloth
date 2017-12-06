@@ -90,7 +90,6 @@ int main() {
        hop = arrayGet(path, j);
        printf("(Channel, Peer) = (%ld, %ld) ", hop->channel, hop->peer);
      }
-     } 
 
   return 0;
 }
@@ -102,10 +101,16 @@ int main() {
 int main() {
   Array *hops;
   PathHop* hop;
+  Array *ignored;
   long i;
+  long fakeIgnored = -1;
+
+  ignored = arrayInitialize(1);
+  ignored = arrayInsert(ignored, &fakeIgnored);
+
   initialize();
   printf("\nDijkstra\n");
-  hops=dijkstra(4, 3, 0.0, NULL, NULL );
+  hops=dijkstra(4, 3, 0.0, ignored, ignored );
   for(i=0; i<arrayLen(hops); i++) {
     hop = arrayGet(hops, i);
     printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); }
