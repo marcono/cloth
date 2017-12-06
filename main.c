@@ -102,7 +102,7 @@ int main() {
   Array *hops;
   PathHop* hop;
   Array *ignored;
-  long i;
+  long i, sender, receiver;
   long fakeIgnored = -1;
 
   ignored = arrayInitialize(1);
@@ -110,10 +110,28 @@ int main() {
 
   initialize();
   printf("\nDijkstra\n");
-  hops=dijkstra(4, 3, 0.0, ignored, ignored );
+
+  sender = 4;
+  receiver = 3;
+  hops=dijkstra(sender, receiver, 0.0, ignored, ignored );
+  printf("From node %ld to node %ld\n", sender, receiver);
   for(i=0; i<arrayLen(hops); i++) {
     hop = arrayGet(hops, i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); }
+    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+  }
+  printf("\n\n");
+
+  sender = 0;
+  receiver = 1;
+  hops=dijkstra(sender, receiver, 0.0, ignored, ignored );
+  printf("From node %ld to node %ld\n", sender, receiver);
+  for(i=0; i<arrayLen(hops); i++) {
+    hop = arrayGet(hops, i);
+    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+  }
+  printf("\n");
+
+
 
   return 0;
 }
