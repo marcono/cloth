@@ -42,9 +42,9 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
   Channel* channel;
   ChannelInfo* channelInfo;
   double tmpDist, capacity;
-  Hop previousPeer[nPeers];
+  DijkstraHop previousPeer[nPeers];
   Array* hops;
-  Hop* hop;
+  PathHop* hop;
 
   distanceHeap = heapInitialize(10);
 
@@ -106,10 +106,11 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
   prev=target;
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
-    hop = GC_MALLOC(sizeof(Hop));
+    hop = GC_MALLOC(sizeof(PathHop));
     hop->channel = previousPeer[prev].channel;
+    hop->sender = previousPeer[prev].peer;
     channel = hashTableGet(channels, hop->channel);
-    hop->peer = channel->counterparty;
+    hop->receiver = channel->counterparty;
     hops=arrayInsert(hops, hop );
     prev = previousPeer[prev].peer;
   }
@@ -126,7 +127,7 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
 
 int isSamePath(Array*rootPath, Array*path) {
   long i;
-  Hop* hop1, *hop2;
+  PathHop* hop1, *hop2;
 
   for(i=0; i<arrayLen(rootPath); i++) {
     hop1=arrayGet(rootPath, i);
@@ -151,7 +152,7 @@ int comparePath(Array* path1, Array* path2){
 Array* findPaths(long source, long target, double amount){
   Array* startingPath, *firstPath, *prevShortest, *rootPath, *path, *spurPath, *newPath, *nextShortestPath;
   Array* ignoredChannels, *ignoredPeers;
-  Hop *hop;
+ PathHop *hop;
   long i, k, j, spurNode, newPathLen;
   Array* shortestPaths;
   Heap* candidatePaths;
@@ -167,8 +168,8 @@ Array* findPaths(long source, long target, double amount){
   if(startingPath==NULL) return NULL;
 
   firstPath = arrayInitialize(arrayLen(startingPath)+1);
-  hop = GC_MALLOC(sizeof(Hop));
-  hop->peer = source;
+  hop = GC_MALLOC(sizeof(PathHop));
+  hop->receiver = source;
   firstPath=arrayInsert(firstPath, hop);
   for(i=0; i<arrayLen(startingPath); i++) {
     hop = arrayGet(startingPath, i);
@@ -182,7 +183,7 @@ Array* findPaths(long source, long target, double amount){
 
     for(i=0; i<arrayLen(prevShortest)-1; i++) {
       hop = arrayGet(prevShortest, i);
-      spurNode = hop->peer;
+      spurNode = hop->receiver;
 
       //roothPath = prevshortest[:i+1]
       rootPath = arrayInitialize(i+1);
@@ -203,8 +204,8 @@ Array* findPaths(long source, long target, double amount){
 
       for(j=0; j<arrayLen(rootPath); j++) {
         hop = arrayGet(rootPath, j);
-        if(hop->peer == spurNode) continue;
-        ignoredPeers = arrayInsert(ignoredPeers, &(hop->peer));
+        if(hop->receiver == spurNode) continue;
+        ignoredPeers = arrayInsert(ignoredPeers, &(hop->receiver));
       }
 
       spurPath = dijkstra(spurNode, target, amount, ignoredPeers, ignoredChannels);
@@ -238,13 +239,8 @@ Array* findPaths(long source, long target, double amount){
 
 }
 
-typedef struct route {
-  int timelock;
-  Array *hops;
-
-}
-
+/*
 Array* transformPathIntoRoute(Array* path, double amount) {
 
 
-}
+}*/

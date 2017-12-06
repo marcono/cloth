@@ -16,9 +16,12 @@
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
 
+
+/*
+// Test Yen
+
 HashTable* peers, *channels, *channelInfos;
 long nPeers, nChannels;
-
 
 int main() {
   Array *paths;
@@ -34,6 +37,8 @@ int main() {
   channelInfos= hashTableInitialize(2);
 
   nPeers=8;
+
+  
 
   for(i=0; i<nPeers; i++) {
     peer = createPeer(5);
@@ -54,9 +59,6 @@ int main() {
 
   connectPeers(0,7);
   connectPeers(7,4);
-
-
-  //TODO non mette i riferimenti ai canali negli array channels dei peer. perche'?
 
 
 
@@ -92,22 +94,25 @@ int main() {
 
   return 0;
 }
-/*
+
+*/
+
+
+//test dijkstra
 int main() {
   Array *hops;
-  Hop* hop;
+  PathHop* hop;
   long i;
   initialize();
   printf("\nDijkstra\n");
-  hops=dijkstra(4, 3, 0.0 );
+  hops=dijkstra(4, 3, 0.0, NULL, NULL );
   for(i=0; i<arrayLen(hops); i++) {
     hop = arrayGet(hops, i);
-    printf("(Channel, Peer) = (%ld, %ld) ", hop->channel, hop->peer);
-  }
+    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); }
 
   return 0;
 }
-*/
+
 
 /*
 int main() {

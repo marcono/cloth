@@ -7,11 +7,30 @@ typedef struct distance{
   double distance;
 } Distance;
 
-
-typedef struct hop{
+typedef struct dijkstraHop {
   long peer;
   long channel;
-} Hop;
+} DijkstraHop;
+
+typedef struct pathHop{
+  long sender;
+  long receiver;
+  long channel;
+} PathHop;
+
+typedef struct routeHop {
+  PathHop pathHop;
+  double amountToForward;
+  int timelock;
+} RouteHop;
+
+
+typedef struct route {
+  double totalAmount;
+  int totalTimelock;
+  double totalFee;
+  Array *routeHops;
+} Route;
 
 Array* findPaths(long source, long destination, double amount);
 
