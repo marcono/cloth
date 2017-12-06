@@ -17,7 +17,7 @@
 #include "./protocol/protocol.h"
 
 
-/*
+
 // Test Yen
 
 HashTable* peers, *channels, *channelInfos;
@@ -26,7 +26,7 @@ long nPeers, nChannels;
 int main() {
   Array *paths;
   Array* path;
-  Hop* hop;
+  PathHop* hop;
   long i, j;
   Peer* peer;
   Channel* channel;
@@ -88,7 +88,7 @@ int main() {
      path = arrayGet(paths, i);
      for(j=0;j<arrayLen(path); j++) {
        hop = arrayGet(path, j);
-       printf("(Channel, Peer) = (%ld, %ld) ", hop->channel, hop->peer);
+       printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
      }
 
   return 0;
@@ -96,7 +96,7 @@ int main() {
 
 */
 
-
+/*
 //test dijkstra
 int main() {
   Array *hops;
@@ -133,8 +133,8 @@ int main() {
 
   sender = 0;
   receiver = 0;
-  hops=dijkstra(sender,receiver, 0.0, ignored, ignored );
   printf("From node %ld to node %ld\n", sender, receiver);
+  hops=dijkstra(sender,receiver, 0.0, ignored, ignored );
   if(hops != NULL) {
     for(i=0; i<arrayLen(hops); i++) {
       hop = arrayGet(hops, i);
@@ -146,7 +146,7 @@ int main() {
 
   return 0;
 }
-
+*/
 
 /*
 int main() {
