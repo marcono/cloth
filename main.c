@@ -90,6 +90,7 @@ int main() {
        hop = arrayGet(path, j);
        printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
      }
+  }
 
   return 0;
 }
