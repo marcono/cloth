@@ -135,9 +135,11 @@ int main() {
   receiver = 0;
   hops=dijkstra(sender,receiver, 0.0, ignored, ignored );
   printf("From node %ld to node %ld\n", sender, receiver);
-  for(i=0; i<arrayLen(hops); i++) {
-    hop = arrayGet(hops, i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+  if(hops != NULL) {
+    for(i=0; i<arrayLen(hops); i++) {
+      hop = arrayGet(hops, i);
+      printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+    }
   }
   printf("\n");
 
