@@ -239,8 +239,80 @@ Array* findPaths(long source, long target, double amount){
 
 }
 
-/*
-Array* transformPathIntoRoute(Array* path, double amount) {
+
+Route* routeInitialize(long nHops) {
+  Route* r;
+
+  r = GC_MALLOC(sizeof(Route));
+  r->routeHops = arrayInitialize(nHops);
+  r->totalAmount = 0.0;
+  r->totalFee = 0.0;
+  r->totalTimelock = 0;
+
+  return r;
+}
+
+//TODO: sposta computeFee nei file protocol
+double computeFee(double amountToForward, Policy policy) {
+  return policy.feeBase + policy.feeProportional*amountToForward;
+}
+
+Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTimelock) {
+  PathHop *pathHop;
+  RouteHop *routeHop, *nextRouteHop;
+  Route *route;
+  long nHops, i;
+  double fee;
+  Channel* channel;
+  Policy currentChannelPolicy, nextChannelPolicy;
+  double currentChannelCapacity;
+  ChannelInfo* channelInfo;
+
+  nHops = arrayLen(pathHops);
+  route = routeInitialize(nHops);
+
+  for(i=nHops-1; i>=0; i--) {
+    pathHop = arrayGet(pathHops, i);
+
+    channel = hashTableGet(channels, pathHop->channel);
+    currentChannelPolicy = channel->policy;
+    channelInfo = hashTableGet(channelInfos,channel->channelInfoID);
+    currentChannelCapacity = channelInfo->capacity;
+
+    routeHop = GC_MALLOC(sizeof(RouteHop));
+    routeHop->pathHop = pathHop;
+
+    if(i == arrayLen(pathHops)-1) {
+      routeHop->amountToForward = amountToSend;
+      routeHop->timelock = finalTimelock;
+
+      route->totalTimelock += finalTimelock;
+      route->totalAmount += amountToSend;
+    }
+    else {
+      fee = computeFee(nextRouteHop->amountToForward, nextChannelPolicy);
+      routeHop->amountToForward += fee;
+      route->totalFee += fee;
+      route->totalAmount += fee;
+
+      routeHop->timelock = nextRouteHop->timelock + currentChannelPolicy.timelock;
+      route->totalTimelock += currentChannelPolicy.timelock;
+    }
+
+    //TODO: mettere stringa con messaggio di errore tra i parametri della funzione
+    if(routeHop->amountToForward > currentChannelCapacity)
+      return NULL;
+
+    route->routeHops = arrayInsert(route->routeHops, routeHop);
+      nextChannelPolicy = currentChannelPolicy;
+      nextRouteHop = routeHop;
+
+    }
+
+  arrayReverse(route->routeHops);
+
+  return route;
+  }
 
 
-}*/
+

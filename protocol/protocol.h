@@ -6,8 +6,9 @@
 extern long channelID, peerID, channelInfoID;
 
 typedef struct policy {
-  double fee;
-  double timelock;
+  double feeBase;
+  double feeProportional;
+  int timelock;
 } Policy;
 
 typedef struct peer {

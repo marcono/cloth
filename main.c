@@ -17,6 +17,8 @@
 #include "./protocol/protocol.h"
 
 
+//TODO: testa newroute usando il codice di test per dijkstra e impostando delle fee e dei timelock precisi
+
 
 // Test Yen
 
@@ -79,7 +81,7 @@ int main() {
   }
 
 
-    //initialize();
+
   printf("\nYen\n");
   paths=findPaths(0, 4, 0.0);
   printf("%ld\n", arrayLen(paths));

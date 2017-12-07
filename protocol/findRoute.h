@@ -19,7 +19,7 @@ typedef struct pathHop{
 } PathHop;
 
 typedef struct routeHop {
-  PathHop pathHop;
+  PathHop* pathHop;
   double amountToForward;
   int timelock;
 } RouteHop;
