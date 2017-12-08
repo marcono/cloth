@@ -36,4 +36,6 @@ Array* findPaths(long source, long destination, double amount);
 
 Array* dijkstra(long source, long destination, double amount, Array* ignoredPeers, Array* ignoredChannels);
 
+Route* trasformPathIntoRoute(Array* pathHops, double amountToSend, int finalTimelock);
+
 #endif

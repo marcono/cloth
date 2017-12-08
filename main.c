@@ -27,13 +27,14 @@ int main() {
   long i, sender, receiver;
   long fakeIgnored = -1;
   Route* route;
-  Array* routeHops;
+  Array* routeHops, *pathHops;
   RouteHop* routeHop;
 
   ignored = arrayInitialize(1);
   ignored = arrayInsert(ignored, &fakeIgnored);
 
   initialize();
+
 
   sender = 4;
   receiver = 3;
