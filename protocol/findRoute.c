@@ -291,7 +291,8 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
     }
     else {
       fee = computeFee(nextRouteHop->amountToForward, nextChannelPolicy);
-      routeHop->amountToForward += fee;
+      printf("Policy: %lf, %lf, %d/n", nextChannelPolicy.feeBase, nextChannelPolicy.feeProportional, nextChannelPolicy.timelock);
+      routeHop->amountToForward = nextRouteHop->amountToForward + fee;
       route->totalFee += fee;
       route->totalAmount += fee;
 
