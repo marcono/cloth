@@ -33,6 +33,7 @@ int main() {
   ignored = arrayInitialize(1);
   ignored = arrayInsert(ignored, &fakeIgnored);
 
+
   initialize();
 
 
@@ -40,6 +41,7 @@ int main() {
   receiver = 3;
   pathHops=dijkstra(sender, receiver, 0.0, ignored, ignored );
   route = transformPathIntoRoute(pathHops, 0.1, 5);
+  printf("Route\n");
 
   for(i=0; i < arrayLen(route->routeHops); i++) {
     routeHop = arrayGet(route->routeHops, i);

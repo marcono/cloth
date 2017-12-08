@@ -276,6 +276,7 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
 
     channel = hashTableGet(channels, pathHop->channel);
     currentChannelPolicy = channel->policy;
+    printf("Policy: %lf, %lf, %d/n", currentChannelPolicy.feeBase, currentChannelPolicy.feeProportional, currentChannelPolicy.timelock);
     channelInfo = hashTableGet(channelInfos,channel->channelInfoID);
     currentChannelCapacity = channelInfo->capacity;
 
@@ -291,7 +292,6 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
     }
     else {
       fee = computeFee(nextRouteHop->amountToForward, nextChannelPolicy);
-      printf("Policy: %lf, %lf, %d/n", nextChannelPolicy.feeBase, nextChannelPolicy.feeProportional, nextChannelPolicy.timelock);
       routeHop->amountToForward = nextRouteHop->amountToForward + fee;
       route->totalFee += fee;
       route->totalAmount += fee;
