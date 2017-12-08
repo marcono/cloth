@@ -276,7 +276,6 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
 
     channel = hashTableGet(channels, pathHop->channel);
     currentChannelPolicy = channel->policy;
-    printf("Policy: %lf, %lf, %d/n", currentChannelPolicy.feeBase, currentChannelPolicy.feeProportional, currentChannelPolicy.timelock);
     channelInfo = hashTableGet(channelInfos,channel->channelInfoID);
     currentChannelCapacity = channelInfo->capacity;
 
