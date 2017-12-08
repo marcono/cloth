@@ -45,8 +45,10 @@ void initialize() {
   long j, counterpartyID;
   Peer* counterparty;
   Policy policy;
-  policy.fee=0.0;
-  policy.timelock=1.0;
+  policy.feeBase=0.1;
+  policy.timelock=5;
+  policy.feeProportional=0.0;
+
   srand(time(NULL));
   for(i=0; i<nPeers; i++) {
     peer = hashTableGet(peers, i);

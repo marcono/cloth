@@ -20,6 +20,42 @@
 //TODO: testa newroute usando il codice di test per dijkstra e impostando delle fee e dei timelock precisi
 
 
+//test trasformPathIntoRoute
+int main() {
+  PathHop* pathHop;
+  Array *ignored;
+  long i, sender, receiver;
+  long fakeIgnored = -1;
+  Route* route;
+  Array* routeHops;
+  RouteHop* routeHop;
+
+  ignored = arrayInitialize(1);
+  ignored = arrayInsert(ignored, &fakeIgnored);
+
+  initialize();
+
+  sender = 4;
+  receiver = 3;
+  pathHops=dijkstra(sender, receiver, 0.0, ignored, ignored );
+  route = trasformPathIntoRoute(pathHops, 0.1, 5);
+
+  for(i=0; i < arrayLen(route->routeHops); i++) {
+    routeHop = arrayGet(route->routeHops, i);
+    pathHop = routeHop->pathHop;
+    printf("HOP %ld\n", i);
+    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld)\n", pathHop->sender, pathHop->receiver, pathHop->channel);
+    printf("Amount to forward: %lf\n", routeHop->amountToForward);
+    printf("Timelock: %d\n\n", routeHop->timelock);
+  }
+
+  printf("Total amount: %lf\n", route->totalAmount);
+  printf("Total fee: %lf\n", route->totalFee);
+  printf("Total timelock: %d\n", route->totalTimelock);
+
+  return 0;
+}
+/*
 // Test Yen
 
 HashTable* peers, *channels, *channelInfos;
@@ -96,7 +132,7 @@ int main() {
 
   return 0;
 }
-
+*/
 
 /*
 //test dijkstra

@@ -304,8 +304,8 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
       return NULL;
 
     route->routeHops = arrayInsert(route->routeHops, routeHop);
-      nextChannelPolicy = currentChannelPolicy;
-      nextRouteHop = routeHop;
+    nextChannelPolicy = currentChannelPolicy;
+    nextRouteHop = routeHop;
 
     }
 
