@@ -51,13 +51,14 @@ void connectPeers(long peerID1, long peerID2) {
   Channel* channel;
   ChannelInfo *channelInfo;
 
-  policy.fee = 0.0;
-  policy.timelock = 1.0;
+  policy.feeBase = 1.0;
+  policy.feeProportional = 0.0;
+  policy.timelock = 5;
 
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  channelInfo = createChannelInfo(peer1->ID, peer2->ID, 0.0);
+  channelInfo = createChannelInfo(peer1->ID, peer2->ID, 5.0);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
   channel = createChannel(channelInfo->ID, peer2->ID, policy);

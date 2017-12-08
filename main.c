@@ -18,6 +18,8 @@
 
 
 //TODO: testa newroute usando il codice di test per dijkstra e impostando delle fee e dei timelock precisi
+HashTable* peers, *channels, *channelInfos;
+long nPeers, nChannels;
 
 
 //test trasformPathIntoRoute
@@ -29,19 +31,35 @@ int main() {
   Route* route;
   Array* routeHops, *pathHops;
   RouteHop* routeHop;
+  Peer* peer;
+  Channel* channel;
+  ChannelInfo * channelInfo;
 
   ignored = arrayInitialize(1);
   ignored = arrayInsert(ignored, &fakeIgnored);
 
+  peers = hashTableInitialize(2);
+  channels = hashTableInitialize(2);
+  channelInfos= hashTableInitialize(2);
 
-  initialize();
+  nPeers=5;
 
+  for(i=0; i<nPeers; i++) {
+      peer = createPeer(5);
+      hashTablePut(peers, peer->ID, peer);
+    }
 
-  sender = 4;
-  receiver = 3;
-  pathHops=dijkstra(sender, receiver, 0.0, ignored, ignored );
-  route = transformPathIntoRoute(pathHops, 0.1, 5);
-  printf("Route\n");
+    for(i=1; i<5; i++) {
+      connectPeers(i-1, i);
+    }
+
+    pathHops=dijkstra(0, 4, 1.0, ignored, ignored );
+    route = transformPathIntoRoute(pathHops, 1.0, 5);
+    printf("Route/n");
+    if(route==NULL) {
+      printf("Null route/n");
+      return 0;
+    }
 
   for(i=0; i < arrayLen(route->routeHops); i++) {
     routeHop = arrayGet(route->routeHops, i);
