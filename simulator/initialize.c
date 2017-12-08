@@ -63,7 +63,7 @@ void initialize() {
       counterparty = hashTableGet(peers, counterpartyID);
       if(arrayLen(counterparty->channel)>=nChannels) continue;
 
-      channelInfo=createChannelInfo(peer->ID, counterparty->ID, 0.0);
+      channelInfo=createChannelInfo(peer->ID, counterparty->ID, 1.0);
       hashTablePut(channelInfos, channelInfo->ID,channelInfo);
 
       channel=createChannel(channelInfo->ID, counterparty->ID, policy);
