@@ -39,7 +39,7 @@ int main() {
   sender = 4;
   receiver = 3;
   pathHops=dijkstra(sender, receiver, 0.0, ignored, ignored );
-  route = trasformPathIntoRoute(pathHops, 0.1, 5);
+  route = transformPathIntoRoute(pathHops, 0.1, 5);
 
   for(i=0; i < arrayLen(route->routeHops); i++) {
     routeHop = arrayGet(route->routeHops, i);
