@@ -56,7 +56,7 @@ int main() {
     connectPeers(i-1, i);
   }
 
-  printf("ciao\n");
+
 
   sender = 0;
   receiver = 4;
@@ -65,6 +65,8 @@ int main() {
   hashTablePut(payments, payment->ID, payment);
   paymentID++;
 
+  printf("ciao\n");
+  
   time=0.0;
   strcpy(eventType, "send");
   event = createEvent(eventID, time, eventType, sender, payment->ID);
