@@ -62,11 +62,12 @@ int main() {
   receiver = 4;
   amount = 1.0;
   payment = createPayment(paymentID, sender, receiver, amount);
+  printf("ciao\n");
   hashTablePut(payments, payment->ID, payment);
   paymentID++;
 
-  printf("ciao\n");
   
+
   time=0.0;
   strcpy(eventType, "send");
   event = createEvent(eventID, time, eventType, sender, payment->ID);
