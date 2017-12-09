@@ -84,6 +84,30 @@ void connectPeers(long peerID1, long peerID2) {
 
 }
 
+//TODO: per aumentare la balance della controparte, si potrebbe tenere l'id del channel
+// della controparte nel nostro channel
+void sendPayment(long paymentID) {
+  Payment* payment;
+
+  payment = hashTableGet(payments, paymentID);
+
+
+}
+
+void forwardPayment(long paymentID) {
+  Payment* payment;
+
+  payment = hashTableGet(payments, paymentID);
+
+}
+
+
+void receivePayment(long paymentID) {
+    Payment* payment;
+
+    payment = hashTableGet(payments, paymentID);
+
+  }
 /*
 long getChannelIndex(Peer* peer) {
   long index=-1, i;

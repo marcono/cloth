@@ -11,15 +11,21 @@ typedef struct payment {
 
 extern long eventID;
 
+typedef enum eventType {
+  SEND,
+  SUCCESS,
+  FAIL
+} EventType;
+
 typedef struct event {
   long ID;
   double time;
-  char type[20];
+  EventType type;
   long peerID;
   long paymentID;
 } Event;
 
-Event* createEvent(long ID, double time, char type[20], long peerID, long paymentID);
+Event* createEvent(long ID, double time, EventType type, long peerID, long paymentID);
 
 int compareEvent(Event* e1, Event *e2);
 

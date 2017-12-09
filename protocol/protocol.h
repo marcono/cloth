@@ -68,6 +68,12 @@ Payment* createPayment(long ID, long sender, long receiver, double amount);
 
 void connectPeers(long peer1, long peer2);
 
+void sendPayment(long paymentID);
+
+void forwardPayment(long paymentID);
+
+void receivePayment(long paymentID);
+
 long getEdgeIndex(Peer*n);
 
 #endif

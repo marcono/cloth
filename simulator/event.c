@@ -3,16 +3,16 @@
 #include "../gc-7.2/include/gc.h"
 #include "event.h"
 
-Event* createEvent(long ID, double time, char type[20], long peerID, long paymentID) {
+Event* createEvent(long ID, double time, EventType type, long peerID, long paymentID) {
   Event* e;
 
   e = GC_MALLOC(sizeof(Event));
   e->ID = ID;
   e->time = time;
-  strcpy(e->type, type);
+  e->type = type;
   e->peerID = peerID;
   e->paymentID = paymentID;
-  
+
   return e;
 
 }

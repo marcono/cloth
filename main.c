@@ -18,17 +18,17 @@
 
 
 typedef enum typeOfPeer {
-  paymentSender,
-  paymentHop,
-  paymentReceiver
-} TypeOfPeer;
+  SENDER,
+  HOP,
+  RECEIVER
+} PeerType;
 
 HashTable* peers, *channels, *channelInfos, *payments;
 long nPeers, nChannels;
 long peerID, channelID, channelInfoID, paymentID;
 long eventID;
 
-TypeOfPeer getTypeOfPeer(long peerID, long paymentID) {
+PeerType getPeerType(long peerID, long paymentID) {
   Payment* payment;
   Route* route;
   RouteHop * firstHop, *lastHop;
@@ -38,19 +38,19 @@ TypeOfPeer getTypeOfPeer(long peerID, long paymentID) {
   route = payment->route;
 
   if(route==NULL)
-    return paymentSender;
+    return SENDER;
 
   firstHop = arrayGet(route->routeHops, 0);
   if(peerID==firstHop->pathHop->sender)
-    return paymentSender;
+    return SENDER;
 
   routeLength = arrayLen(route->routeHops);
   lastHop=arrayGet(route->routeHops, routeLength-1);
   if(peerID==lastHop->pathHop->receiver)
-    return paymentReceiver;
+    return RECEIVER;
 
   //TODO: sto dando per scontato che peerID passato esista nella route dell'evento: cosa succede invece se per qualche bug non esiste?
-  return paymentHop;
+  return HOP;
 
 }
 
@@ -62,9 +62,8 @@ int main() {
   Payment *payment;
   Event *event;
   double time, amount;
-  char eventType[20];
   Heap *events;
-  TypeOfPeer typeOfPeer;
+  PeerType peerType;
 
   peerID = channelID = channelInfoID = paymentID = eventID = 0;
 
@@ -98,16 +97,25 @@ int main() {
   paymentID++;
 
   time=0.0;
-  strcpy(eventType, "send");
-  event = createEvent(eventID, time, eventType, sender, payment->ID);
+  event = createEvent(eventID, time, SEND, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
   eventID++;
 
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
-    typeOfPeer = getTypeOfPeer(receiver, event->paymentID);
-    printf("%d\n", typeOfPeer);
+    peerType = getPeerType(event->peerID, event->paymentID);
+    switch(peerType) {
+    case SENDER:
+      sendPayment(event->paymentID);
+      break;
+    case HOP:
+      forwardPayment(event->paymentID);
+      break;
+    case RECEIVER:
+      receivePayment(event->paymentID);
+      break;
+    }
   }
 
 
