@@ -106,7 +106,7 @@ int main() {
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
-    typeOfPeer = getTypeOfPeer(event->peerID, event->paymentID);
+    typeOfPeer = getTypeOfPeer(receiver, event->paymentID);
     printf("%d\n", typeOfPeer);
   }
 
