@@ -30,9 +30,9 @@ int main() {
   Peer* peer;
   long sender, receiver;
   Payment *payment;
-  Event *e;
-  double time;
-  chart eventType[20];
+  Event *event;
+  double time, amount;
+  char eventType[20];
   Heap *events;
 
   peerID = channelID = channelInfoID = paymentID = eventID = 0;
