@@ -41,6 +41,7 @@ int main() {
   peers = hashTableInitialize(2);
   channels = hashTableInitialize(2);
   channelInfos= hashTableInitialize(2);
+  payments = hashTableInitialize(2);
   events = heapInitialize(100);
 
   nPeers=5;
@@ -62,7 +63,6 @@ int main() {
   receiver = 4;
   amount = 1.0;
   payment = createPayment(paymentID, sender, receiver, amount);
-  printf("ciao\n");
   hashTablePut(payments, payment->ID, payment);
   paymentID++;
 
@@ -74,7 +74,7 @@ int main() {
   events = heapInsert(events, event, compareEvent);
   eventID++;
 
-  //TODO: controlla cosa sia null
+
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     printf("%ld\n", event->ID);
