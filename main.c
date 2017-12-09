@@ -68,8 +68,10 @@ int main() {
   events = heapInsert(events, event, compareEvent);
   eventID++;
 
+  //TODO: controlla cosa sia null
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
+    if(event==NULL) printf("null event\n");
     printf("%ld\n", event->ID);
   }
 
