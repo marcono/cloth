@@ -13,7 +13,7 @@ typedef struct event {
   long ID;
   double time;
   char type[20];
-
+  long paymentID;
 } Event;
 
 int compareEvent(Event* e1, Event *e2);

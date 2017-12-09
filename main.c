@@ -17,11 +17,45 @@
 #include "./protocol/protocol.h"
 
 
-//TODO: testa newroute usando il codice di test per dijkstra e impostando delle fee e dei timelock precisi
+
+
 HashTable* peers, *channels, *channelInfos;
 long nPeers, nChannels;
+long peerID, channelID, channelInfoID, paymentID;
 
+//test a send payment
+int main() {
+  long i;
 
+  peerID = channelID = channnelInfoID = paymentID = 0;
+
+  peers = hashTableInitialize(2);
+  channels = hashTableInitialize(2);
+  channelInfos= hashTableInitialize(2);
+
+  nPeers=5;
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerID,5);
+    hashTablePut(peers, peer->ID, peer);
+    peerID++;
+  }
+
+  for(i=1; i<5; i++) {
+    connectPeers(i-1, i);
+  }
+
+  for(i=0; i<peerID; i++) {
+    peer = hashTableGet(peers, i);
+    printf("%ld\n", peer->ID);
+  }
+
+  return 0;
+}
+
+/*HashTable* peers, *channels, *channelInfos;
+long nPeers, nChannels;
+ 
 //test trasformPathIntoRoute
 int main() {
   PathHop* pathHop;
@@ -76,6 +110,7 @@ int main() {
 
   return 0;
 }
+*/
 /*
 // Test Yen
 

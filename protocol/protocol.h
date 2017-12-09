@@ -2,6 +2,7 @@
 #define PROTOCOL_H
 
 #include "../utils/array.h"
+#include "findRoute.h"
 
 extern long channelID, peerID, channelInfoID;
 
@@ -31,6 +32,14 @@ typedef struct channel {
   Policy policy;
 } Channel;
 
+typedef struct payment{
+  long ID;
+  long sender;
+  long receiver;
+  double amount;
+  Route route;
+} Payment;
+
 /*
 typedef struct peer {
   long ID;
@@ -49,11 +58,11 @@ typedef struct channel{
 
 void initializeProtocol();
 
-Peer* createPeer(long channelsSize);
+Peer* createPeer(long ID, long channelsSize);
 
-ChannelInfo* createChannelInfo(long peer1, long peer2, double capacity);
+ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity);
 
-Channel* createChannel(long channelInfoID, long counterparty, Policy policy);
+Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
 
 void connectPeers(long peer1, long peer2);
 
