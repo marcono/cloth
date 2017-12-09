@@ -26,6 +26,7 @@ long peerID, channelID, channelInfoID, paymentID;
 //test a send payment
 int main() {
   long i;
+  Peer* peer;
 
   peerID = channelID = channnelInfoID = paymentID = 0;
 

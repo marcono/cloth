@@ -4,7 +4,7 @@
 #include "../utils/array.h"
 #include "findRoute.h"
 
-extern long channelID, peerID, channelInfoID;
+extern long channelID, peerID, channelInfoID, paymentID;
 
 typedef struct policy {
   double feeBase;
