@@ -28,7 +28,7 @@ int main() {
   long i;
   Peer* peer;
 
-  peerID = channelID = channnelInfoID = paymentID = 0;
+  peerID = channelID = channelInfoID = paymentID = 0;
 
   peers = hashTableInitialize(2);
   channels = hashTableInitialize(2);
