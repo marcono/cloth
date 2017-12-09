@@ -51,9 +51,12 @@ int main() {
     peerID++;
   }
 
+
   for(i=1; i<5; i++) {
     connectPeers(i-1, i);
   }
+
+  printf("ciao\n");
 
   sender = 0;
   receiver = 4;
@@ -71,7 +74,6 @@ int main() {
   //TODO: controlla cosa sia null
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
-    if(event==NULL) printf("null event\n");
     printf("%ld\n", event->ID);
   }
 
