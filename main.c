@@ -3,8 +3,8 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+//#include <gsl/gsl_rng.h>
+//#include <gsl/gsl_randist.h>
 
 
 #include "./simulator/event.h"
@@ -17,12 +17,42 @@
 #include "./protocol/protocol.h"
 
 
-
+typedef enum typeOfPeer {
+  paymentSender,
+  paymentHop,
+  paymentReceiver
+} TypeOfPeer;
 
 HashTable* peers, *channels, *channelInfos, *payments;
 long nPeers, nChannels;
 long peerID, channelID, channelInfoID, paymentID;
 long eventID;
+
+TypeOfPeer getTypeOfPeer(long peerID, long paymentID) {
+  Payment* payment;
+  Route* route;
+  RouteHop * firstHop, *lastHop;
+  long routeLength;
+
+  payment = hashTableGet(payments, paymentID);
+  route = payment->route;
+
+  if(route==NULL)
+    return paymentSender;
+
+  firstHop = arrayGet(route->routeHops, 0);
+  if(peerID==firstHop->pathHop->sender)
+    return paymentSender;
+
+  routeLength = arrayLen(route->routeHops);
+  lastHop=arrayGet(route->routeHops, routeLength-1);
+  if(peerID==lastHop->pathHop->receiver)
+    return paymentReceiver;
+
+  //TODO: sto dando per scontato che peerID passato esista nella route dell'evento: cosa succede invece se per qualche bug non esiste?
+  return paymentHop;
+
+}
 
 //test a send payment
 int main() {
@@ -34,6 +64,7 @@ int main() {
   double time, amount;
   char eventType[20];
   Heap *events;
+  TypeOfPeer typeOfPeer;
 
   peerID = channelID = channelInfoID = paymentID = eventID = 0;
 
@@ -66,8 +97,6 @@ int main() {
   hashTablePut(payments, payment->ID, payment);
   paymentID++;
 
-  
-
   time=0.0;
   strcpy(eventType, "send");
   event = createEvent(eventID, time, eventType, sender, payment->ID);
@@ -77,7 +106,8 @@ int main() {
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
-    printf("%ld\n", event->ID);
+    typeOfPeer = getTypeOfPeer(event->peerID, event->paymentID);
+    printf("%d\n", typeOfPeer);
   }
 
 
