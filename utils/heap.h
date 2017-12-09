@@ -11,7 +11,7 @@ typedef struct heap {
 
 Heap* heapInitialize(long size);
 
-void heapInsert(Heap *h, void* data, int(*compare)());
+Heap* heapInsert(Heap *h, void* data, int(*compare)());
 
 void* heapPop(Heap* h, int(*compare)());
 

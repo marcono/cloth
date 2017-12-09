@@ -19,20 +19,29 @@
 
 
 
-HashTable* peers, *channels, *channelInfos;
+HashTable* peers, *channels, *channelInfos, *payments;
 long nPeers, nChannels;
 long peerID, channelID, channelInfoID, paymentID;
+long eventID;
 
 //test a send payment
 int main() {
   long i;
   Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *e;
+  double time;
+  chart eventType[20];
+  Heap *events;
 
-  peerID = channelID = channelInfoID = paymentID = 0;
+  peerID = channelID = channelInfoID = paymentID = eventID = 0;
+
 
   peers = hashTableInitialize(2);
   channels = hashTableInitialize(2);
   channelInfos= hashTableInitialize(2);
+  events = heapInitialize(100);
 
   nPeers=5;
 
@@ -46,10 +55,24 @@ int main() {
     connectPeers(i-1, i);
   }
 
-  for(i=0; i<peerID; i++) {
-    peer = hashTableGet(peers, i);
-    printf("%ld\n", peer->ID);
+  sender = 0;
+  receiver = 4;
+  amount = 1.0;
+  payment = createPayment(paymentID, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  paymentID++;
+
+  time=0.0;
+  strcpy(eventType, "send");
+  event = createEvent(eventID, time, eventType, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  eventID++;
+
+  while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+    printf("%ld\n", event->ID);
   }
+
 
   return 0;
 }

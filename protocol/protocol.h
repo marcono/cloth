@@ -37,7 +37,7 @@ typedef struct payment{
   long sender;
   long receiver;
   double amount;
-  Route route;
+  Route* route;
 } Payment;
 
 /*
@@ -63,6 +63,8 @@ Peer* createPeer(long ID, long channelsSize);
 ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity);
 
 Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
+
+Payment* createPayment(long ID, long sender, long receiver, double amount);
 
 void connectPeers(long peer1, long peer2);
 

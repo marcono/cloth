@@ -68,7 +68,7 @@ Heap* heapInitialize(long size) {
   return h;
 }
 
-void heapInsert(Heap *h, void* data, int(*compare)()) {
+Heap* heapInsert(Heap *h, void* data, int(*compare)()) {
   int i, parent, compRes;
 
   if(h->index>=h->size)
@@ -86,6 +86,8 @@ void heapInsert(Heap *h, void* data, int(*compare)()) {
     i=parent;
     parent=getParent(i);
   }
+
+  return h;
 }
 
 void* heapPop(Heap* h, int(*compare)()) {

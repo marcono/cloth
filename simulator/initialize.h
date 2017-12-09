@@ -7,8 +7,9 @@ extern long nChannels;
 extern HashTable* peers;
 extern HashTable* channels;
 extern HashTable* channelInfos;
-
+extern HashTable* payments;
 
 void initialize();
+
 
 #endif

@@ -42,6 +42,19 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   return channel;
 }
 
+Payment* createPayment(long ID, long sender, long receiver, double amount) {
+  Payment * p;
+
+  p = GC_MALLOC(sizeof(Payment));
+  p->ID=ID;
+  p->sender= sender;
+  p->receiver = receiver;
+  p->amount = amount;
+  p->route = NULL;
+
+  return p;
+}
+
 void connectPeers(long peerID1, long peerID2) {
   Peer* peer1, *peer2;
   Policy policy;
