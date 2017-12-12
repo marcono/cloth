@@ -4,9 +4,10 @@
 #include "protocol.h"
 #include "../utils/array.h"
 #include "../utils/hashTable.h"
+#include "../utils/heap.h"
 #include "../simulator/initialize.h"
 #include "findRoute.h"
-
+#include "../simulator/event.h"
 
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
@@ -102,6 +103,7 @@ void sendPayment(long paymentID) {
   PathHop* firstPathHop;
   RouteHop* firstRouteHop;
   Channel* channel;
+  Event* event;
 
   payment = hashTableGet(payments, paymentID);
   receiver = payment->receiver;
@@ -138,6 +140,12 @@ void sendPayment(long paymentID) {
 
   channel->balance = newBalance;
 
+  payment->route = route;
+  simulatorTime += 0.1;
+  event = createEvent(eventID, simulatorTime, SEND, nextPeerHop, paymentID );
+
+  events = heapInsert(events, event, compareEvent);
+
   printf("Everything's gonna be alright\n");
 
   return;
@@ -147,6 +155,8 @@ void forwardPayment(long paymentID) {
   Payment* payment;
 
   payment = hashTableGet(payments, paymentID);
+
+  printf("HEY/n");
 
 }
 

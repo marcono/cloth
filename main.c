@@ -27,6 +27,8 @@ HashTable* peers, *channels, *channelInfos, *payments;
 long nPeers, nChannels;
 long peerID, channelID, channelInfoID, paymentID;
 long eventID;
+double simulatorTime;
+Heap* events;
 
 PeerType getPeerType(long peerID, long paymentID) {
   Payment* payment;
@@ -61,8 +63,7 @@ int main() {
   long sender, receiver;
   Payment *payment;
   Event *event;
-  double time, amount;
-  Heap *events;
+  double amount;
   PeerType peerType;
 
   peerID = channelID = channelInfoID = paymentID = eventID = 0;
@@ -96,8 +97,8 @@ int main() {
   hashTablePut(payments, payment->ID, payment);
   paymentID++;
 
-  time=0.0;
-  event = createEvent(eventID, time, SEND, sender, payment->ID);
+  simulatorTime=0.0;
+  event = createEvent(eventID, simulatorTime, SEND, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
   eventID++;
 
