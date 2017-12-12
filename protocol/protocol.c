@@ -1,10 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
 #include "../utils/hashTable.h"
 #include "../simulator/initialize.h"
-
+#include "findRoute.h"
 
 
 Peer* createPeer(long ID, long channelsSize) {
@@ -30,7 +31,7 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity)
   return channelInfo;
 }
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy){
+Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy, double balance){
   Channel* channel;
 
   channel = GC_MALLOC(sizeof(Channel));
@@ -38,6 +39,7 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   channel->channelInfoID = channelInfoID;
   channel->counterparty = counterparty;
   channel->policy = policy;
+  channel->balance = balance;
 
   return channel;
 }
@@ -72,26 +74,73 @@ void connectPeers(long peerID1, long peerID2) {
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
   channelInfoID++;
 
-  channel = createChannel(channelID, channelInfo->ID, peer2->ID, policy);
+  //TODO: meglio mettere il settaggio della balance del canale (sempre pari a capacity/2) dentro
+  //la funzione create channel, magari passando come parametro direttamente l'oggetto channelInfos (cosi si prende ID e capacity)
+  channel = createChannel(channelID, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
   hashTablePut(channels, channel->ID, channel);
   peer1->channel = arrayInsert(peer1->channel, &(channel->ID));
   channelID++;
 
-  channel = createChannel(channelID, channelInfo->ID, peer1->ID, policy);
+  channel = createChannel(channelID, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
   hashTablePut(channels, channel->ID, channel);
   peer2->channel =arrayInsert(peer2->channel, &(channel->ID)); 
   channelID++;
 
 }
 
-//TODO: per aumentare la balance della controparte, si potrebbe tenere l'id del channel
-// della controparte nel nostro channel
+
+
+//TODO: forse e' il caso di fare un evento findroute  che trova la route e poi ad ogni funzione
+// sendpayment forwardpayment etc. si passa routeHop anziche intera route
 void sendPayment(long paymentID) {
   Payment* payment;
+  long receiver, sender, nextPeerHop, forwardChannel;
+  Array* pathHops;
+  double amountToSend, amountToForward, channelBalance, newBalance;
+  int finalTimelock=9;
+  Route* route;
+  PathHop* firstPathHop;
+  RouteHop* firstRouteHop;
+  Channel* channel;
 
   payment = hashTableGet(payments, paymentID);
+  receiver = payment->receiver;
+  sender = payment->sender;
+  amountToSend =  payment->amount;
 
 
+  pathHops = dijkstra(sender, receiver, amountToSend, NULL, NULL);
+  if(pathHops==NULL) {
+    printf("SendPayment %ld: No available path\n", paymentID);
+    return;
+  }
+
+  route = transformPathIntoRoute(pathHops, amountToSend, finalTimelock);
+  if(route==NULL) {
+    printf("SendPayment %ld: No availabe route\n", paymentID);
+    return;
+  }
+
+  firstRouteHop = arrayGet(route->routeHops, 0);
+  firstPathHop = firstRouteHop->pathHop;
+  forwardChannel = firstPathHop->channel;
+  nextPeerHop = firstPathHop->receiver;
+  amountToForward = firstRouteHop->amountToForward;
+
+  channel = hashTableGet(channels, forwardChannel);
+  channelBalance = channel->balance;
+
+  newBalance = channelBalance - amountToForward;
+  if(newBalance < 0) {
+    printf("SendPayment %ld: Not enough balance\n", paymentID);
+    return;
+  }
+
+  channel->balance = newBalance;
+
+  printf("Everything's gonna be alright\n");
+
+  return;
 }
 
 void forwardPayment(long paymentID) {

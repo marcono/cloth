@@ -30,6 +30,7 @@ typedef struct channel {
   long channelInfoID;
   long counterparty;
   Policy policy;
+  double balance;
 } Channel;
 
 typedef struct payment{
@@ -62,7 +63,7 @@ Peer* createPeer(long ID, long channelsSize);
 
 ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity);
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
+Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy, double balance);
 
 Payment* createPayment(long ID, long sender, long receiver, double amount);
 

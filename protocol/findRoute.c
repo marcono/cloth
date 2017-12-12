@@ -27,10 +27,14 @@ int compareDistance(Distance* a, Distance* b) {
 
 int isPresent(long element, Array* longArray) {
   long i, *curr;
+
+  if(longArray==NULL) return 0;
+
   for(i=0; i<arrayLen(longArray); i++) {
     curr = arrayGet(longArray, i);
     if(*curr==element) return 1;
   }
+
   return 0;
 }
 
