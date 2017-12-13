@@ -151,7 +151,7 @@ void findRoute(Event* event) {
 
   route = transformPathIntoRoute(pathHops, amountToSend, finalTimelock);
   if(route==NULL) {
-    printf("SendPayment %ld: No availabe route\n", event->paymentID);
+    printf("SendPayment %ld: No available route\n", event->paymentID);
     return;
   }
 
@@ -159,12 +159,8 @@ void findRoute(Event* event) {
 
   firstHop = arrayGet(pathHops, 0);
 
-  simulatorTime += 0.1;
   sendEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, firstHop->sender, event->paymentID );
-
   events = heapInsert(events, sendEvent, compareEvent);
-
-  return;
 
 }
 
@@ -172,45 +168,41 @@ void findRoute(Event* event) {
 //TODO: forse e' il caso di fare un evento findroute  che trova la route e poi ad ogni funzione
 // sendpayment forwardpayment etc. si passa routeHop anziche intera route
 void sendPayment(Event* event) {
-
-  printf("send payment");
-  /*  Payment* payment;
-  long receiver, sender, nextPeerHop, forwardChannel;
-  Array* pathHops;
-  double amountToSend, amountToForward, channelBalance, newBalance;
-  int finalTimelock=9;
+  Payment* payment;
+  long  nextPeer, forwardChannel;
+  double amountToForward, newBalance;
   Route* route;
   PathHop* firstPathHop;
   RouteHop* firstRouteHop;
   Channel* channel;
-  Event* newEvent;
+  Event* forwardEvent;
+
+  printf("send payment/n");
+
+  payment = hashTableGet(payments, event->paymentID);
+  route = payment->route;
 
   firstRouteHop = arrayGet(route->routeHops, 0);
   firstPathHop = firstRouteHop->pathHop;
   forwardChannel = firstPathHop->channel;
-  nextPeerHop = firstPathHop->receiver;
+  nextPeer = firstPathHop->receiver;
   amountToForward = firstRouteHop->amountToForward;
 
   channel = hashTableGet(channels, forwardChannel);
-  channelBalance = channel->balance;
 
-  newBalance = channelBalance - amountToForward;
+  newBalance = channel->balance - amountToForward;
   if(newBalance < 0) {
     printf("SendPayment %ld: Not enough balance\n", event->paymentID);
     return;
   }
-
   channel->balance = newBalance;
 
-  payment->route = route;
+  //TODO: controllare se il prossimo nodo e' last receiver o hop
   simulatorTime += 0.1;
-  newEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, nextPeerHop, event->paymentID );
+  forwardEvent = createEvent(eventIndex, simulatorTime, FORWARDPAYMENT, nextPeer, event->paymentID );
 
-  events = heapInsert(events, newEvent, compareEvent);
+  events = heapInsert(events, forwardEvent, compareEvent);
 
-  printf("Everything's gonna be alright\n");
-
-  return;*/
 }
 
 void forwardPayment(Event *event) {
@@ -235,7 +227,7 @@ void forwardPayment(Event *event) {
 void receivePayment(Event* event ) {
     
 
-  printf("receive payment");
+  printf("receive payment/n");
 
   }
 /*
