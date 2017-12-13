@@ -177,7 +177,7 @@ void sendPayment(Event* event) {
   Channel* channel;
   Event* forwardEvent;
 
-  printf("send payment/n");
+  printf("send payment\n");
 
   payment = hashTableGet(payments, event->paymentID);
   route = payment->route;
@@ -219,7 +219,7 @@ void forwardPayment(Event *event) {
   routeHop=getCurrentHop(route, peerIndex);
   */
  
-  printf("forward payment/n");
+  printf("forward payment\n");
 
 }
 
