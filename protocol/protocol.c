@@ -9,6 +9,13 @@
 #include "findRoute.h"
 #include "../simulator/event.h"
 
+//TODO: creare ID randomici e connettere peer "vicini" usando il concetto
+// di vicinanza di chord; memorizzare gli id dei peer in un Array di long
+// per avere facile accesso a tutti i peer nel momento della creazione dei canali
+// (per controllare invece se un certo ID e' gia' stato usato, usare direttamente l'hashtable dei peer
+// perche' e' piu' efficiente)
+// CONTROLLARE SE QUESTO POTREBBE ESSERE UN PROBLEMA PER GLI ALGORITMI DI ROUTING
+
 long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 long nPeers;
 long nChannels;
@@ -165,7 +172,9 @@ void findRoute(Event* event) {
 //TODO: forse e' il caso di fare un evento findroute  che trova la route e poi ad ogni funzione
 // sendpayment forwardpayment etc. si passa routeHop anziche intera route
 void sendPayment(Event* event) {
-  Payment* payment;
+
+  printf("send payment");
+  /*  Payment* payment;
   long receiver, sender, nextPeerHop, forwardChannel;
   Array* pathHops;
   double amountToSend, amountToForward, channelBalance, newBalance;
@@ -201,11 +210,11 @@ void sendPayment(Event* event) {
 
   printf("Everything's gonna be alright\n");
 
-  return;
+  return;*/
 }
 
 void forwardPayment(Event *event) {
-  Payment* payment;
+  /*Payment* payment;
   Route* route;
   RouteHop* routeHop;
   long peerIndex;
@@ -216,8 +225,9 @@ void forwardPayment(Event *event) {
   route = payment->route;
 
   routeHop=getCurrentHop(route, peerIndex);
+  */
  
-  printf("HEY/n");
+  printf("forward payment/n");
 
 }
 

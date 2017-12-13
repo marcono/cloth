@@ -4,6 +4,7 @@
 #include "../utils/array.h"
 #include "findRoute.h"
 #include "../utils/hashTable.h"
+#include "../simulator/event.h"
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 extern long nPeers;
@@ -77,11 +78,13 @@ Payment* createPayment(long ID, long sender, long receiver, double amount);
 
 void connectPeers(long peer1, long peer2);
 
-void sendPayment(long paymentID);
+void findRoute(Event* event);
 
-void forwardPayment(long paymentID);
+void sendPayment(Event* event);
 
-void receivePayment(long paymentID);
+void forwardPayment(Event* event);
+
+void receivePayment(Event* event);
 
 long getEdgeIndex(Peer*n);
 

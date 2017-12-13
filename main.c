@@ -75,15 +75,8 @@ int main() {
   initializeSimulatorData();
   initializeProtocolData(nP, nC);
 
-
-  printf("%ld/n", eventIndex);
-  /*
-  
-
-
-  
   for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerID,5);
+    peer = createPeer(peerIndex,5);
     hashTablePut(peers, peer->ID, peer);
   }
 
@@ -97,18 +90,19 @@ int main() {
   sender = 0;
   receiver = 4;
   amount = 1.0;
-  payment = createPayment(paymentID, sender, receiver, amount);
+  payment = createPayment(paymentIndex, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
 
 
 
-  event = createEvent(eventID, simulatorTime, SEND, sender, payment->ID);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
 
 
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
+    /*
     peerType = getPeerType(event->peerID, event->paymentID);
     switch(peerType) {
     case SENDER:
@@ -121,10 +115,24 @@ int main() {
       receivePayment(event);
       break;
     }
+    */
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    }
   }
 
-
-  */
   return 0;
 }
 
