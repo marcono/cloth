@@ -232,10 +232,10 @@ void forwardPayment(Event *event) {
 }
 
 
-void receivePayment(long paymentID) {
-    Payment* payment;
+void receivePayment(Event* event ) {
+    
 
-    payment = hashTableGet(payments, paymentID);
+  printf("receive payment");
 
   }
 /*
