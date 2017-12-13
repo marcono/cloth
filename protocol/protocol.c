@@ -9,6 +9,29 @@
 #include "findRoute.h"
 #include "../simulator/event.h"
 
+long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
+long nPeers;
+long nChannels;
+HashTable* peers;
+HashTable* channels;
+HashTable* channelInfos;
+HashTable* payments;
+
+
+void initializeProtocolData(long nP, long nC) {
+  nPeers = nP;
+  nChannels = nC;
+
+  channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
+
+  peers = hashTableInitialize(2);
+  channels = hashTableInitialize(2);
+  channelInfos= hashTableInitialize(2);
+  payments = hashTableInitialize(2);
+
+
+}
+
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
 
@@ -16,6 +39,8 @@ Peer* createPeer(long ID, long channelsSize) {
   peer->ID=ID;
   peer->channelsSize = channelsSize;
   peer->channel = arrayInitialize(peer->channelsSize);
+
+  peerIndex++;
 
   return peer;
 }
@@ -28,6 +53,8 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity)
   channelInfo->peer1 = peer1;
   channelInfo->peer2 = peer2;
   channelInfo->capacity = capacity;
+
+  channelInfoIndex++;
 
   return channelInfo;
 }
@@ -42,6 +69,8 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   channel->policy = policy;
   channel->balance = balance;
 
+  channelIndex++;
+
   return channel;
 }
 
@@ -54,6 +83,8 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
   p->receiver = receiver;
   p->amount = amount;
   p->route = NULL;
+
+  paymentIndex++;
 
   return p;
 }
@@ -71,29 +102,69 @@ void connectPeers(long peerID1, long peerID2) {
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  channelInfo = createChannelInfo(channelInfoID, peer1->ID, peer2->ID, 5.0);
+  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, 5.0);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
-  channelInfoID++;
+
 
   //TODO: meglio mettere il settaggio della balance del canale (sempre pari a capacity/2) dentro
   //la funzione create channel, magari passando come parametro direttamente l'oggetto channelInfos (cosi si prende ID e capacity)
-  channel = createChannel(channelID, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
+  channel = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
   hashTablePut(channels, channel->ID, channel);
   peer1->channel = arrayInsert(peer1->channel, &(channel->ID));
-  channelID++;
 
-  channel = createChannel(channelID, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
+
+  channel = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
   hashTablePut(channels, channel->ID, channel);
   peer2->channel =arrayInsert(peer2->channel, &(channel->ID)); 
-  channelID++;
+
+
+}
+
+void findRoute(Event* event) {
+  Payment *payment;
+  long sender, receiver;
+  double amountToSend;
+  Array* pathHops;
+  Route* route;
+  int finalTimelock=9;
+  PathHop* firstHop;
+  Event* sendEvent;
+
+  payment = hashTableGet(payments, event->paymentID);
+  receiver = payment->receiver;
+  sender = payment->sender;
+  amountToSend =  payment->amount;
+
+
+  pathHops = dijkstra(sender, receiver, amountToSend, NULL, NULL);
+  if(pathHops==NULL) {
+    printf("SendPayment %ld: No available path\n", event->paymentID);
+    return;
+  }
+
+  route = transformPathIntoRoute(pathHops, amountToSend, finalTimelock);
+  if(route==NULL) {
+    printf("SendPayment %ld: No availabe route\n", event->paymentID);
+    return;
+  }
+
+  payment->route = route;
+
+  firstHop = arrayGet(pathHops, 0);
+
+  simulatorTime += 0.1;
+  sendEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, firstHop->sender, event->paymentID );
+
+  events = heapInsert(events, sendEvent, compareEvent);
+
+  return;
 
 }
 
 
-
 //TODO: forse e' il caso di fare un evento findroute  che trova la route e poi ad ogni funzione
 // sendpayment forwardpayment etc. si passa routeHop anziche intera route
-void sendPayment(long paymentID) {
+void sendPayment(Event* event) {
   Payment* payment;
   long receiver, sender, nextPeerHop, forwardChannel;
   Array* pathHops;
@@ -103,25 +174,7 @@ void sendPayment(long paymentID) {
   PathHop* firstPathHop;
   RouteHop* firstRouteHop;
   Channel* channel;
-  Event* event;
-
-  payment = hashTableGet(payments, paymentID);
-  receiver = payment->receiver;
-  sender = payment->sender;
-  amountToSend =  payment->amount;
-
-
-  pathHops = dijkstra(sender, receiver, amountToSend, NULL, NULL);
-  if(pathHops==NULL) {
-    printf("SendPayment %ld: No available path\n", paymentID);
-    return;
-  }
-
-  route = transformPathIntoRoute(pathHops, amountToSend, finalTimelock);
-  if(route==NULL) {
-    printf("SendPayment %ld: No availabe route\n", paymentID);
-    return;
-  }
+  Event* newEvent;
 
   firstRouteHop = arrayGet(route->routeHops, 0);
   firstPathHop = firstRouteHop->pathHop;
@@ -134,7 +187,7 @@ void sendPayment(long paymentID) {
 
   newBalance = channelBalance - amountToForward;
   if(newBalance < 0) {
-    printf("SendPayment %ld: Not enough balance\n", paymentID);
+    printf("SendPayment %ld: Not enough balance\n", event->paymentID);
     return;
   }
 
@@ -142,20 +195,28 @@ void sendPayment(long paymentID) {
 
   payment->route = route;
   simulatorTime += 0.1;
-  event = createEvent(eventID, simulatorTime, SEND, nextPeerHop, paymentID );
+  newEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, nextPeerHop, event->paymentID );
 
-  events = heapInsert(events, event, compareEvent);
+  events = heapInsert(events, newEvent, compareEvent);
 
   printf("Everything's gonna be alright\n");
 
   return;
 }
 
-void forwardPayment(long paymentID) {
+void forwardPayment(Event *event) {
   Payment* payment;
+  Route* route;
+  RouteHop* routeHop;
+  long peerIndex;
 
-  payment = hashTableGet(payments, paymentID);
+  peerIndex = event->peerIndex;
 
+  payment = hashTableGet(payments, event->paymentID);
+  route = payment->route;
+
+  routeHop=getCurrentHop(route, peerIndex);
+ 
   printf("HEY/n");
 
 }

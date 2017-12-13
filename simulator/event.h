@@ -1,5 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
+#include "../utils/heap.h"
+
 /*
 typedef struct payment {
   Peer sender;
@@ -9,12 +11,18 @@ typedef struct payment {
 } Payment;
 */
 
-extern long eventID;
+extern long eventIndex;
+extern Heap* events;
 
 typedef enum eventType {
-  SEND,
-  SUCCESS,
-  FAIL
+  FINDROUTE,
+  SENDPAYMENT,
+  FORWARDPAYMENT,
+  RECEIVEPAYMENT,
+  FORWARDSUCCESS,
+  FORWARDFAIL,
+  RECEIVESUCCESS,
+  RECEIVEFAIL
 } EventType;
 
 typedef struct event {

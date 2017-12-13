@@ -13,6 +13,8 @@ Event* createEvent(long ID, double time, EventType type, long peerID, long payme
   e->peerID = peerID;
   e->paymentID = paymentID;
 
+  eventIndex++;
+
   return e;
 
 }

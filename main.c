@@ -23,12 +23,14 @@ typedef enum typeOfPeer {
   RECEIVER
 } PeerType;
 
+/*
 HashTable* peers, *channels, *channelInfos, *payments;
 long nPeers, nChannels;
 long peerID, channelID, channelInfoID, paymentID;
 long eventID;
 double simulatorTime;
 Heap* events;
+
 
 PeerType getPeerType(long peerID, long paymentID) {
   Payment* payment;
@@ -55,10 +57,11 @@ PeerType getPeerType(long peerID, long paymentID) {
   return HOP;
 
 }
+*/
 
 //test a send payment
 int main() {
-  long i;
+  long i, nP, nC;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -66,21 +69,22 @@ int main() {
   double amount;
   PeerType peerType;
 
-  peerID = channelID = channelInfoID = paymentID = eventID = 0;
+  nP = 5;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
 
 
-  peers = hashTableInitialize(2);
-  channels = hashTableInitialize(2);
-  channelInfos= hashTableInitialize(2);
-  payments = hashTableInitialize(2);
-  events = heapInitialize(100);
+  printf("%ld/n", eventIndex);
+  /*
+  
 
-  nPeers=5;
 
+  
   for(i=0; i<nPeers; i++) {
     peer = createPeer(peerID,5);
     hashTablePut(peers, peer->ID, peer);
-    peerID++;
   }
 
 
@@ -95,12 +99,12 @@ int main() {
   amount = 1.0;
   payment = createPayment(paymentID, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
-  paymentID++;
 
-  simulatorTime=0.0;
+
+
   event = createEvent(eventID, simulatorTime, SEND, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
-  eventID++;
+
 
 
   while(heapLen(events) != 0 ) {
@@ -108,19 +112,19 @@ int main() {
     peerType = getPeerType(event->peerID, event->paymentID);
     switch(peerType) {
     case SENDER:
-      sendPayment(event->paymentID);
+      sendPayment(event);
       break;
     case HOP:
-      forwardPayment(event->paymentID);
+      forwardPayment(event);
       break;
     case RECEIVER:
-      receivePayment(event->paymentID);
+      receivePayment(event);
       break;
     }
   }
 
 
-
+  */
   return 0;
 }
 

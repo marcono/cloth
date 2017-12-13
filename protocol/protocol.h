@@ -3,8 +3,16 @@
 
 #include "../utils/array.h"
 #include "findRoute.h"
+#include "../utils/hashTable.h"
 
-extern long channelID, peerID, channelInfoID, paymentID;
+extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
+extern long nPeers;
+extern long nChannels;
+extern HashTable* peers;
+extern HashTable* channels;
+extern HashTable* channelInfos;
+extern HashTable* payments;
+
 
 typedef struct policy {
   double feeBase;
@@ -57,7 +65,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocol();
+void initializeProtocolData(long nPeers, long nChannels);
 
 Peer* createPeer(long ID, long channelsSize);
 

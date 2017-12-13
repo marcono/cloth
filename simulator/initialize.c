@@ -6,11 +6,23 @@
 #include "../utils/array.h"
 #include "../protocol/protocol.h"
 #include "initialize.h"
+#include "event.h"
 #include <gsl/gsl_rng.h>
 
-HashTable* peers, *channels, *channelInfos;
-long nPeers, nChannels;
 
+
+long eventIndex;
+Heap* events;
+double simulatorTime;
+
+
+void initializeSimulatorData() {
+  eventIndex = 0;
+  events = heapInitialize(100);
+  simulatorTime = 0.0;
+}
+
+/*
 void initialize() {
   long i;
   Peer* peer;
@@ -89,4 +101,4 @@ void initialize() {
   }
 
 }
-
+*/
