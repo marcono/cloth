@@ -164,42 +164,70 @@ void findRoute(Event* event) {
 
 }
 
+long getPeerPosition(long peerID, Array* routeHops, int isForward) {
+  RouteHop* routeHop;
+  long i;
 
-//TODO: forse e' il caso di fare un evento findroute  che trova la route e poi ad ogni funzione
-// sendpayment forwardpayment etc. si passa routeHop anziche intera route
+  for(i=0; i<arrayLen(routeHops); i++) {
+    routeHop = arrayGet(routeHops, i);
+
+    if(isForward && routeHop->pathHop->sender == peerID)
+      return i;
+
+    if(!isForward && routeHop->pathHop->receiver == peerID)
+      return i;
+  }
+
+  return -1;
+}
+
+
 void sendPayment(Event* event) {
   Payment* payment;
-  long  nextPeer, forwardChannel;
+  long  nextPeerID, forwardChannelID, nextPeerPosition, routeLen;
   double amountToForward, newBalance;
   Route* route;
   PathHop* firstPathHop;
   RouteHop* firstRouteHop;
-  Channel* channel;
+  Array* routeHops;
+  Channel* forwardChannel;
   Event* forwardEvent;
+  int isForward=1; //TODO: fare enum di tipo bool?
+  EventType eventType;
 
   printf("send payment\n");
 
   payment = hashTableGet(payments, event->paymentID);
   route = payment->route;
+  routeHops = route->routeHops;
+  routeLen = arrayLen(routeHops);
 
-  firstRouteHop = arrayGet(route->routeHops, 0);
+  firstRouteHop = arrayGet(routeHops, 0);
   firstPathHop = firstRouteHop->pathHop;
-  forwardChannel = firstPathHop->channel;
-  nextPeer = firstPathHop->receiver;
+  forwardChannelID = firstPathHop->channel;
+  nextPeerID = firstPathHop->receiver;
   amountToForward = firstRouteHop->amountToForward;
 
-  channel = hashTableGet(channels, forwardChannel);
+  forwardChannel = hashTableGet(channels, forwardChannelID);
 
-  newBalance = channel->balance - amountToForward;
+  newBalance = forwardChannel->balance - amountToForward;
   if(newBalance < 0) {
     printf("SendPayment %ld: Not enough balance\n", event->paymentID);
     return;
   }
-  channel->balance = newBalance;
+  forwardChannel->balance = newBalance;
 
-  //TODO: controllare se il prossimo nodo e' last receiver o hop
+  nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
+  if(nextPeerPosition == routeLen-1)
+    eventType = RECEIVEPAYMENT;
+  else if(nextPeerPosition>0 && nextPeerPosition<routeLen-1)
+    eventType = FORWARDPAYMENT;
+  else {
+    printf("SendPayment %ld: wrong peer position\n", event->paymentID);
+    return;
+  }
   simulatorTime += 0.1;
-  forwardEvent = createEvent(eventIndex, simulatorTime, FORWARDPAYMENT, nextPeer, event->paymentID );
+  forwardEvent = createEvent(eventIndex, simulatorTime, eventType, nextPeerID, event->paymentID );
 
   events = heapInsert(events, forwardEvent, compareEvent);
 
