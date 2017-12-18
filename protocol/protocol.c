@@ -229,12 +229,12 @@ void sendPayment(Event* event) {
 
   //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
   nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
-  if(nextPeerPosition == routeLen-1)
+  if(nextPeerPosition == routeLen)
     eventType = RECEIVEPAYMENT;
-  else if(nextPeerPosition>0 && nextPeerPosition<routeLen-1)
+  else if(nextPeerPosition>0 && nextPeerPosition<routeLen)
     eventType = FORWARDPAYMENT;
   else {
-    printf("SendPayment %ld: wrong peer position\n", event->paymentID);
+    printf("SendPayment %ld: wrong peer position %ld \n", event->paymentID, nextPeerPosition);
     return;
   }
   simulatorTime += 0.1;
@@ -273,12 +273,12 @@ void forwardPayment(Event *event) {
   nextPeerID = routeHop->pathHop->receiver;
 
   nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
-  if(nextPeerPosition == routeLen-1)
+  if(nextPeerPosition == routeLen)
     eventType = RECEIVEPAYMENT;
-  else if(nextPeerPosition>0 && nextPeerPosition<routeLen-1)
+  else if(nextPeerPosition>0 && nextPeerPosition<routeLen)
     eventType = FORWARDPAYMENT;
   else {
-    printf("SendPayment %ld: wrong peer position\n", event->paymentID);
+    printf("SendPayment %ld: wrong peer position %ld\n", event->paymentID, nextPeerPosition);
     return;
   }
   simulatorTime += 0.1;
