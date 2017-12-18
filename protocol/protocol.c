@@ -99,7 +99,7 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
 void connectPeers(long peerID1, long peerID2) {
   Peer* peer1, *peer2;
   Policy policy;
-  Channel* channel;
+  Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
 
   policy.feeBase = 0.1;
@@ -115,16 +115,17 @@ void connectPeers(long peerID1, long peerID2) {
 
   //TODO: meglio mettere il settaggio della balance del canale (sempre pari a capacity/2) dentro
   //la funzione create channel, magari passando come parametro direttamente l'oggetto channelInfos (cosi si prende ID e capacity)
-  channel = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
-  hashTablePut(channels, channel->ID, channel);
-  peer1->channel = arrayInsert(peer1->channel, &(channel->ID));
+  firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
+  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
+  peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
 
 
-  channel = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
-  hashTablePut(channels, channel->ID, channel);
-  peer2->channel =arrayInsert(peer2->channel, &(channel->ID)); 
+  secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
+  hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
+  peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
 
-
+  firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID;
+  secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
 }
 
 void findRoute(Event* event) {
@@ -183,11 +184,11 @@ RouteHop* getRouteHop(long peerID, Array* routeHops, int isForward) {
   return arrayGet(routeHops, index);
 }
 
-
+//TODO: uniformare tipi di variabili d'appoggio da usare nelle seguenti tre funzioni
 
 void sendPayment(Event* event) {
   Payment* payment;
-  long  nextPeerID, forwardChannelID, nextPeerPosition, routeLen;
+  long  nextPeerID, forwardChannelID, routeLen;
   double amountToForward, newBalance;
   Route* route;
   PathHop* firstPathHop;
@@ -195,10 +196,9 @@ void sendPayment(Event* event) {
   Array* routeHops;
   Channel* forwardChannel;
   Event* forwardEvent;
-  int isForward=1; //TODO: fare enum di tipo bool?
   EventType eventType;
 
-  printf("send payment\n");
+  printf("SEND PAYMENT %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
   route = payment->route;
@@ -215,10 +215,13 @@ void sendPayment(Event* event) {
 
   newBalance = forwardChannel->balance - amountToForward;
   if(newBalance < 0) {
-    printf("SendPayment %ld: Not enough balance\n", event->paymentID);
+    printf("not enough balance\n");
     return;
   }
   forwardChannel->balance = newBalance;
+
+  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
+
 
   //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
   
@@ -246,12 +249,14 @@ void forwardPayment(Event *event) {
   Route* route;
   RouteHop* routeHop;
   Array* routeHops;
-  long peerID, nextPeerID, routeLen, nextPeerPosition;
+  long peerID, nextPeerID, routeLen, forwardChannelID;
   int isForward;
   EventType eventType;
   Event* forwardEvent;
+  double newBalance;
+  Channel* forwardChannel;
 
-  printf("forward payment\n");
+  printf("FORWARD PAYMENT %ld\n", event->paymentID);
 
   peerID = event->peerID;
 
@@ -263,9 +268,22 @@ void forwardPayment(Event *event) {
   isForward = 1;
   routeHop=getRouteHop(peerID, routeHops, isForward);
   if(routeHop == NULL) {
-    printf("ForwardPayment %ld: no route hop\n", event->paymentID);
+    printf("no route hop\n");
     return;
   }
+
+  forwardChannelID = routeHop->pathHop->channel;
+  forwardChannel = hashTableGet(channels, forwardChannelID);
+
+  newBalance = forwardChannel->balance - routeHop->amountToForward;
+  if(newBalance < 0) {
+    printf("not enough balance\n");
+    return;
+  }
+  forwardChannel->balance = newBalance;
+
+  printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
+
 
   nextPeerID = routeHop->pathHop->receiver;
 
@@ -278,9 +296,30 @@ void forwardPayment(Event *event) {
 
 
 void receivePayment(Event* event ) {
+  long peerID, routeLen;
+  Route* route;
+  Payment* payment;
+  Array* routeHops;
+  RouteHop* lastRouteHop;
+  Channel* forwardChannel,*backwardChannel;
 
+  printf("RECEIVE PAYMENT %ld\n", event->paymentID);
+  peerID = event->peerID;
 
-  printf("receive payment\n");
+  payment = hashTableGet(payments, event->paymentID);
+  route = payment->route;
+  routeHops = route->routeHops;
+  routeLen = arrayLen(routeHops);
+
+  //TODO: non mi piace backwardChannel come nome
+  lastRouteHop = arrayGet(routeHops, routeLen-1);
+  forwardChannel = hashTableGet(channels, lastRouteHop->pathHop->channel);
+  backwardChannel = hashTableGet(channels, forwardChannel->otherChannelDirectionID);
+
+  backwardChannel->balance += lastRouteHop->amountToForward;
+
+  printf("Peer %ld, balance %lf\n", peerID, backwardChannel->balance);
+
 
   }
 /*

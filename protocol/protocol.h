@@ -38,6 +38,7 @@ typedef struct channel {
   long ID;
   long channelInfoID;
   long counterparty;
+  long otherChannelDirectionID;
   Policy policy;
   double balance;
 } Channel;
