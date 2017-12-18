@@ -88,7 +88,7 @@ int main() {
 
 
   sender = 0;
-  receiver = 1;
+  receiver = 4;
   amount = 1.0;
   payment = createPayment(paymentIndex, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
