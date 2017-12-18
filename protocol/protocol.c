@@ -181,6 +181,16 @@ long getPeerPosition(long peerID, Array* routeHops, int isForward) {
   return -1;
 }
 
+RouteHop* getCurrentHop(long peerID, Array* routeHops, int isForward) {
+  long peerPosition;
+
+  peerPosition = getPeerPosition(peerID, routeHops, isForward);
+
+  if(peerPosition == -1) return NULL;
+
+  return arrayGet(routeHops, peerPosition);
+}
+
 
 void sendPayment(Event* event) {
   Payment* payment;
@@ -217,6 +227,7 @@ void sendPayment(Event* event) {
   }
   forwardChannel->balance = newBalance;
 
+  //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
   nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
   if(nextPeerPosition == routeLen-1)
     eventType = RECEIVEPAYMENT;
@@ -234,20 +245,45 @@ void sendPayment(Event* event) {
 }
 
 void forwardPayment(Event *event) {
-  /*Payment* payment;
+  Payment* payment;
   Route* route;
   RouteHop* routeHop;
-  long peerIndex;
+  Array* routeHops;
+  long peerID, nextPeerID, routeLen, nextPeerPosition;
+  int isForward;
+  EventType eventType;
+  Event* forwardEvent;
 
-  peerIndex = event->peerIndex;
+  printf("forward payment\n");
+
+  peerID = event->peerID;
 
   payment = hashTableGet(payments, event->paymentID);
   route = payment->route;
+  routeHops = route->routeHops;
+  routeLen = arrayLen(routeHops);
 
-  routeHop=getCurrentHop(route, peerIndex);
-  */
- 
-  printf("forward payment\n");
+  isForward = 1;
+  routeHop=getCurrentHop(peerID, routeHops, isForward);
+  if(routeHop == NULL) {
+    printf("ForwardPayment %ld: no route hop\n", event->paymentID);
+    return;
+  }
+
+  nextPeerID = routeHop->pathHop->receiver;
+
+  nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
+  if(nextPeerPosition == routeLen-1)
+    eventType = RECEIVEPAYMENT;
+  else if(nextPeerPosition>0 && nextPeerPosition<routeLen-1)
+    eventType = FORWARDPAYMENT;
+  else {
+    printf("SendPayment %ld: wrong peer position\n", event->paymentID);
+    return;
+  }
+  simulatorTime += 0.1;
+  forwardEvent = createEvent(eventIndex, simulatorTime, eventType, nextPeerID, event->paymentID );
+  events = heapInsert(events, forwardEvent, compareEvent);
 
 }
 
