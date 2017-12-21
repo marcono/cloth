@@ -356,12 +356,14 @@ void forwardPayment(Event *event) {
 
 
 void receivePayment(Event* event ) {
-  long peerID, routeLen;
+  long peerID, routeLen, prevPeerID;
   Route* route;
   Payment* payment;
   Array* routeHops;
   RouteHop* lastRouteHop;
   Channel* forwardChannel,*backwardChannel;
+  Event* nextEvent;
+  EventType eventType;
 
   printf("RECEIVE PAYMENT %ld\n", event->paymentID);
   peerID = event->peerID;
@@ -380,8 +382,52 @@ void receivePayment(Event* event ) {
 
   printf("Peer %ld, balance %lf\n", peerID, backwardChannel->balance);
 
+  prevPeerID = lastRouteHop->pathHop->sender;
+  eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
+  simulatorTime += 0.1;
+  nextEvent = createEvent(eventIndex, simulatorTime, eventType, prevPeerID, event->paymentID);
+  events = heapInsert(events, nextEvent, compareEvent);
+}
 
-  }
+//TODO: forse ha senso memorizzare nel peer tutti i payment ID che lo interessano (sia come sender che come receiver che come hop);
+//     questo puo' servire sia per motivi statistici che anche per debugging: controllare cioe che il peer non riceva una richiesta
+//     di settle o fail per un pagamento che non lo riguarda.
+
+void forwardSuccess(Event* event) {
+  RouteHop* currentHop;
+  Payment* payment;
+  int isForward;
+  Channel* currentChannel, * backwardChannel;
+  long prevPeerID;
+  Event* nextEvent;
+  EventType eventType;
+
+
+  printf("FORWARD SUCCESS  %ld\n", event->paymentID);
+
+  isForward=0;
+  payment = hashTableGet(payments, event->paymentID);
+  currentHop = getCurrentRouteHop(event->peerID, payment->route->routeHops, isForward);
+
+  currentChannel = hashTableGet(channels, currentHop->pathHop->channel);
+  backwardChannel = hashTableGet(channels, currentChannel->otherChannelDirectionID);
+  backwardChannel->balance += currentHop->amountToForward;
+
+  printf("Peer %ld, balance %lf\n", event->peerID, backwardChannel->balance);
+
+  prevPeerID = currentHop->pathHop->sender;
+  eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
+  simulatorTime += 0.1;
+  nextEvent = createEvent(eventIndex, simulatorTime, eventType, prevPeerID, event->paymentID);
+  events = heapInsert(events, nextEvent, compareEvent);
+}
+
+void receiveSuccess(Event* event){
+
+  printf("RECEIVE SUCCESS %ld\n", event->paymentID);
+
+}
+
 /*
 long getChannelIndex(Peer* peer) {
   long index=-1, i;

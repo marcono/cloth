@@ -130,6 +130,12 @@ int main() {
     case RECEIVEPAYMENT:
       receivePayment(event);
       break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
     }
   }
 

@@ -89,6 +89,10 @@ void forwardPayment(Event* event);
 
 void receivePayment(Event* event);
 
+void forwardSuccess(Event* event);
+
+void receiveSuccess(Event* event);
+
 long getEdgeIndex(Peer*n);
 
 #endif
