@@ -79,6 +79,8 @@ Payment* createPayment(long ID, long sender, long receiver, double amount);
 
 void connectPeers(long peer1, long peer2);
 
+double computeFee(double amountToForward, Policy policy);
+
 void findRoute(Event* event);
 
 void sendPayment(Event* event);

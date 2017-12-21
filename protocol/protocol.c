@@ -128,6 +128,11 @@ void connectPeers(long peerID1, long peerID2) {
   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
 }
 
+double computeFee(double amountToForward, Policy policy) {
+  return policy.feeBase + policy.feeProportional*amountToForward;
+}
+
+
 void findRoute(Event* event) {
   Payment *payment;
   long sender, receiver;
@@ -165,23 +170,73 @@ void findRoute(Event* event) {
 
 }
 
-RouteHop* getRouteHop(long peerID, Array* routeHops, int isForward) {
+RouteHop* getPreviousRouteHop(long peerID, Array* routeHops, int isForward) {
   RouteHop* routeHop;
   long i, index = -1;
 
   for(i=0; i<arrayLen(routeHops); i++) {
     routeHop = arrayGet(routeHops, i);
 
-    if(isForward && routeHop->pathHop->sender == peerID)
+    if(isForward && routeHop->pathHop->receiver == peerID){
       index = i;
+      break;
+    }
 
-    if(!isForward && routeHop->pathHop->receiver == peerID)
+    if(!isForward && routeHop->pathHop->sender == peerID) {
       index = i;
+      break;
+    }
   }
 
   if(index == -1) return NULL;
 
   return arrayGet(routeHops, index);
+}
+
+
+RouteHop* getCurrentRouteHop(long peerID, Array* routeHops, int isForward) {
+  RouteHop* routeHop;
+  long i, index = -1;
+
+  for(i=0; i<arrayLen(routeHops); i++) {
+    routeHop = arrayGet(routeHops, i);
+
+    if(isForward && routeHop->pathHop->sender == peerID){
+      index = i;
+      break;
+    }
+
+    if(!isForward && routeHop->pathHop->receiver == peerID) {
+      index = i;
+      break;
+    }
+  }
+
+  if(index == -1) return NULL;
+
+  return arrayGet(routeHops, index);
+}
+
+int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
+  Policy policy;
+  Channel* currChannel;
+  double fee;
+
+  currChannel = hashTableGet(channels, currHop->pathHop->channel);
+  policy = currChannel->policy;
+
+  fee = computeFee(currHop->amountToForward, policy);
+  if(prevHop->amountToForward - fee != currHop->amountToForward) {
+    printf("Error: Fee not respected\n");
+    return 0;
+  }
+
+  if(prevHop->timelock - policy.timelock != currHop->timelock) {
+    printf("Error: Timelock not respected\n");
+    return 0;
+  }
+
+  return 1;
 }
 
 //TODO: uniformare tipi di variabili d'appoggio da usare nelle seguenti tre funzioni
@@ -247,7 +302,7 @@ void sendPayment(Event* event) {
 void forwardPayment(Event *event) {
   Payment* payment;
   Route* route;
-  RouteHop* routeHop;
+  RouteHop* currentRouteHop, *previousRouteHop;
   Array* routeHops;
   long peerID, nextPeerID, routeLen, forwardChannelID;
   int isForward;
@@ -255,6 +310,7 @@ void forwardPayment(Event *event) {
   Event* forwardEvent;
   double newBalance;
   Channel* forwardChannel;
+  int isPolicyRespected;
 
   printf("FORWARD PAYMENT %ld\n", event->paymentID);
 
@@ -266,16 +322,20 @@ void forwardPayment(Event *event) {
   routeLen = arrayLen(routeHops);
 
   isForward = 1;
-  routeHop=getRouteHop(peerID, routeHops, isForward);
-  if(routeHop == NULL) {
+ currentRouteHop=getCurrentRouteHop(peerID, routeHops, isForward);
+ previousRouteHop = getPreviousRouteHop(peerID, routeHops, isForward);
+  if(currentRouteHop == NULL || previousRouteHop == NULL) {
     printf("no route hop\n");
     return;
   }
 
-  forwardChannelID = routeHop->pathHop->channel;
+  isPolicyRespected = checkPolicyForward(previousRouteHop, currentRouteHop);
+  if(!isPolicyRespected) return;
+
+  forwardChannelID = currentRouteHop->pathHop->channel;
   forwardChannel = hashTableGet(channels, forwardChannelID);
 
-  newBalance = forwardChannel->balance - routeHop->amountToForward;
+  newBalance = forwardChannel->balance - currentRouteHop->amountToForward;
   if(newBalance < 0) {
     printf("not enough balance\n");
     return;
@@ -285,7 +345,7 @@ void forwardPayment(Event *event) {
   printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
 
 
-  nextPeerID = routeHop->pathHop->receiver;
+  nextPeerID = currentRouteHop->pathHop->receiver;
 
   eventType = nextPeerID == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   simulatorTime += 0.1;

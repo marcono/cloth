@@ -257,9 +257,6 @@ Route* routeInitialize(long nHops) {
 }
 
 //TODO: sposta computeFee nei file protocol
-double computeFee(double amountToForward, Policy policy) {
-  return policy.feeBase + policy.feeProportional*amountToForward;
-}
 
 Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTimelock) {
   PathHop *pathHop;
