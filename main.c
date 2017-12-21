@@ -90,14 +90,22 @@ int main() {
   sender = 0;
   receiver = 4;
   amount = 1.0;
+  simulatorTime = 0.0;
   payment = createPayment(paymentIndex, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
-
-
-
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
 
+
+  /*  sender = 4;
+  receiver = 0;
+  amount = 1.0;
+  simulatorTime = 0.05;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  */
 
 
   while(heapLen(events) != 0 ) {
@@ -136,8 +144,16 @@ int main() {
     case RECEIVESUCCESS:
       receiveSuccess(event);
       break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
     }
   }
+
+  //TODO: stampare ordinatamente le balances per testare correttezza
 
   return 0;
 }

@@ -93,6 +93,10 @@ void forwardSuccess(Event* event);
 
 void receiveSuccess(Event* event);
 
+void forwardFail(Event* event);
+
+void receiveFail(Event* event);
+
 long getEdgeIndex(Peer*n);
 
 #endif

@@ -101,6 +101,7 @@ void connectPeers(long peerID1, long peerID2) {
   Policy policy;
   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
+  double capacity;
 
   policy.feeBase = 0.1;
   policy.feeProportional = 0.0;
@@ -109,7 +110,11 @@ void connectPeers(long peerID1, long peerID2) {
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, 5.0);
+  //TODO: REMOVE ME
+  if(peerID1==3) capacity = 1.0;
+  else capacity = 5.0;
+
+  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, capacity);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
 
@@ -170,6 +175,9 @@ void findRoute(Event* event) {
 
 }
 
+//TODO: anziche due funzioni, fare una sola funzione getRouteHop dove si passa isSender==1 per ottenere
+// current hop e isSender==0 per ottenere previous hop
+
 RouteHop* getPreviousRouteHop(long peerID, Array* routeHops, int isForward) {
   RouteHop* routeHop;
   long i, index = -1;
@@ -194,19 +202,19 @@ RouteHop* getPreviousRouteHop(long peerID, Array* routeHops, int isForward) {
 }
 
 
-RouteHop* getCurrentRouteHop(long peerID, Array* routeHops, int isForward) {
+RouteHop* getRouteHop(long peerID, Array* routeHops, int isSender) {
   RouteHop* routeHop;
   long i, index = -1;
 
   for(i=0; i<arrayLen(routeHops); i++) {
     routeHop = arrayGet(routeHops, i);
 
-    if(isForward && routeHop->pathHop->sender == peerID){
+    if(isSender && routeHop->pathHop->sender == peerID){
       index = i;
       break;
     }
 
-    if(!isForward && routeHop->pathHop->receiver == peerID) {
+    if(!isSender && routeHop->pathHop->receiver == peerID) {
       index = i;
       break;
     }
@@ -304,13 +312,12 @@ void forwardPayment(Event *event) {
   Route* route;
   RouteHop* currentRouteHop, *previousRouteHop;
   Array* routeHops;
-  long peerID, nextPeerID, routeLen, forwardChannelID;
-  int isForward;
+  long peerID, nextPeerID, prevPeerID, routeLen, forwardChannelID;
   EventType eventType;
   Event* forwardEvent;
   double newBalance;
   Channel* forwardChannel;
-  int isPolicyRespected;
+  int isPolicyRespected, isSender;
 
   printf("FORWARD PAYMENT %ld\n", event->paymentID);
 
@@ -321,9 +328,10 @@ void forwardPayment(Event *event) {
   routeHops = route->routeHops;
   routeLen = arrayLen(routeHops);
 
-  isForward = 1;
- currentRouteHop=getCurrentRouteHop(peerID, routeHops, isForward);
- previousRouteHop = getPreviousRouteHop(peerID, routeHops, isForward);
+  isSender = 1;
+ currentRouteHop=getRouteHop(peerID, routeHops, isSender);
+ isSender = 0;
+ previousRouteHop = getRouteHop(peerID, routeHops, isSender);
   if(currentRouteHop == NULL || previousRouteHop == NULL) {
     printf("no route hop\n");
     return;
@@ -338,6 +346,14 @@ void forwardPayment(Event *event) {
   newBalance = forwardChannel->balance - currentRouteHop->amountToForward;
   if(newBalance < 0) {
     printf("not enough balance\n");
+
+    prevPeerID = previousRouteHop->pathHop->sender;
+    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    simulatorTime += 0.1;
+    forwardEvent = createEvent(eventIndex, simulatorTime, eventType, prevPeerID, event->paymentID );
+    events = heapInsert(events, forwardEvent, compareEvent);
+
+
     return;
   }
   forwardChannel->balance = newBalance;
@@ -396,7 +412,7 @@ void receivePayment(Event* event ) {
 void forwardSuccess(Event* event) {
   RouteHop* currentHop;
   Payment* payment;
-  int isForward;
+  int isSender;
   Channel* currentChannel, * backwardChannel;
   long prevPeerID;
   Event* nextEvent;
@@ -405,9 +421,9 @@ void forwardSuccess(Event* event) {
 
   printf("FORWARD SUCCESS  %ld\n", event->paymentID);
 
-  isForward=0;
+  isSender=0;
   payment = hashTableGet(payments, event->paymentID);
-  currentHop = getCurrentRouteHop(event->peerID, payment->route->routeHops, isForward);
+  currentHop = getRouteHop(event->peerID, payment->route->routeHops, isSender);
 
   currentChannel = hashTableGet(channels, currentHop->pathHop->channel);
   backwardChannel = hashTableGet(channels, currentChannel->otherChannelDirectionID);
@@ -425,6 +441,52 @@ void forwardSuccess(Event* event) {
 void receiveSuccess(Event* event){
 
   printf("RECEIVE SUCCESS %ld\n", event->paymentID);
+
+}
+
+
+//TODO: uniformare tutti i vari RouteHop a next previous
+void forwardFail(Event* event) {
+  int next;
+  Payment* payment;
+  RouteHop* nextHop, *prevHop;
+  Channel* nextChannel;
+  long prevPeerID;
+  Event* nextEvent;
+  EventType eventType;
+
+  printf("FORWARD FAIL %ld\n", event->paymentID);
+
+
+  next=1;
+  payment = hashTableGet(payments, event->paymentID);
+  nextHop = getRouteHop(event->peerID, payment->route->routeHops, next);
+
+  nextChannel = hashTableGet(channels, nextHop->pathHop->channel);
+  nextChannel->balance += nextHop->amountToForward;
+
+  next=0;
+  prevHop = getRouteHop(event->peerID, payment->route->routeHops, next);
+  prevPeerID = prevHop->pathHop->sender;
+  eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+  simulatorTime += 0.1;
+  nextEvent = createEvent(eventIndex, simulatorTime, eventType, prevPeerID, event->paymentID);
+  events = heapInsert(events, nextEvent, compareEvent);
+}
+
+
+void receiveFail(Event* event) {
+  Payment* payment;
+  RouteHop* firstHop;
+  Channel* nextChannel;
+
+  printf("RECEIVE FAIL %ld\n", event->paymentID);
+
+  payment = hashTableGet(payments, event->paymentID);
+  firstHop = arrayGet(payment->route->routeHops, 0);
+
+  nextChannel = hashTableGet(channels, firstHop->pathHop->channel);
+  nextChannel->balance += firstHop->amountToForward;
 
 }
 
