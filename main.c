@@ -86,7 +86,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  PeerType peerType;
+  Channel* channel;
 
   nP = 5;
   nC = 2;
@@ -104,7 +104,10 @@ int main() {
     connectPeers(i-1, i);
   }
 
-
+  //test fail
+  channel = hashTableGet(channels, 6);
+  channel->balance = 0.5;
+  //end test fail
 
   sender = 0;
   receiver = 4;
@@ -115,7 +118,7 @@ int main() {
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
 
-
+  /*
   sender = 4;
   receiver = 0;
   amount = 1.0;
@@ -124,10 +127,10 @@ int main() {
   hashTablePut(payments, payment->ID, payment);
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
- 
+  */
 
 
-  while(heapLen(events) != 0 ) {
+ while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     /*
     peerType = getPeerType(event->peerID, event->paymentID);
@@ -169,6 +172,8 @@ int main() {
     case RECEIVEFAIL:
       receiveFail(event);
       break;
+    default:
+      printf("Error wrong event type\n");
     }
   }
 

@@ -90,6 +90,8 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
   p->receiver = receiver;
   p->amount = amount;
   p->route = NULL;
+  p->ignoredChannels = arrayInitialize(5);
+  p->ignoredPeers = arrayInitialize(5);
 
   paymentIndex++;
 
@@ -153,8 +155,9 @@ void findRoute(Event* event) {
   sender = payment->sender;
   amountToSend =  payment->amount;
 
+  printf("ignored channels length: %ld\n", arrayLen(payment->ignoredChannels));
 
-  pathHops = dijkstra(sender, receiver, amountToSend, NULL, NULL);
+  pathHops = dijkstra(sender, receiver, amountToSend, payment->ignoredPeers, payment->ignoredChannels);
   if(pathHops==NULL) {
     printf("SendPayment %ld: No available path\n", event->paymentID);
     return;
@@ -248,6 +251,8 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
 }
 
 //TODO: uniformare tipi di variabili d'appoggio da usare nelle seguenti tre funzioni
+// in particolare evitare tutte le variabili che non siano puntatori, perche e' rischioso
+// passarne poi l'indirizzo
 
 void sendPayment(Event* event) {
   Payment* payment;
@@ -258,7 +263,7 @@ void sendPayment(Event* event) {
   RouteHop* firstRouteHop;
   Array* routeHops;
   Channel* forwardChannel;
-  Event* forwardEvent;
+  Event* nextEvent;
   EventType eventType;
 
   printf("SEND PAYMENT %ld\n", event->paymentID);
@@ -290,7 +295,7 @@ void sendPayment(Event* event) {
 
 
   //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
-  
+
 
   eventType = nextPeerID == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   /*  nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
@@ -304,9 +309,9 @@ void sendPayment(Event* event) {
   }
   */
   simulatorTime += 0.1;
-  forwardEvent = createEvent(eventIndex, simulatorTime, eventType, nextPeerID, event->paymentID );
+  nextEvent = createEvent(eventIndex, simulatorTime, eventType, nextPeerID, event->paymentID );
 
-  events = heapInsert(events, forwardEvent, compareEvent);
+  events = heapInsert(events, nextEvent, compareEvent);
 
 }
 
@@ -349,6 +354,8 @@ void forwardPayment(Event *event) {
   newBalance = forwardChannel->balance - currentRouteHop->amountToForward;
   if(newBalance < 0) {
     printf("not enough balance\n");
+
+    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(forwardChannel->ID));
 
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -482,14 +489,18 @@ void receiveFail(Event* event) {
   Payment* payment;
   RouteHop* firstHop;
   Channel* nextChannel;
+  Event* nextEvent;
 
-  printf("RECEIVE FAIL %ld\n", event->paymentID);
+   printf("RECEIVE FAIL %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
   firstHop = arrayGet(payment->route->routeHops, 0);
 
   nextChannel = hashTableGet(channels, firstHop->pathHop->channel);
   nextChannel->balance += firstHop->amountToForward;
+
+  nextEvent = createEvent(eventIndex, simulatorTime, FINDROUTE, payment->sender, payment->ID);
+  events = heapInsert(events, nextEvent, compareEvent);
 
 }
 

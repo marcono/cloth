@@ -51,6 +51,8 @@ typedef struct payment{
   long receiver;
   double amount;
   Route* route;
+  Array* ignoredPeers;
+  Array* ignoredChannels;
 } Payment;
 
 /*
