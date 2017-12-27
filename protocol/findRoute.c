@@ -285,9 +285,9 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
 
     if(i == arrayLen(pathHops)-1) {
       routeHop->amountToForward = amountToSend;
-      routeHop->timelock = finalTimelock;
+      routeHop->timelock = currentChannelPolicy.timelock;
 
-      route->totalTimelock += finalTimelock;
+      route->totalTimelock += currentChannelPolicy.timelock;
       route->totalAmount += amountToSend;
     }
     else {

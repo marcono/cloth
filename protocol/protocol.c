@@ -230,20 +230,23 @@ RouteHop* getRouteHop(long peerID, Array* routeHops, int isSender) {
 
 int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
   Policy policy;
-  Channel* currChannel;
+  Channel* currChannel, *prevChannel;
   double fee;
 
   currChannel = hashTableGet(channels, currHop->pathHop->channel);
-  policy = currChannel->policy;
+  prevChannel = hashTableGet(channels, prevHop->pathHop->channel);
 
-  fee = computeFee(currHop->amountToForward, policy);
+
+
+  fee = computeFee(currHop->amountToForward,currChannel->policy);
   if(prevHop->amountToForward - fee != currHop->amountToForward) {
     printf("Error: Fee not respected\n");
     return 0;
   }
 
-  if(prevHop->timelock - policy.timelock != currHop->timelock) {
+  if(prevHop->timelock - prevChannel->policy.timelock != currHop->timelock) {
     printf("Error: Timelock not respected\n");
+    printf("PrevHopTimelock %d - policyTimelock %d != currHopTimelock %d \n",prevHop->timelock, policy.timelock, currHop->timelock);
     return 0;
   }
 
