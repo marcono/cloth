@@ -60,6 +60,25 @@ PeerType getPeerType(long peerID, long paymentID) {
 */
 
 //test a send payment
+
+void printBalances() {
+  long i, j, *channelID;
+  Peer* peer;
+  Array* peerChannels;
+  Channel* channel;
+
+
+  for(i=0; i<peerIndex; i++) {
+    peer = hashTableGet(peers, i);
+    peerChannels = peer->channel;
+    for(j=0; j<arrayLen(peerChannels); j++) {
+      channelID = arrayGet(peerChannels, j);
+      channel = hashTableGet(channels, *channelID);
+      printf("Peer %ld, Channel %ld, Balance %lf\n", peer->ID, channel->channelInfoID, channel->balance);
+    }
+  }
+}
+
 int main() {
   long i, nP, nC;
   Peer* peer;
@@ -97,15 +116,15 @@ int main() {
   events = heapInsert(events, event, compareEvent);
 
 
-  /*  sender = 4;
+  sender = 4;
   receiver = 0;
   amount = 1.0;
-  simulatorTime = 0.05;
+  simulatorTime = 0.0;
   payment = createPayment(paymentIndex, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
-  */
+ 
 
 
   while(heapLen(events) != 0 ) {
@@ -154,6 +173,8 @@ int main() {
   }
 
   //TODO: stampare ordinatamente le balances per testare correttezza
+  printBalances();
+
 
   return 0;
 }

@@ -31,6 +31,8 @@ typedef struct channelInfo {
   long ID;
   long peer1;
   long peer2;
+  long channelDirection1;
+  long channelDirection2;
   double capacity;
 } ChannelInfo;
 

@@ -110,9 +110,7 @@ void connectPeers(long peerID1, long peerID2) {
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  //TODO: REMOVE ME
-  if(peerID1==3) capacity = 1.0;
-  else capacity = 5.0;
+  capacity = 5.0;
 
   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, capacity);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
@@ -123,11 +121,13 @@ void connectPeers(long peerID1, long peerID2) {
   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
   hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
+  channelInfo->channelDirection1 = firstChannelDirection->ID;
 
 
   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
   hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
+  channelInfo->channelDirection2 = secondChannelDirection->ID;
 
   firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID;
   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
@@ -270,6 +270,9 @@ void sendPayment(Event* event) {
 
   firstRouteHop = arrayGet(routeHops, 0);
   firstPathHop = firstRouteHop->pathHop;
+  //TODO: controllare che questo canale sia effettivamente tra i canali del peer: potrebbe capitare infatti che per
+  //qualche motivo sia stato chiuso; in questo caso, si manda un fail in cui si esclude questo canale dalla prossima chiamata
+  // a dijkstra
   forwardChannelID = firstPathHop->channel;
   nextPeerID = firstPathHop->receiver;
   amountToForward = firstRouteHop->amountToForward;
@@ -283,7 +286,7 @@ void sendPayment(Event* event) {
   }
   forwardChannel->balance = newBalance;
 
-  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
+  //  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
 
 
   //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
@@ -358,7 +361,7 @@ void forwardPayment(Event *event) {
   }
   forwardChannel->balance = newBalance;
 
-  printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
+  //  printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
 
 
   nextPeerID = currentRouteHop->pathHop->receiver;
@@ -396,7 +399,7 @@ void receivePayment(Event* event ) {
 
   backwardChannel->balance += lastRouteHop->amountToForward;
 
-  printf("Peer %ld, balance %lf\n", peerID, backwardChannel->balance);
+  //  printf("Peer %ld, balance %lf\n", peerID, backwardChannel->balance);
 
   prevPeerID = lastRouteHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
@@ -429,7 +432,7 @@ void forwardSuccess(Event* event) {
   backwardChannel = hashTableGet(channels, currentChannel->otherChannelDirectionID);
   backwardChannel->balance += currentHop->amountToForward;
 
-  printf("Peer %ld, balance %lf\n", event->peerID, backwardChannel->balance);
+  //  printf("Peer %ld, balance %lf\n", event->peerID, backwardChannel->balance);
 
   prevPeerID = currentHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;

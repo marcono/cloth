@@ -63,7 +63,7 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
   distance[source].distance = 0.0;
 
   //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
-  heapInsert(distanceHeap, &distance[source], compareDistance); 
+  distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance); 
 
   while(heapLen(distanceHeap)!=0) {
     d = heapPop(distanceHeap, compareDistance);
@@ -94,7 +94,7 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
         previousPeer[nextPeerID].channel = *channelID;
         previousPeer[nextPeerID].peer = bestPeerID;
 
-        heapInsert(distanceHeap, &distance[nextPeerID], compareDistance);
+        distanceHeap = heapInsert(distanceHeap, &distance[nextPeerID], compareDistance);
       }
       }
 
