@@ -105,23 +105,30 @@ int main() {
   }
 
 
-  
+  /*  
   //test fail
   channel = hashTableGet(channels, 6);
   channel->balance = 0.5;
   //end test fail
+  */
 
+  /*
   //test ignoredChannels hop
   channel = hashTableGet(channels, 6);
   channel->balance = 0.5;
-  Policy policy;
-  policy.feeBase = 0.1;
-  policy.feeProportional = 0.0;
-  policy.timelock = 5;
   connectPeers(3,4);
   channel = hashTableGet(channels, 8);
-  channel->policy = policy;
+  channel->policy.timelock = 5;
   //end test ignoredChannels hop
+  */
+
+  //test ignoredChannels sender
+  channel = hashTableGet(channels, 0);
+  channel->balance = 0.5;
+  connectPeers(0,1);
+  channel = hashTableGet(channels, 8);
+  channel->policy.timelock = 5;
+  //end test ignoredChannels sender
 
   sender = 0;
   receiver = 4;

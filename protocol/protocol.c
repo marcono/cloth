@@ -290,6 +290,12 @@ void sendPayment(Event* event) {
   newBalance = forwardChannel->balance - amountToForward;
   if(newBalance < 0) {
     printf("not enough balance\n");
+
+    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(forwardChannel->ID));
+
+    nextEvent = createEvent(eventIndex, simulatorTime, FINDROUTE, nextPeerID, event->paymentID );
+    events = heapInsert(events, nextEvent, compareEvent);
+
     return;
   }
   forwardChannel->balance = newBalance;
