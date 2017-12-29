@@ -139,26 +139,26 @@ double computeFee(double amountToForward, Policy policy) {
   return policy.feeBase + policy.feeProportional*amountToForward;
 }
 
-
-void findRoute(Event* event) {
+void findRoute(Event *event) {
   Payment *payment;
   long sender, receiver;
   double amountToSend;
-  Array* pathHops;
+  Array *pathHops;
   Route* route;
   int finalTimelock=9;
   PathHop* firstHop;
   Event* sendEvent;
+
+  printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
   receiver = payment->receiver;
   sender = payment->sender;
   amountToSend =  payment->amount;
 
-  printf("ignored channels length: %ld\n", arrayLen(payment->ignoredChannels));
-
-  pathHops = dijkstra(sender, receiver, amountToSend, payment->ignoredPeers, payment->ignoredChannels);
-  if(pathHops==NULL) {
+  pathHops = dijkstra(sender, receiver, amountToSend, payment->ignoredPeers,
+                      payment->ignoredChannels);
+  if (pathHops == NULL) {
     printf("SendPayment %ld: No available path\n", event->paymentID);
     return;
   }
@@ -204,26 +204,26 @@ RouteHop* getPreviousRouteHop(long peerID, Array* routeHops, int isForward) {
   return arrayGet(routeHops, index);
 }
 
-
-RouteHop* getRouteHop(long peerID, Array* routeHops, int isSender) {
-  RouteHop* routeHop;
+RouteHop *getRouteHop(long peerID, Array *routeHops, int isSender) {
+  RouteHop *routeHop;
   long i, index = -1;
 
-  for(i=0; i<arrayLen(routeHops); i++) {
+  for (i = 0; i < arrayLen(routeHops); i++) {
     routeHop = arrayGet(routeHops, i);
 
-    if(isSender && routeHop->pathHop->sender == peerID){
+    if (isSender && routeHop->pathHop->sender == peerID) {
       index = i;
       break;
     }
 
-    if(!isSender && routeHop->pathHop->receiver == peerID) {
+    if (!isSender && routeHop->pathHop->receiver == peerID) {
       index = i;
       break;
     }
   }
 
-  if(index == -1) return NULL;
+  if (index == -1)
+    return NULL;
 
   return arrayGet(routeHops, index);
 }
@@ -231,7 +231,7 @@ RouteHop* getRouteHop(long peerID, Array* routeHops, int isSender) {
 int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
   Policy policy;
   Channel* currChannel, *prevChannel;
-  double fee;
+  double fee, expectedZero;
 
   currChannel = hashTableGet(channels, currHop->pathHop->channel);
   prevChannel = hashTableGet(channels, prevHop->pathHop->channel);
@@ -239,8 +239,11 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
 
 
   fee = computeFee(currHop->amountToForward,currChannel->policy);
-  if(prevHop->amountToForward - fee != currHop->amountToForward) {
+  expectedZero = (prevHop->amountToForward - fee) - currHop->amountToForward;
+  //the check should be: prevHop->amountToForward - fee != currHop->amountToForward
+  if(expectedZero > 0.0000000001) {
     printf("Error: Fee not respected\n");
+    printf("prevHop amount %.3lf  - fee %.3lf != currHop amount %.3lf\n", prevHop->amountToForward, fee, currHop->amountToForward);
     return 0;
   }
 
@@ -308,14 +311,14 @@ void sendPayment(Event* event) {
 
   eventType = nextPeerID == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   /*  nextPeerPosition = getPeerPosition(nextPeerID, routeHops, isForward);
-  if(nextPeerPosition == routeLen)
-    eventType = RECEIVEPAYMENT;
-  else if(nextPeerPosition>0 && nextPeerPosition<routeLen)
-    eventType = FORWARDPAYMENT;
-  else {
-    printf("SendPayment %ld: wrong peer position %ld \n", event->paymentID, nextPeerPosition);
-    return;
-  }
+      if(nextPeerPosition == routeLen)
+      eventType = RECEIVEPAYMENT;
+      else if(nextPeerPosition>0 && nextPeerPosition<routeLen)
+      eventType = FORWARDPAYMENT;
+      else {
+      printf("SendPayment %ld: wrong peer position %ld \n", event->paymentID, nextPeerPosition);
+      return;
+      }
   */
   simulatorTime += 0.1;
   nextEvent = createEvent(eventIndex, simulatorTime, eventType, nextPeerID, event->paymentID );
@@ -346,9 +349,9 @@ void forwardPayment(Event *event) {
   routeLen = arrayLen(routeHops);
 
   isSender = 1;
- currentRouteHop=getRouteHop(peerID, routeHops, isSender);
- isSender = 0;
- previousRouteHop = getRouteHop(peerID, routeHops, isSender);
+  currentRouteHop=getRouteHop(peerID, routeHops, isSender);
+  isSender = 0;
+  previousRouteHop = getRouteHop(peerID, routeHops, isSender);
   if(currentRouteHop == NULL || previousRouteHop == NULL) {
     printf("no route hop\n");
     return;
@@ -500,7 +503,7 @@ void receiveFail(Event* event) {
   Channel* nextChannel;
   Event* nextEvent;
 
-   printf("RECEIVE FAIL %ld\n", event->paymentID);
+  printf("RECEIVE FAIL %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
   firstHop = arrayGet(payment->route->routeHops, 0);
@@ -514,11 +517,11 @@ void receiveFail(Event* event) {
 }
 
 /*
-long getChannelIndex(Peer* peer) {
+  long getChannelIndex(Peer* peer) {
   long index=-1, i;
   for(i=0; i<peer->channelSize; i++) {
-    if(peer->channel[i]==-1) return i;
+  if(peer->channel[i]==-1) return i;
   }
   return -1;
-}
+  }
 */

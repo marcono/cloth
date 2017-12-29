@@ -285,10 +285,16 @@ Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTim
 
     if(i == arrayLen(pathHops)-1) {
       routeHop->amountToForward = amountToSend;
-      routeHop->timelock = currentChannelPolicy.timelock;
-
-      route->totalTimelock += currentChannelPolicy.timelock;
       route->totalAmount += amountToSend;
+
+      if(nHops == 1) {
+        routeHop->timelock = 0;
+        route->totalTimelock = 0;
+      }
+      else {
+        routeHop->timelock = currentChannelPolicy.timelock;
+        route->totalTimelock += currentChannelPolicy.timelock;
+      }
     }
     else {
       fee = computeFee(nextRouteHop->amountToForward, nextChannelPolicy);

@@ -122,6 +122,7 @@ int main() {
   //end test ignoredChannels hop
   */
 
+  /*
   //test ignoredChannels sender
   channel = hashTableGet(channels, 0);
   channel->balance = 0.5;
@@ -129,7 +130,23 @@ int main() {
   channel = hashTableGet(channels, 8);
   channel->policy.timelock = 5;
   //end test ignoredChannels sender
+  */
 
+  
+  //test full payment
+  sender = 0;
+  receiver = 4;
+  amount = 1.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  //end test full payment
+
+
+  /*
+  //test two payments: success and fail
   sender = 0;
   receiver = 4;
   amount = 1.0;
@@ -139,16 +156,62 @@ int main() {
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
 
-  /*
   sender = 4;
   receiver = 0;
+  amount = 4.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  //end test two payments
+  */
+
+  /*
+  //test payment without hops
+  sender = 0;
+  receiver = 1;
   amount = 1.0;
   simulatorTime = 0.0;
   payment = createPayment(paymentIndex, sender, receiver, amount);
   hashTablePut(payments, payment->ID, payment);
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
+  //end test payment without hops
   */
+
+  /*
+  //test more payments from same source
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+   //end test more payments from same source
+   */
+
+  
 
 
  while(heapLen(events) != 0 ) {
