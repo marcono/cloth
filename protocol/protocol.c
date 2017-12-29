@@ -141,67 +141,33 @@ double computeFee(double amountToForward, Policy policy) {
 
 void findRoute(Event *event) {
   Payment *payment;
-  long sender, receiver;
-  double amountToSend;
   Array *pathHops;
   Route* route;
   int finalTimelock=9;
-  PathHop* firstHop;
   Event* sendEvent;
 
   printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
-  receiver = payment->receiver;
-  sender = payment->sender;
-  amountToSend =  payment->amount;
 
-  pathHops = dijkstra(sender, receiver, amountToSend, payment->ignoredPeers,
+  pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                       payment->ignoredChannels);
   if (pathHops == NULL) {
-    printf("SendPayment %ld: No available path\n", event->paymentID);
+    printf("No available path\n");
     return;
   }
 
-  route = transformPathIntoRoute(pathHops, amountToSend, finalTimelock);
+  route = transformPathIntoRoute(pathHops, payment->amount, finalTimelock);
   if(route==NULL) {
-    printf("SendPayment %ld: No available route\n", event->paymentID);
+    printf("No available route\n");
     return;
   }
 
   payment->route = route;
 
-  firstHop = arrayGet(pathHops, 0);
-
-  sendEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, firstHop->sender, event->paymentID );
+  sendEvent = createEvent(eventIndex, simulatorTime, SENDPAYMENT, payment->sender, event->paymentID );
   events = heapInsert(events, sendEvent, compareEvent);
 
-}
-
-//TODO: anziche due funzioni, fare una sola funzione getRouteHop dove si passa isSender==1 per ottenere
-// current hop e isSender==0 per ottenere previous hop
-
-RouteHop* getPreviousRouteHop(long peerID, Array* routeHops, int isForward) {
-  RouteHop* routeHop;
-  long i, index = -1;
-
-  for(i=0; i<arrayLen(routeHops); i++) {
-    routeHop = arrayGet(routeHops, i);
-
-    if(isForward && routeHop->pathHop->receiver == peerID){
-      index = i;
-      break;
-    }
-
-    if(!isForward && routeHop->pathHop->sender == peerID) {
-      index = i;
-      break;
-    }
-  }
-
-  if(index == -1) return NULL;
-
-  return arrayGet(routeHops, index);
 }
 
 RouteHop *getRouteHop(long peerID, Array *routeHops, int isSender) {
