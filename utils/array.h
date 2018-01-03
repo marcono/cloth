@@ -17,4 +17,7 @@ long arrayLen(Array* a);
 
 void arrayReverse(Array* a);
 
+void arrayDelete(Array* a, void* element,  int(*isEqual)());
+
+
 #endif

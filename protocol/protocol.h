@@ -53,6 +53,7 @@ typedef struct payment{
   Route* route;
   Array* ignoredPeers;
   Array* ignoredChannels;
+  int isSuccess;
 } Payment;
 
 /*
@@ -82,6 +83,8 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
 Payment* createPayment(long ID, long sender, long receiver, double amount);
 
 void connectPeers(long peer1, long peer2);
+
+int isPresent(long element, Array* longArray);
 
 double computeFee(double amountToForward, Policy policy);
 

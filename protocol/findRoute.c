@@ -25,18 +25,6 @@ int compareDistance(Distance* a, Distance* b) {
     return 1;
 }
 
-int isPresent(long element, Array* longArray) {
-  long i, *curr;
-
-  if(longArray==NULL) return 0;
-
-  for(i=0; i<arrayLen(longArray); i++) {
-    curr = arrayGet(longArray, i);
-    if(*curr==element) return 1;
-  }
-
-  return 0;
-}
 
 Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Array* ignoredChannels) {
   Distance distance[nPeers], *d;

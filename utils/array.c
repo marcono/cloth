@@ -62,3 +62,22 @@ void arrayReverse(Array *a) {
     a->element[n-i-1] = tmp;
   }
 }
+
+void deleteElement(Array *a, long elementIndex) {
+  long i;
+
+  (a->index)--;
+
+  for(i = elementIndex; i < a->index ; i++)
+    a->element[i] = a->element[i+1];
+}
+
+void arrayDelete(Array* a, void* element,  int(*isEqual)()) {
+  long i;
+
+  for(i = 0; i < arrayLen(a); i++) {
+    if(isEqual(a->element[i], element))
+      deleteElement(a, i);
+  }
+}
+

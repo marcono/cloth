@@ -59,8 +59,6 @@ PeerType getPeerType(long peerID, long paymentID) {
 }
 */
 
-//test a send payment
-
 void printBalances() {
   long i, j, *channelID;
   Peer* peer;
@@ -79,6 +77,8 @@ void printBalances() {
   }
 }
 
+
+
 int main() {
   long i, nP, nC;
   Peer* peer;
@@ -88,7 +88,8 @@ int main() {
   double amount;
   Channel* channel;
 
-  nP = 5;
+  //test peer 2 not cooperative before/after lock
+  nP = 6;
   nC = 2;
 
   initializeSimulatorData();
@@ -104,49 +105,13 @@ int main() {
     connectPeers(i-1, i);
   }
 
-
-  /*  
-  //test fail
-  channel = hashTableGet(channels, 6);
-  channel->balance = 0.5;
-  //end test fail
-  */
-
   /*
-  //test ignoredChannels hop
-  channel = hashTableGet(channels, 6);
-  channel->balance = 0.5;
-  connectPeers(3,4);
+  connectPeers(1, 5);
+  connectPeers(5, 3);
   channel = hashTableGet(channels, 8);
   channel->policy.timelock = 5;
-  //end test ignoredChannels hop
   */
 
-  /*
-  //test ignoredChannels sender
-  channel = hashTableGet(channels, 0);
-  channel->balance = 0.5;
-  connectPeers(0,1);
-  channel = hashTableGet(channels, 8);
-  channel->policy.timelock = 5;
-  //end test ignoredChannels sender
-  */
-
-  
-  //test full payment
-  sender = 0;
-  receiver = 4;
-  amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  //end test full payment
-
-
-  /*
-  //test two payments: success and fail
   sender = 0;
   receiver = 4;
   amount = 1.0;
@@ -156,62 +121,6 @@ int main() {
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
 
-  sender = 4;
-  receiver = 0;
-  amount = 4.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  //end test two payments
-  */
-
-  /*
-  //test payment without hops
-  sender = 0;
-  receiver = 1;
-  amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  //end test payment without hops
-  */
-
-  /*
-  //test more payments from same source
-  sender = 0;
-  receiver = 4;
-  amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  
-  sender = 0;
-  receiver = 4;
-  amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-
-  sender = 0;
-  receiver = 4;
-  amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-   //end test more payments from same source
-   */
-
-  
 
 
  while(heapLen(events) != 0 ) {
@@ -261,12 +170,193 @@ int main() {
     }
   }
 
+
+  printBalances();
+
+
+  return 0;
+}
+
+/*
+//test payments
+
+int main() {
+  long i, nP, nC;
+  Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *event;
+  double amount;
+  Channel* channel;
+
+
+  nP = 5;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerIndex,5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+
+  for(i=1; i<5; i++) {
+    connectPeers(i-1, i);
+  }
+
+  
+
+   
+  //test fail
+  channel = hashTableGet(channels, 6);
+  channel->balance = 0.5;
+  //end test fail
+  
+
+  
+  //test ignoredChannels hop
+  channel = hashTableGet(channels, 6);
+  channel->balance = 0.5;
+  connectPeers(3,4);
+  channel = hashTableGet(channels, 8);
+  channel->policy.timelock = 5;
+  //end test ignoredChannels hop
+  
+
+  
+  //test ignoredChannels sender
+  channel = hashTableGet(channels, 0);
+  channel->balance = 0.5;
+  connectPeers(0,1);
+  channel = hashTableGet(channels, 8);
+  channel->policy.timelock = 5;
+  //end test ignoredChannels sender
+  
+
+  //test full payment
+  sender = 0;
+  receiver = 4;
+  amount = 1.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  //end test full payment
+
+
+  
+  //test two payments: success and fail
+  sender = 0;
+  receiver = 4;
+  amount = 1.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  sender = 4;
+  receiver = 0;
+  amount = 4.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  //end test two payments
+  
+
+  
+  //test payment without hops
+  sender = 0;
+  receiver = 1;
+  amount = 1.0;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  //end test payment without hops
+  
+
+  
+  //test more payments from same source
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  sender = 0;
+  receiver = 4;
+  amount = 0.3;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+   //end test more payments from same source
+   
+
+  
+
+
+ while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
   //TODO: stampare ordinatamente le balances per testare correttezza
   printBalances();
 
 
   return 0;
 }
+
+*/
 
 /*HashTable* peers, *channels, *channelInfos;
 long nPeers, nChannels;
