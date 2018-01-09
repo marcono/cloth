@@ -65,7 +65,7 @@ void printBalances() {
   Array* peerChannels;
   Channel* channel;
 
-
+  printf("PRINT BALANCES\n");
   for(i=0; i<peerIndex; i++) {
     peer = hashTableGet(peers, i);
     peerChannels = peer->channel;
@@ -77,8 +77,214 @@ void printBalances() {
   }
 }
 
+void printPayments() {
+  long i, j;
+  Payment *payment;
+  Array* routeHops;
+  RouteHop* hop;
+  Peer* peer;
+  Channel* forward, *backward;
+
+  for(i = 0; i < paymentIndex; i++) {
+    payment = hashTableGet(payments, i);
+    printf("PAYMENT %ld\n", payment->ID);
+    routeHops = payment->route->routeHops;
+    for(j=0; j<arrayLen(routeHops); j++){
+      hop = arrayGet(routeHops, j);
+      peer = hashTableGet(peers, hop->pathHop->sender);
+      if(isPresent(hop->pathHop->channel, peer->channel)) {
+        forward = hashTableGet(channels, hop->pathHop->channel);
+        backward = hashTableGet(channels, forward->otherChannelDirectionID);
+        printf("Sender %ld, Receiver %ld, Channel %ld, Balance forward %.3lf, Balance backward %.3lf\n",
+               hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID, forward->balance, backward->balance);
+
+      }
+      else {
+        forward = hashTableGet(channels, hop->pathHop->channel);
+        printf("Sender %ld, Receiver %ld, Channel %ld, Channel closed\n", hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID);
+      }
+    }
+  }
+}
 
 
+//test channels not present 
+int main() {
+  long i, nP, nC;
+  Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *event;
+  double amount;
+  Channel* channel;
+
+  
+  nP = 5;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerIndex,5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+
+  for(i=1; i<4; i++) {
+    connectPeers(i-1, i);
+  }
+
+  connectPeers(1, 4);
+
+  /*
+  //test is!Present in forwardSuccess
+  connectPeers(1, 4);
+
+  sender = 0;
+  receiver = 4;
+  amount = 0.1;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  //for this payment only peer 1 must be not cooperative
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  simulatorTime = 0.05;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  // end test is!Present in forwardSuccess
+ */
+
+  /*
+  //test is!Present in forwardFail
+  connectPeers(1, 4);
+
+  channel = hashTableGet(channels, 6);
+  channel->balance = 0.0;
+
+  sender = 0;
+  receiver = 4;
+  amount = 0.1;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  //for this payment only peer 1 must be not cooperative
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  simulatorTime = 0.05;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  // end test is!Present in forwardFail
+
+  */
+
+  /*
+  //test is!Present in forwardPayment
+
+  //for this payment peer 2 must be non-cooperative
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  //  simulatorTime = 0.2;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.1, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  // end test is!Present in forwardPayment
+  */
+
+  
+  //test is!Present in receiveFail
+
+  //for this payment peer 3 must be non-cooperative
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  simulatorTime = 0.0;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  //  simulatorTime = 0.2;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.2, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+  // end test is!Present in receiveFail
+  
+
+
+ while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
+
+  printPayments();
+
+
+  return 0;
+}
+
+
+/*
+//test peer not cooperatives
 int main() {
   long i, nP, nC;
   Peer* peer;
@@ -105,12 +311,12 @@ int main() {
     connectPeers(i-1, i);
   }
 
-  /*
+ 
   connectPeers(1, 5);
   connectPeers(5, 3);
   channel = hashTableGet(channels, 8);
   channel->policy.timelock = 5;
-  */
+  
 
   sender = 0;
   receiver = 4;
@@ -125,20 +331,6 @@ int main() {
 
  while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
-    /*
-    peerType = getPeerType(event->peerID, event->paymentID);
-    switch(peerType) {
-    case SENDER:
-      sendPayment(event);
-      break;
-    case HOP:
-      forwardPayment(event);
-      break;
-    case RECEIVER:
-      receivePayment(event);
-      break;
-    }
-    */
 
     switch(event->type){
     case FINDROUTE:
@@ -176,7 +368,7 @@ int main() {
 
   return 0;
 }
-
+*/
 /*
 //test payments
 

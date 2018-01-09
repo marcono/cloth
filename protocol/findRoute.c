@@ -89,7 +89,7 @@ Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Ar
     }
 
   if(previousPeer[target].peer == -1) {
-    printf ("no path available!\n");
+    //    printf ("no path available!\n");
     strcpy(error, "noPath");
     return NULL;
   }
