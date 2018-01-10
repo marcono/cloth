@@ -108,7 +108,99 @@ void printPayments() {
   }
 }
 
-//test stats 
+//test statsComputePaymentTime 
+int main() {
+  long i, nP, nC;
+  Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *event;
+  double amount;
+  Channel* channel;
+
+  
+  nP = 4;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
+  statsInitialize();
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerIndex,5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+
+  for(i=1; i<4; i++) {
+    connectPeers(i-1, i);
+  }
+
+
+  //succeed payment
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  // failed payment for peer 2 non cooperative in forwardPayment
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+
+ while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+    simulatorTime = event->time;
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
+
+  printPayments();
+  printStats();
+
+
+  return 0;
+
+}
+/*
+
+//test statsUpdatePayments 
 int main() {
   long i, nP, nC;
   Peer* peer;
@@ -178,6 +270,7 @@ int main() {
 
  while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
+    simulatorTime = event->time;
 
     switch(event->type){
     case FINDROUTE:
@@ -216,7 +309,7 @@ int main() {
 
   return 0;
 }
-
+*/
 
 /*
 //test channels not present 

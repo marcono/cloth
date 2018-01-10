@@ -55,6 +55,8 @@ typedef struct payment{
   Array* ignoredChannels;
   int isSuccess;
   int isAPeerUncoop;
+  double startTime;
+  double endTime;
 } Payment;
 
 

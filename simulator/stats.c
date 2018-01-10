@@ -19,10 +19,37 @@ void statsUpdatePayments(Payment* payment) {
   }
 }
 
+double statsComputePaymentTime() {
+  long i;
+  Payment * payment;
+  double currPaymentTime, totalPaymentsTime;
+  double nPayments;
+
+  //TODO: lo si potrebbe fare separato per totalpayments e
+  // payments con peer non cooperativi per avere risultati consistenti;
+  nPayments = 0;
+  totalPaymentsTime = 0.0;
+  for(i = 0; i < paymentIndex; i++) {
+    payment = hashTableGet(payments, i);
+    if(payment->route == NULL) continue;
+    nPayments++;
+    currPaymentTime = payment->endTime - payment->startTime;
+    if(payment->startTime < 0 || payment->endTime < 0 || currPaymentTime < 0) {
+      printf("Error in payment time\n");
+      return -1.0;
+    }
+    printf("%lf\n", currPaymentTime);
+    totalPaymentsTime += currPaymentTime;
+  }
+
+  return totalPaymentsTime / nPayments;
+}
+
 void printStats() {
   printf("\nSTATS\n");
   printf("Total payments: %ld\n", totalPayments);
   printf("Succeed payments: %ld\n", succeededPayments);
   printf("Failed payments for uncooperative peers: %ld\n", failedPaymentsUncoop);
   printf("Failed payments for no path: %ld\n", failedPaymentsNoPath);
+  printf("Average payment time: %lf\n", statsComputePaymentTime());
 }
