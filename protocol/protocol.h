@@ -54,7 +54,9 @@ typedef struct payment{
   Array* ignoredPeers;
   Array* ignoredChannels;
   int isSuccess;
+  int isAPeerUncoop;
 } Payment;
+
 
 /*
 typedef struct peer {

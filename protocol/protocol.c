@@ -8,6 +8,7 @@
 #include "../simulator/initialize.h"
 #include "findRoute.h"
 #include "../simulator/event.h"
+#include "../simulator/stats.h"
 
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
 // di vicinanza di chord; memorizzare gli id dei peer in un Array di long
@@ -93,6 +94,7 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
   p->ignoredChannels = arrayInitialize(5);
   p->ignoredPeers = arrayInitialize(5);
   p->isSuccess = 0;
+  p->isAPeerUncoop = 0;
 
   paymentIndex++;
 
@@ -209,12 +211,14 @@ void findRoute(Event *event) {
                       payment->ignoredChannels);
   if (pathHops == NULL) {
     printf("No available path\n");
+    statsUpdatePayments(payment);
     return;
   }
 
   route = transformPathIntoRoute(pathHops, payment->amount, finalTimelock);
   if(route==NULL) {
     printf("No available route\n");
+    statsUpdatePayments(payment);
     return;
   }
 
@@ -366,6 +370,7 @@ void forwardPayment(Event *event) {
 
   if(!isCooperativeBeforeLock()){
     printf("Peer %ld is not cooperative before lock\n", event->peerID);
+    payment->isAPeerUncoop = 1;
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -378,8 +383,9 @@ void forwardPayment(Event *event) {
 
   
 
-  if(!isCooperativeAfterLock()) {
+  if(!isCooperativeAfterLock()  || ( event->paymentID==3 && event->peerID==1)) {
     printf("Peer %ld is not cooperative after lock\n", event->peerID);
+    payment->isAPeerUncoop = 1;
     prevChannel = hashTableGet(channels, previousRouteHop->pathHop->channel);
     closeChannel(prevChannel->channelInfoID);
 
@@ -443,6 +449,7 @@ void receivePayment(Event* event ) {
 
     if(!isCooperativeBeforeLock()){
     printf("Peer %ld is not cooperative before lock\n", event->peerID);
+    payment->isAPeerUncoop = 1;
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -456,6 +463,7 @@ void receivePayment(Event* event ) {
 
     if(!isCooperativeAfterLock()) {
     printf("Peer %ld is not cooperative after lock\n", event->peerID);
+    payment->isAPeerUncoop = 1;
     closeChannel(backwardChannel->channelInfoID);
 
     prevPeerID = lastRouteHop->pathHop->sender;
@@ -512,9 +520,9 @@ void forwardSuccess(Event* event) {
 
 
 
-  if(!isCooperativeAfterLock()) {
+  if(!isCooperativeAfterLock() || ( event->paymentID==2 && event->peerID==1) ) {
     printf("Peer %ld is not cooperative after lock\n", event->peerID);
-
+    payment->isAPeerUncoop = 1;
     nextHop = getRouteHop(event->peerID, payment->route->routeHops, 1);
     nextChannel = hashTableGet(channels, nextHop->pathHop->channel);
     closeChannel(nextChannel->channelInfoID);
@@ -542,9 +550,10 @@ void forwardSuccess(Event* event) {
 }
 
 void receiveSuccess(Event* event){
-
+  Payment *payment;
   printf("RECEIVE SUCCESS %ld\n", event->paymentID);
-
+  payment = hashTableGet(payments, event->paymentID);
+  statsUpdatePayments(payment);
 }
 
 
@@ -599,7 +608,10 @@ void receiveFail(Event* event) {
   else
     printf("Channel %ld is not present\n", nextChannel->ID);
 
-  if(payment->isSuccess == 1 ) return; //it means that money actually arrived to the destination but a peer was not cooperative when forwarding the success
+  if(payment->isSuccess == 1 ) {
+    statsUpdatePayments(payment);
+    return; //it means that money actually arrived to the destination but a peer was not cooperative when forwarding the success
+  } 
 
   nextEvent = createEvent(eventIndex, simulatorTime, FINDROUTE, payment->sender, payment->ID);
   events = heapInsert(events, nextEvent, compareEvent);

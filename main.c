@@ -15,7 +15,7 @@
 #include "./utils/array.h"
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
-
+#include "./simulator/stats.h"
 
 typedef enum typeOfPeer {
   SENDER,
@@ -88,6 +88,7 @@ void printPayments() {
   for(i = 0; i < paymentIndex; i++) {
     payment = hashTableGet(payments, i);
     printf("PAYMENT %ld\n", payment->ID);
+    if(payment->route==NULL) continue;
     routeHops = payment->route->routeHops;
     for(j=0; j<arrayLen(routeHops); j++){
       hop = arrayGet(routeHops, j);
@@ -107,7 +108,117 @@ void printPayments() {
   }
 }
 
+//test stats 
+int main() {
+  long i, nP, nC;
+  Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *event;
+  double amount;
+  Channel* channel;
 
+  
+  nP = 7;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
+  statsInitialize();
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerIndex,5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+
+  for(i=1; i<4; i++) {
+    connectPeers(i-1, i);
+  }
+
+  connectPeers(0, 4);
+  connectPeers(4, 5);
+
+  //succeed payment
+  sender = 0;
+  receiver = 5;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  // failed payment for no path
+  sender = 0;
+  receiver = 6;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  // succeeded payment but uncoop node in forwardsuccess (uncoop if paymentID==2 && peerID==1) 
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  //failed payment due to uncoop node in forwardpayment (uncoop if paymentID==3 and peerID==2)
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+
+ while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
+
+  printPayments();
+  printStats();
+
+
+  return 0;
+}
+
+
+/*
 //test channels not present 
 int main() {
   long i, nP, nC;
@@ -137,7 +248,7 @@ int main() {
 
   connectPeers(1, 4);
 
-  /*
+
   //test is!Present in forwardSuccess
   connectPeers(1, 4);
 
@@ -160,9 +271,9 @@ int main() {
   event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
   // end test is!Present in forwardSuccess
- */
 
-  /*
+
+
   //test is!Present in forwardFail
   connectPeers(1, 4);
 
@@ -189,9 +300,9 @@ int main() {
   events = heapInsert(events, event, compareEvent);
   // end test is!Present in forwardFail
 
-  */
 
-  /*
+
+
   //test is!Present in forwardPayment
 
   //for this payment peer 2 must be non-cooperative
@@ -214,7 +325,7 @@ int main() {
   event = createEvent(eventIndex, 0.1, FINDROUTE, sender, payment->ID);
   events = heapInsert(events, event, compareEvent);
   // end test is!Present in forwardPayment
-  */
+
 
   
   //test is!Present in receiveFail
@@ -281,7 +392,7 @@ int main() {
 
   return 0;
 }
-
+*/
 
 /*
 //test peer not cooperatives
