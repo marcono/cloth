@@ -45,6 +45,23 @@ double statsComputePaymentTime() {
   return totalPaymentsTime / nPayments;
 }
 
+float statsComputeRouteLen() {
+  long i;
+  Payment* payment;
+  long routeLen, nPayments;
+
+  routeLen = nPayments = 0;
+  for(i = 0; i < paymentIndex; i++) {
+    payment = hashTableGet(payments, i);
+    if(payment->route == NULL) continue;
+    nPayments++;
+    routeLen += arrayLen(payment->route->routeHops);
+  }
+
+  return (routeLen / (nPayments*1.0) );
+
+}
+
 void printStats() {
   printf("\nSTATS\n");
   printf("Total payments: %ld\n", totalPayments);
@@ -52,4 +69,5 @@ void printStats() {
   printf("Failed payments for uncooperative peers: %ld\n", failedPaymentsUncoop);
   printf("Failed payments for no path: %ld\n", failedPaymentsNoPath);
   printf("Average payment time: %lf\n", statsComputePaymentTime());
+  printf("Average route length: %f\n", statsComputeRouteLen());
 }
