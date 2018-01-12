@@ -4,6 +4,7 @@
 
 void statsInitialize() {
   totalPayments = succeededPayments = failedPaymentsUncoop = failedPaymentsNoPath = 0;
+  lockedFundCost = 0.0;
 }
 
 void statsUpdatePayments(Payment* payment) {
@@ -62,6 +63,25 @@ float statsComputeRouteLen() {
 
 }
 
+void statsUpdateLockedFundCost(Array* routeHops, long channelID) {
+  long i;
+  double amountLocked;
+  int lockTime=0;
+  RouteHop* hop;
+
+  amountLocked = 0.0;
+  for(i = 0 ; i < arrayLen(routeHops); i++) {
+    hop = arrayGet(routeHops, i);
+    amountLocked += hop->amountToForward;
+    if(hop->pathHop->channel == channelID) {
+      lockTime = hop->timelock;
+      break;
+    }
+  }
+
+  lockedFundCost += amountLocked*lockTime;
+}
+
 void printStats() {
   printf("\nSTATS\n");
   printf("Total payments: %ld\n", totalPayments);
@@ -70,4 +90,5 @@ void printStats() {
   printf("Failed payments for no path: %ld\n", failedPaymentsNoPath);
   printf("Average payment time: %lf\n", statsComputePaymentTime());
   printf("Average route length: %f\n", statsComputeRouteLen());
+  printf("Locked fund cost: %lf\n", lockedFundCost);
 }

@@ -392,11 +392,13 @@ void forwardPayment(Event *event) {
 
   
 
-  if(!isCooperativeAfterLock()) {
+  if(!isCooperativeAfterLock() || event->peerID==2) {
     printf("Peer %ld is not cooperative after lock\n", event->peerID);
     payment->isAPeerUncoop = 1;
     prevChannel = hashTableGet(channels, previousRouteHop->pathHop->channel);
     closeChannel(prevChannel->channelInfoID);
+
+    statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
 
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;

@@ -6,11 +6,14 @@ long totalPayments;
 long succeededPayments;
 long failedPaymentsUncoop;
 long failedPaymentsNoPath;
+double lockedFundCost;
 
 void statsInitialize();
 
 void printStats();
 
 void statsUpdatePayments(Payment* payment);
+
+void statsUpdateLockedFundCost(Array* routeHops, long channelID);
 
 #endif
