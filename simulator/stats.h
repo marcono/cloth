@@ -16,4 +16,6 @@ void statsUpdatePayments(Payment* payment);
 
 void statsUpdateLockedFundCost(Array* routeHops, long channelID);
 
+void jsonWriteOutput();
+
 #endif

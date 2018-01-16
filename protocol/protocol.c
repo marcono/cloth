@@ -392,7 +392,7 @@ void forwardPayment(Event *event) {
 
   
 
-  if(!isCooperativeAfterLock() || event->peerID==2) {
+  if(!isCooperativeAfterLock() || (event->peerID==2 && event->paymentID==2) || (event->peerID==1 && event->paymentID==3)) {
     printf("Peer %ld is not cooperative after lock\n", event->peerID);
     payment->isAPeerUncoop = 1;
     prevChannel = hashTableGet(channels, previousRouteHop->pathHop->channel);

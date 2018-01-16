@@ -5,7 +5,7 @@
 #include <math.h>
 //#include <gsl/gsl_rng.h>
 //#include <gsl/gsl_randist.h>
-
+#include <json-c/json.h>
 
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
@@ -108,6 +108,219 @@ void printPayments() {
   }
 }
 
+struct json_object* jsonNewChannelDirection(Channel* direction) {
+  struct json_object* jdirection;
+  struct json_object* jID, *jcounterpartyID, *jbalance, *jpolicy, *jfeebase, *jfeeprop, *jtimelock;
+
+  jdirection = json_object_new_object();
+
+  jID = json_object_new_int64(direction->ID);
+  jcounterpartyID = json_object_new_int64(direction->counterparty);
+  jbalance = json_object_new_double(direction->balance);
+
+  jpolicy = json_object_new_object();
+  jfeebase = json_object_new_double(direction->policy.feeBase);
+  jfeeprop = json_object_new_double(direction->policy.feeProportional);
+  jtimelock = json_object_new_int(direction->policy.timelock);
+  json_object_object_add(jpolicy, "FeeBase", jfeebase );
+  json_object_object_add(jpolicy, "FeeProportional", jfeeprop);
+  json_object_object_add(jpolicy, "Timelock", jtimelock );
+ 
+  json_object_object_add(jdirection, "ID", jID );
+  json_object_object_add(jdirection, "CounterpartyID", jcounterpartyID);
+  json_object_object_add(jdirection, "Balance", jbalance );
+  json_object_object_add(jdirection, "Policy", jpolicy );
+
+  return jdirection;
+}
+
+struct json_object* jsonNewChannel(ChannelInfo *channel) {
+  struct json_object* jchannel;
+  struct json_object* jID, *jcapacity, *jpeer1, *jpeer2, *jdirection1, *jdirection2;
+
+  jchannel = json_object_new_object();
+
+  jID = json_object_new_int64(channel->ID);
+  jpeer1 = json_object_new_int64(channel->peer1);
+  jpeer2 = json_object_new_int64(channel->peer2);
+  jcapacity = json_object_new_double(channel->capacity);
+  jdirection1 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection1));
+  jdirection2 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection2));
+
+  json_object_object_add(jchannel, "ID", jID);
+  json_object_object_add(jchannel, "Peer1ID", jpeer1);
+  json_object_object_add(jchannel, "Peer2ID", jpeer2);
+  json_object_object_add(jchannel, "Capacity", jcapacity);
+  json_object_object_add(jchannel, "Direction1", jdirection1);
+  json_object_object_add(jchannel, "Direction2", jdirection2);
+
+  return jchannel;
+}
+
+struct json_object* jsonNewPeer(Peer *peer) {
+  struct json_object* jpeer;
+  struct json_object *jID, *jChannelSize, *jChannelIDs, *jChannelID;
+  long i, *channelID;
+
+  jpeer = json_object_new_object();
+
+  jID = json_object_new_int64(peer->ID);
+  jChannelSize = json_object_new_int64(peer->channelsSize);
+
+  jChannelIDs = json_object_new_array();
+  for(i=0; i<arrayLen(peer->channel); i++) {
+    channelID = arrayGet(peer->channel, i);
+    jChannelID = json_object_new_int64(*channelID);
+    json_object_array_add(jChannelIDs, jChannelID);
+  }
+
+  json_object_object_add(jpeer, "ID", jID);
+  json_object_object_add(jpeer,"ChannelsSize",jChannelSize);
+  json_object_object_add(jpeer, "ChannelIDs", jChannelIDs);
+
+  return jpeer;
+}
+
+void jsonWriteInput() {
+  long i;
+  struct json_object* jpeer, *jpeers, *jchannel, *jchannels;
+  struct json_object* jobj;
+  Peer* peer;
+  ChannelInfo* channel;
+
+  jobj = json_object_new_object();
+  jpeers = json_object_new_array();
+  jchannels = json_object_new_array();
+
+  for(i=0; i<peerIndex; i++) {
+    peer = hashTableGet(peers, i);
+    jpeer = jsonNewPeer(peer);
+    json_object_array_add(jpeers, jpeer);
+  }
+  json_object_object_add(jobj, "Peers",jpeers);
+
+  for(i=0; i<channelInfoIndex; i++){
+    channel = hashTableGet(channelInfos, i);
+    jchannel = jsonNewChannel(channel);
+    json_object_array_add(jchannels, jchannel);
+  }
+  json_object_object_add(jobj, "Channels", jchannels);
+
+  //  printf("%s\n", json_object_to_json_string(jobj));
+
+  json_object_to_file_ext("simulator_input.json", jobj, JSON_C_TO_STRING_PRETTY);
+
+}
+
+// test json writer
+int main() {
+  long i, nP, nC;
+  Peer* peer;
+  long sender, receiver;
+  Payment *payment;
+  Event *event;
+  double amount;
+  Channel* channel;
+
+
+  nP = 5;
+  nC = 2;
+
+  initializeSimulatorData();
+  initializeProtocolData(nP, nC);
+  statsInitialize();
+
+  for(i=0; i<nPeers; i++) {
+    peer = createPeer(peerIndex,5);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+
+  for(i=1; i<4; i++) {
+    connectPeers(i-1, i);
+  }
+  connectPeers(1, 4);
+
+  jsonWriteInput();
+
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  //this payment fails for peer 2 non cooperative
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+  //this payment fails for peer 1 non cooperative
+  sender = 0;
+  receiver = 4;
+  amount = 0.1;
+  payment = createPayment(paymentIndex, sender, receiver, amount);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
+  events = heapInsert(events, event, compareEvent);
+
+
+ while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+    simulatorTime = event->time;
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
+
+  printPayments();
+
+  jsonWriteOutput();
+
+}
+
+
+/*
 //test statsUpdateLockedFundCost 
 int main() {
   long i, nP, nC;
@@ -189,7 +402,7 @@ int main() {
   return 0;
 
 }
-
+*/
 
 /*
 //test statsComputePaymentTime 
