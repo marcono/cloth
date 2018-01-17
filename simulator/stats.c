@@ -55,7 +55,8 @@ double statsComputePaymentTime(int cooperative) {
 float statsComputeRouteLen() {
   long i;
   Payment* payment;
-  long routeLen, nPayments;
+  long  nPayments;
+  float routeLen;
 
   routeLen = nPayments = 0;
   for(i = 0; i < paymentIndex; i++) {
@@ -65,11 +66,12 @@ float statsComputeRouteLen() {
     routeLen += arrayLen(payment->route->routeHops);
   }
 
-  printf("%ld\n", routeLen);
+  printf("%f\n", routeLen);
+  printf("%ld\n", nPayments);
 
   if(nPayments==0) return 0.0;
-
-  return (routeLen / (nPayments)*1.0 );
+ 
+  return (routeLen / (nPayments));
 
 }
 

@@ -165,7 +165,7 @@ struct json_object* jsonNewPeer(Peer *peer) {
   jpeer = json_object_new_object();
 
   jID = json_object_new_int64(peer->ID);
-  jChannelSize = json_object_new_int64(peer->channelsSize);
+  jChannelSize = json_object_new_int64(arrayLen(peer->channel));
 
   jChannelIDs = json_object_new_array();
   for(i=0; i<arrayLen(peer->channel); i++) {
@@ -211,6 +211,90 @@ void jsonWriteInput() {
   json_object_to_file_ext("simulator_input.json", jobj, JSON_C_TO_STRING_PRETTY);
 
 }
+
+
+void readInputAndInitialize() {
+  long nPayments, nPeers, nChannels;
+  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
+  struct json_object* jpreinput, *jobj;
+
+  jpreinput = json_object_from_file("simulator_preinput.json");
+
+  jobj = json_object_object_get(jpreinput, "PaymentMean");
+  paymentMean = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "NPayments");
+  nPayments = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "NPeers");
+  nPeers = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "NChannels");
+  nChannels = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "PUncooperativeBeforeLock");
+  pUncoopBefore = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "PUncooperativeAfterLock");
+  pUncoopAfter = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "PercentageRWithholding");
+  RWithholding = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "Gini");
+  gini = json_object_get_double(jobj);
+
+  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini);
+  initializeSimulatorData(nPayments, paymentMean);
+  statsInitialize();
+
+}
+
+
+
+int main() {
+  Event* event;
+
+  readInputAndInitialize();
+
+  jsonWriteInput();
+
+  while(heapLen(events) != 0 ) {
+    event = heapPop(events, compareEvent);
+    simulatorTime = event->time;
+
+    switch(event->type){
+    case FINDROUTE:
+      findRoute(event);
+      break;
+    case SENDPAYMENT:
+      sendPayment(event);
+      break;
+    case FORWARDPAYMENT:
+      forwardPayment(event);
+      break;
+    case RECEIVEPAYMENT:
+      receivePayment(event);
+      break;
+    case FORWARDSUCCESS:
+      forwardSuccess(event);
+      break;
+    case RECEIVESUCCESS:
+      receiveSuccess(event);
+      break;
+    case FORWARDFAIL:
+      forwardFail(event);
+      break;
+    case RECEIVEFAIL:
+      receiveFail(event);
+      break;
+    default:
+      printf("Error wrong event type\n");
+    }
+  }
+
+
+  printPayments();
+
+  jsonWriteOutput();
+
+
+}
+
+/*
 
 // test json writer
 int main() {
@@ -317,7 +401,11 @@ int main() {
 
   jsonWriteOutput();
 
+  return 0;
+
 }
+
+*/
 
 
 /*

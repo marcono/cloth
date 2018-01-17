@@ -16,11 +16,17 @@ Heap* events;
 double simulatorTime;
 
 
-void initializeSimulatorData() {
-  eventIndex = 0;
-  events = heapInitialize(100);
-  simulatorTime = 0.0;
+void initializeEvents(long nPayments, double paymentMean) {
+  events = heapInitialize(1000);
 }
+
+void initializeSimulatorData(long nPayments, double paymentMean ) {
+  eventIndex = 0; 
+ simulatorTime = 0.0;
+  initializeEvents(nPayments, paymentMean);
+}
+
+
 
 /*
 void initialize() {

@@ -7,13 +7,11 @@
 #include "../simulator/event.h"
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-extern long nPeers;
-extern long nChannels;
 extern HashTable* peers;
 extern HashTable* channels;
 extern HashTable* channelInfos;
 extern HashTable* payments;
-
+extern double pUncoopBeforeLock, pUncoopAfterLock;
 
 typedef struct policy {
   double feeBase;
@@ -23,7 +21,9 @@ typedef struct policy {
 
 typedef struct peer {
   long ID;
-  long channelsSize;
+  int withholdsR;
+  double initialFunds;
+  double remainingFunds;
   Array* channel;
 } Peer;
 
@@ -76,7 +76,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocolData(long nPeers, long nChannels);
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini);
 
 Peer* createPeer(long ID, long channelsSize);
 

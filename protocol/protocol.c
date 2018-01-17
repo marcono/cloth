@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <gsl/gsl_rng.h>
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
@@ -9,7 +10,7 @@
 #include "findRoute.h"
 #include "../simulator/event.h"
 #include "../simulator/stats.h"
-
+#define MAXBTC 1000
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
 // di vicinanza di chord; memorizzare gli id dei peer in un Array di long
 // per avere facile accesso a tutti i peer nel momento della creazione dei canali
@@ -18,35 +19,21 @@
 // CONTROLLARE SE QUESTO POTREBBE ESSERE UN PROBLEMA PER GLI ALGORITMI DI ROUTING
 
 long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-long nPeers;
-long nChannels;
 HashTable* peers;
 HashTable* channels;
 HashTable* channelInfos;
 HashTable* payments;
-
-
-void initializeProtocolData(long nP, long nC) {
-  nPeers = nP;
-  nChannels = nC;
-
-  channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
-
-  peers = hashTableInitialize(2);
-  channels = hashTableInitialize(2);
-  channelInfos= hashTableInitialize(2);
-  payments = hashTableInitialize(2);
-
-
-}
+double pUncoopBeforeLock, pUncoopAfterLock;
 
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
 
   peer = GC_MALLOC(sizeof(Peer));
   peer->ID=ID;
-  peer->channelsSize = channelsSize;
-  peer->channel = arrayInitialize(peer->channelsSize);
+  peer->channel = arrayInitialize(channelsSize);
+  peer->initialFunds = 0.0;
+  peer->remainingFunds = 0.0;
+  peer->withholdsR = 0;
 
   peerIndex++;
 
@@ -140,6 +127,77 @@ void connectPeers(long peerID1, long peerID2) {
   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
 }
 
+void computePeersInitialFunds(double gini) {
+  long i;
+  Peer* peer;
+
+  for(i=0; i<peerIndex; i++) {
+    peer = hashTableGet(peers, i);
+    peer->initialFunds = MAXBTC/peerIndex;
+    peer->remainingFunds = peer->initialFunds;
+  }
+}
+
+void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) {
+  long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
+  Peer* peer, *counterparty;
+  gsl_rng *r;
+  const gsl_rng_type * T;
+
+  gsl_rng_env_setup();
+
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+
+  for(i=0; i<nPeers; i++){
+    peer = createPeer(peerIndex, nChannels);
+    hashTablePut(peers, peer->ID, peer);
+  }
+
+  computePeersInitialFunds(gini);
+
+  nRWithholdingPeers = nPeers*RWithholding;
+  for(i=0; i < nRWithholdingPeers ;i++) {
+    RWithholdingPeerID = gsl_rng_uniform_int(r,peerIndex);
+    peer = hashTableGet(peers, RWithholdingPeerID);
+    peer->withholdsR = 1;
+  }
+
+  for(i=0; i<peerIndex; i++) {
+    peer = hashTableGet(peers, i);
+    for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
+
+      do {
+        counterpartyID = gsl_rng_uniform_int(r,peerIndex);
+      }while(counterpartyID==peer->ID);
+
+      counterparty = hashTableGet(peers, counterpartyID);
+      if(arrayLen(counterparty->channel)>=nChannels) continue;
+
+      connectPeers(peer->ID, counterpartyID);
+    }
+  }
+
+}
+
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini) {
+
+  channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
+
+  pUncoopBeforeLock = pUncoopBefore;
+  pUncoopAfterLock = pUncoopAfter;
+
+
+  peers = hashTableInitialize(1000);
+  channels = hashTableInitialize(1000);
+  channelInfos= hashTableInitialize(1000);
+  payments = hashTableInitialize(1000);
+
+  initializeTopology(nPeers, nChannels, RWithholding, gini);
+
+}
+
+
 //TODO: farne unica versione, con element void, e mettere in array.c
 int isPresent(long element, Array* longArray) {
   long i, *curr;
@@ -204,7 +262,6 @@ void findRoute(Event *event) {
   int finalTimelock=9;
   Event* sendEvent;
   double nextEventTime;
-
 
   printf("FINDROUTE %ld\n", event->paymentID);
 
