@@ -1,10 +1,10 @@
 {
-  "TotalPayments":4,
-  "SucceededPayments":2,
-  "FailedPaymentsUncoop":2,
+  "TotalPayments":0,
+  "SucceededPayments":0,
+  "FailedPaymentsUncoop":0,
   "FailedPaymentsNoPath":0,
-  "AveragePaymentTimeCoop":0.59999999999999998,
-  "AveragePaymentTimeUncoop":0.60000000000000009,
-  "AverageRouteLen":2.75,
-  "LockedFundCost":2.7999999999999998
+  "AveragePaymentTimeCoop":-1,
+  "AveragePaymentTimeUncoop":-1,
+  "AverageRouteLen":0.0,
+  "LockedFundCost":0.0
 }

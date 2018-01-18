@@ -27,20 +27,20 @@ int compareDistance(Distance* a, Distance* b) {
 
 
 Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance distance[nPeers], *d;
+  Distance distance[peerIndex], *d;
   long i, bestPeerID, j,*channelID, nextPeerID, prev;
   Heap *distanceHeap;
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
   double tmpDist, capacity;
-  DijkstraHop previousPeer[nPeers];
+  DijkstraHop previousPeer[peerIndex];
   Array* hops;
   PathHop* hop;
 
   distanceHeap = heapInitialize(10);
 
-  for(i=0; i<nPeers; i++){
+  for(i=0; i<peerIndex; i++){
     distance[i].peer = i;
     distance[i].distance = INF;
     previousPeer[i].channel = -1;

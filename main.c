@@ -6,6 +6,7 @@
 //#include <gsl/gsl_rng.h>
 //#include <gsl/gsl_randist.h>
 #include <json-c/json.h>
+#include <gsl/gsl_rng.h>
 
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
@@ -136,7 +137,7 @@ struct json_object* jsonNewChannelDirection(Channel* direction) {
 
 struct json_object* jsonNewChannel(ChannelInfo *channel) {
   struct json_object* jchannel;
-  struct json_object* jID, *jcapacity, *jpeer1, *jpeer2, *jdirection1, *jdirection2;
+  struct json_object* jID, *jcapacity, *jlatency, *jpeer1, *jpeer2, *jdirection1, *jdirection2;
 
   jchannel = json_object_new_object();
 
@@ -144,6 +145,7 @@ struct json_object* jsonNewChannel(ChannelInfo *channel) {
   jpeer1 = json_object_new_int64(channel->peer1);
   jpeer2 = json_object_new_int64(channel->peer2);
   jcapacity = json_object_new_double(channel->capacity);
+  jlatency = json_object_new_double(channel->latency);
   jdirection1 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection1));
   jdirection2 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection2));
 
@@ -151,6 +153,7 @@ struct json_object* jsonNewChannel(ChannelInfo *channel) {
   json_object_object_add(jchannel, "Peer1ID", jpeer1);
   json_object_object_add(jchannel, "Peer2ID", jpeer2);
   json_object_object_add(jchannel, "Capacity", jcapacity);
+  json_object_object_add(jchannel, "Latency", jlatency);
   json_object_object_add(jchannel, "Direction1", jdirection1);
   json_object_object_add(jchannel, "Direction2", jdirection2);
 
@@ -159,13 +162,14 @@ struct json_object* jsonNewChannel(ChannelInfo *channel) {
 
 struct json_object* jsonNewPeer(Peer *peer) {
   struct json_object* jpeer;
-  struct json_object *jID, *jChannelSize, *jChannelIDs, *jChannelID;
+  struct json_object *jID, *jChannelSize, *jChannelIDs, *jChannelID, *jwithholdsR;
   long i, *channelID;
 
   jpeer = json_object_new_object();
 
   jID = json_object_new_int64(peer->ID);
   jChannelSize = json_object_new_int64(arrayLen(peer->channel));
+  jwithholdsR = json_object_new_int(peer->withholdsR);
 
   jChannelIDs = json_object_new_array();
   for(i=0; i<arrayLen(peer->channel); i++) {
@@ -176,6 +180,7 @@ struct json_object* jsonNewPeer(Peer *peer) {
 
   json_object_object_add(jpeer, "ID", jID);
   json_object_object_add(jpeer,"ChannelsSize",jChannelSize);
+  json_object_object_add(jpeer, "WithholdsR", jwithholdsR);
   json_object_object_add(jpeer, "ChannelIDs", jChannelIDs);
 
   return jpeer;
@@ -213,7 +218,7 @@ void jsonWriteInput() {
 }
 
 
-void readInputAndInitialize() {
+void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
   struct json_object* jpreinput, *jobj;
@@ -247,10 +252,23 @@ void readInputAndInitialize() {
 
 int main() {
   Event* event;
+  gsl_rng *r;
+  const gsl_rng_type * T;
+  long i;
 
-  readInputAndInitialize();
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+
+  for(i=0; i<100; i++) {
+    printf("%ld\n", gsl_rng_uniform_int(r, 10));
+    }
+
+  readPreInputAndInitialize();
 
   jsonWriteInput();
+
+
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);

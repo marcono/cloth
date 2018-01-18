@@ -34,6 +34,7 @@ typedef struct channelInfo {
   long channelDirection1;
   long channelDirection2;
   double capacity;
+  double latency;
 } ChannelInfo;
 
 typedef struct channel {
@@ -82,7 +83,7 @@ Peer* createPeer(long ID, long channelsSize);
 
 ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity);
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy, double balance);
+Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
 
 Payment* createPayment(long ID, long sender, long receiver, double amount);
 

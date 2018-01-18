@@ -10,7 +10,18 @@
 #include "findRoute.h"
 #include "../simulator/event.h"
 #include "../simulator/stats.h"
-#define MAXBTC 1000
+
+#define MAXSATOSHI 1E15 //1 million bitcoin
+#define MAXTIMELOCK 100
+#define MINTIMELOCK 10
+#define MAXFEEBASE 1000
+#define MINFEEBASE 100
+#define MAXFEEPROP 10
+#define MINFEEPROP 1
+#define MAXLATENCY 10
+#define MINLATENCY 1
+
+
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
 // di vicinanza di chord; memorizzare gli id dei peer in un Array di long
 // per avere facile accesso a tutti i peer nel momento della creazione dei canali
@@ -40,21 +51,36 @@ Peer* createPeer(long ID, long channelsSize) {
   return peer;
 }
 
-ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity) {
+ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double latency) {
   ChannelInfo* channelInfo;
 
   channelInfo = GC_MALLOC(sizeof(ChannelInfo));
   channelInfo->ID = ID;
   channelInfo->peer1 = peer1;
   channelInfo->peer2 = peer2;
-  channelInfo->capacity = capacity;
+  channelInfo->latency = latency;
+  channelInfo->capacity = 0.0;
 
   channelInfoIndex++;
 
   return channelInfo;
 }
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy, double balance){
+double computeChannelBalance(Peer *peer) {
+  double channelBalance;
+
+  channelBalance = peer->initialFunds/4; //TODO: al posto di 4, il numero di canali per peer o altro
+  if(peer->remainingFunds - channelBalance < 0) {
+    channelBalance = peer->remainingFunds;
+    peer->remainingFunds=0.0;
+  }
+  else
+    peer->remainingFunds -= channelBalance;
+
+  return channelBalance;
+}
+
+Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy){
   Channel* channel;
 
   channel = GC_MALLOC(sizeof(Channel));
@@ -62,7 +88,7 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   channel->channelInfoID = channelInfoID;
   channel->counterparty = counterparty;
   channel->policy = policy;
-  channel->balance = balance;
+  channel->balance = 0.0;
 
   channelIndex++;
 
@@ -92,39 +118,50 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
 
 void connectPeers(long peerID1, long peerID2) {
   Peer* peer1, *peer2;
-  Policy policy;
+  Policy policy1, policy2;
   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
-  double capacity;
+  double latency;
+  gsl_rng *r;
+  const gsl_rng_type * T;
 
-  policy.feeBase = 0.1;
-  policy.feeProportional = 0.0;
-  policy.timelock = 2;
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
 
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  capacity = 5.0;
-
-  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, capacity);
+  latency = (gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY)/1.0E3;
+  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
 
-  //TODO: meglio mettere il settaggio della balance del canale (sempre pari a capacity/2) dentro
-  //la funzione create channel, magari passando come parametro direttamente l'oggetto channelInfos (cosi si prende ID e capacity)
-  firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy, channelInfo->capacity*0.5);
+  policy1.feeBase = (gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE)/1.0E3;
+  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)/1.0E6;
+  policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+  firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
+  firstChannelDirection->balance = computeChannelBalance(peer1);
   hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
   channelInfo->channelDirection1 = firstChannelDirection->ID;
 
-
-  secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy, channelInfo->capacity*0.5 );
+  policy2.feeBase = (gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE)/1.0E3;
+  policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)/1.0E6;
+  policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+  secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2);
+  secondChannelDirection->balance = computeChannelBalance(peer2);
   hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
   channelInfo->channelDirection2 = secondChannelDirection->ID;
 
   firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID;
   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
+
+  channelInfo->capacity = firstChannelDirection->balance + secondChannelDirection->balance;
+
+  //  gsl_rng_free(r);
+
 }
 
 void computePeersInitialFunds(double gini) {
@@ -133,7 +170,7 @@ void computePeersInitialFunds(double gini) {
 
   for(i=0; i<peerIndex; i++) {
     peer = hashTableGet(peers, i);
-    peer->initialFunds = MAXBTC/peerIndex;
+    peer->initialFunds = MAXSATOSHI/peerIndex;
     peer->remainingFunds = peer->initialFunds;
   }
 }
@@ -174,9 +211,11 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
       counterparty = hashTableGet(peers, counterpartyID);
       if(arrayLen(counterparty->channel)>=nChannels) continue;
 
-      connectPeers(peer->ID, counterpartyID);
+      connectPeers(peer->ID, counterparty->ID);
     }
   }
+
+  gsl_rng_free(r);
 
 }
 
