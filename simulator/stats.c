@@ -5,7 +5,7 @@
 
 void statsInitialize() {
   totalPayments = succeededPayments = failedPaymentsUncoop = failedPaymentsNoPath = 0;
-  lockedFundCost = 0.0;
+  lockedFundCost = 0;
 }
 
 void statsUpdatePayments(Payment* payment) {
@@ -24,13 +24,13 @@ void statsUpdatePayments(Payment* payment) {
 double statsComputePaymentTime(int cooperative) {
   long i;
   Payment * payment;
-  double currPaymentTime, totalPaymentsTime;
-  double nPayments;
+  uint64_t currPaymentTime, totalPaymentsTime;
+  long nPayments;
 
   //TODO: lo si potrebbe fare separato per totalpayments e
   // payments con peer non cooperativi per avere risultati consistenti;
   nPayments = 0;
-  totalPaymentsTime = 0.0;
+  totalPaymentsTime = 0;
   for(i = 0; i < paymentIndex; i++) {
     payment = hashTableGet(payments, i);
     if(payment->route == NULL) continue;
@@ -38,18 +38,18 @@ double statsComputePaymentTime(int cooperative) {
     if(!cooperative && !(payment->isAPeerUncoop)) continue;
     nPayments++;
     currPaymentTime = payment->endTime - payment->startTime;
-    if(payment->startTime < 0 || payment->endTime < 0 || currPaymentTime < 0) {
+    if(payment->startTime < 1 || payment->endTime < 1 || currPaymentTime < 1) {
       printf("Error in payment time\n");
       return -1.0;
     }
-    printf("%lf\n", currPaymentTime);
+    //    printf("%lf\n", currPaymentTime);
     totalPaymentsTime += currPaymentTime;
   }
 
 
-  if(nPayments==0) return -1.0;
+  if(nPayments==0) return 0.0;
 
-  return totalPaymentsTime / nPayments;
+  return totalPaymentsTime / (nPayments*1.0);
 }
 
 float statsComputeRouteLen() {
@@ -77,7 +77,7 @@ float statsComputeRouteLen() {
 
 void statsUpdateLockedFundCost(Array* routeHops, long channelID) {
   long i;
-  double amountLocked;
+  uint64_t amountLocked;
   int lockTime=0;
   RouteHop* hop;
 
@@ -124,7 +124,7 @@ void jsonWriteOutput() {
   jtimecoop = json_object_new_double(averagePaymentTimeCoop);
   jtimeuncoop = json_object_new_double(averagePaymentTimeNotCoop);
   jroutelen = json_object_new_double(averageRouteLen);
-  jlockedcost = json_object_new_double(lockedFundCost);
+  jlockedcost = json_object_new_int64(lockedFundCost);
 
   json_object_object_add(joutput, "TotalPayments", jtotpay);
   json_object_object_add(joutput, "SucceededPayments", jsuccpay);

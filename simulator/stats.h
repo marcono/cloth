@@ -1,12 +1,13 @@
 #ifndef STATS_H
 #define STATS_H
 #include "../protocol/protocol.h"
+#include <stdint.h>
 
 long totalPayments;
 long succeededPayments;
 long failedPaymentsUncoop;
 long failedPaymentsNoPath;
-double lockedFundCost;
+uint64_t lockedFundCost;
 
 void statsInitialize();
 

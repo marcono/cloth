@@ -8,12 +8,14 @@
 #include "initialize.h"
 #include "event.h"
 #include <gsl/gsl_rng.h>
-
+#include <stdint.h>
 
 
 long eventIndex;
 Heap* events;
-double simulatorTime;
+uint64_t simulatorTime;
+gsl_rng *r;
+const gsl_rng_type * T;
 
 
 void initializeEvents(long nPayments, double paymentMean) {
@@ -21,8 +23,8 @@ void initializeEvents(long nPayments, double paymentMean) {
 }
 
 void initializeSimulatorData(long nPayments, double paymentMean ) {
-  eventIndex = 0; 
- simulatorTime = 0.0;
+  eventIndex = 0;
+  simulatorTime = 1;
   initializeEvents(nPayments, paymentMean);
 }
 

@@ -26,14 +26,15 @@ int compareDistance(Distance* a, Distance* b) {
 }
 
 
-Array* dijkstra(long source, long target, double amount, Array* ignoredPeers, Array* ignoredChannels) {
+Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
   Distance distance[peerIndex], *d;
   long i, bestPeerID, j,*channelID, nextPeerID, prev;
   Heap *distanceHeap;
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
-  double tmpDist, capacity;
+  double tmpDist;
+  uint64_t capacity;
   DijkstraHop previousPeer[peerIndex];
   Array* hops;
   PathHop* hop;
@@ -246,15 +247,14 @@ Route* routeInitialize(long nHops) {
 
 //TODO: sposta computeFee nei file protocol
 
-Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTimelock) {
+Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalTimelock) {
   PathHop *pathHop;
   RouteHop *routeHop, *nextRouteHop;
   Route *route;
   long nHops, i;
-  double fee;
+  uint64_t fee, currentChannelCapacity;
   Channel* channel;
   Policy currentChannelPolicy, nextChannelPolicy;
-  double currentChannelCapacity;
   ChannelInfo* channelInfo;
 
   nHops = arrayLen(pathHops);

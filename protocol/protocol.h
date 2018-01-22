@@ -5,6 +5,8 @@
 #include "findRoute.h"
 #include "../utils/hashTable.h"
 #include "../simulator/event.h"
+#include <gsl/gsl_rng.h>
+#include <stdint.h>
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 extern HashTable* peers;
@@ -12,10 +14,13 @@ extern HashTable* channels;
 extern HashTable* channelInfos;
 extern HashTable* payments;
 extern double pUncoopBeforeLock, pUncoopAfterLock;
+extern gsl_rng *r;
+extern const gsl_rng_type * T;
+
 
 typedef struct policy {
-  double feeBase;
-  double feeProportional;
+  uint32_t feeBase;
+  uint32_t feeProportional;
   int timelock;
 } Policy;
 
@@ -33,8 +38,8 @@ typedef struct channelInfo {
   long peer2;
   long channelDirection1;
   long channelDirection2;
-  double capacity;
-  double latency;
+  uint64_t capacity;
+  uint32_t latency;
 } ChannelInfo;
 
 typedef struct channel {
@@ -43,21 +48,21 @@ typedef struct channel {
   long counterparty;
   long otherChannelDirectionID;
   Policy policy;
-  double balance;
+  uint64_t balance;
 } Channel;
 
 typedef struct payment{
   long ID;
   long sender;
   long receiver;
-  double amount;
+  uint64_t amount; //millisatoshis
   Route* route;
   Array* ignoredPeers;
   Array* ignoredChannels;
   int isSuccess;
   int isAPeerUncoop;
-  double startTime;
-  double endTime;
+  uint64_t startTime;
+  uint64_t endTime;
 } Payment;
 
 
@@ -81,17 +86,17 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
 Peer* createPeer(long ID, long channelsSize);
 
-ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double capacity);
+ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency);
 
 Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
 
-Payment* createPayment(long ID, long sender, long receiver, double amount);
+Payment* createPayment(long ID, long sender, long receiver, uint64_t amount);
 
 void connectPeers(long peer1, long peer2);
 
 int isPresent(long element, Array* longArray);
 
-double computeFee(double amountToForward, Policy policy);
+uint64_t computeFee(uint64_t amountToForward, Policy policy);
 
 void findRoute(Event* event);
 

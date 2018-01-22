@@ -3,8 +3,8 @@
   "SucceededPayments":0,
   "FailedPaymentsUncoop":0,
   "FailedPaymentsNoPath":0,
-  "AveragePaymentTimeCoop":-1,
-  "AveragePaymentTimeUncoop":-1,
+  "AveragePaymentTimeCoop":0.0,
+  "AveragePaymentTimeUncoop":0.0,
   "AverageRouteLen":0.0,
-  "LockedFundCost":0.0
+  "LockedFundCost":0
 }

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
+#include <stdint.h>
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
@@ -11,7 +12,7 @@
 #include "../simulator/event.h"
 #include "../simulator/stats.h"
 
-#define MAXSATOSHI 1E15 //1 million bitcoin
+#define MAXMSATOSHI 1E18 //1 million bitcoin
 #define MAXTIMELOCK 100
 #define MINTIMELOCK 10
 #define MAXFEEBASE 1000
@@ -51,7 +52,7 @@ Peer* createPeer(long ID, long channelsSize) {
   return peer;
 }
 
-ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double latency) {
+ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency) {
   ChannelInfo* channelInfo;
 
   channelInfo = GC_MALLOC(sizeof(ChannelInfo));
@@ -59,7 +60,7 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, double latency) 
   channelInfo->peer1 = peer1;
   channelInfo->peer2 = peer2;
   channelInfo->latency = latency;
-  channelInfo->capacity = 0.0;
+  channelInfo->capacity = 0;
 
   channelInfoIndex++;
 
@@ -88,14 +89,14 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   channel->channelInfoID = channelInfoID;
   channel->counterparty = counterparty;
   channel->policy = policy;
-  channel->balance = 0.0;
+  channel->balance = 0;
 
   channelIndex++;
 
   return channel;
 }
 
-Payment* createPayment(long ID, long sender, long receiver, double amount) {
+Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   Payment * p;
 
   p = GC_MALLOC(sizeof(Payment));
@@ -108,8 +109,8 @@ Payment* createPayment(long ID, long sender, long receiver, double amount) {
   p->ignoredPeers = arrayInitialize(5);
   p->isSuccess = 0;
   p->isAPeerUncoop = 0;
-  p->startTime = -1.0;
-  p->endTime = -1.0;
+  p->startTime = 0;
+  p->endTime = 0;
 
   paymentIndex++;
 
@@ -122,23 +123,18 @@ void connectPeers(long peerID1, long peerID2) {
   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
   double latency;
-  gsl_rng *r;
-  const gsl_rng_type * T;
 
-  gsl_rng_env_setup();
-  T = gsl_rng_default;
-  r = gsl_rng_alloc (T);
 
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
 
-  latency = (gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY)/1.0E3;
+  latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
 
-  policy1.feeBase = (gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE)/1.0E3;
-  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)/1.0E6;
+  policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
   firstChannelDirection->balance = computeChannelBalance(peer1);
@@ -146,8 +142,8 @@ void connectPeers(long peerID1, long peerID2) {
   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
   channelInfo->channelDirection1 = firstChannelDirection->ID;
 
-  policy2.feeBase = (gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE)/1.0E3;
-  policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)/1.0E6;
+  policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+  policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
   policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2);
   secondChannelDirection->balance = computeChannelBalance(peer2);
@@ -160,8 +156,6 @@ void connectPeers(long peerID1, long peerID2) {
 
   channelInfo->capacity = firstChannelDirection->balance + secondChannelDirection->balance;
 
-  //  gsl_rng_free(r);
-
 }
 
 void computePeersInitialFunds(double gini) {
@@ -170,7 +164,7 @@ void computePeersInitialFunds(double gini) {
 
   for(i=0; i<peerIndex; i++) {
     peer = hashTableGet(peers, i);
-    peer->initialFunds = MAXSATOSHI/peerIndex;
+    peer->initialFunds = MAXMSATOSHI/peerIndex;
     peer->remainingFunds = peer->initialFunds;
   }
 }
@@ -178,13 +172,6 @@ void computePeersInitialFunds(double gini) {
 void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) {
   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
   Peer* peer, *counterparty;
-  gsl_rng *r;
-  const gsl_rng_type * T;
-
-  gsl_rng_env_setup();
-
-  T = gsl_rng_default;
-  r = gsl_rng_alloc (T);
 
   for(i=0; i<nPeers; i++){
     peer = createPeer(peerIndex, nChannels);
@@ -215,11 +202,13 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
     }
   }
 
-  gsl_rng_free(r);
 
 }
 
 void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini) {
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
 
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
@@ -290,8 +279,10 @@ int isCooperativeAfterLock() {
   return 1;
 }
 
-double computeFee(double amountToForward, Policy policy) {
-  return policy.feeBase + policy.feeProportional*amountToForward;
+uint64_t computeFee(uint64_t amountToForward, Policy policy) {
+  uint64_t fee;
+  fee = (policy.feeProportional*amountToForward) / 1000000;
+  return policy.feeBase + fee;
 }
 
 void findRoute(Event *event) {
@@ -305,7 +296,7 @@ void findRoute(Event *event) {
   printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
-  if(payment->startTime < 0) payment->startTime = simulatorTime;
+  if(payment->startTime < 1) payment->startTime = simulatorTime;
 
   pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                       payment->ignoredChannels);
@@ -359,7 +350,7 @@ RouteHop *getRouteHop(long peerID, Array *routeHops, int isSender) {
 int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
   Policy policy;
   Channel* currChannel, *prevChannel;
-  double fee, expectedZero;
+  uint64_t fee;
 
   currChannel = hashTableGet(channels, currHop->pathHop->channel);
   prevChannel = hashTableGet(channels, prevHop->pathHop->channel);
@@ -367,11 +358,9 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
 
 
   fee = computeFee(currHop->amountToForward,currChannel->policy);
-  expectedZero = (prevHop->amountToForward - fee) - currHop->amountToForward;
   //the check should be: prevHop->amountToForward - fee != currHop->amountToForward
-  if(expectedZero > 0.0000000001) {
+  if(prevHop->amountToForward - fee != currHop->amountToForward) {
     printf("Error: Fee not respected\n");
-    printf("prevHop amount %.3lf  - fee %.3lf != currHop amount %.3lf\n", prevHop->amountToForward, fee, currHop->amountToForward);
     return 0;
   }
 
@@ -390,7 +379,7 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
 
 void sendPayment(Event* event) {
   Payment* payment;
-  double  newBalance, nextEventTime;
+  uint64_t nextEventTime;
   Route* route;
   RouteHop* firstRouteHop;
   Channel* nextChannel;
@@ -415,8 +404,7 @@ void sendPayment(Event* event) {
   }
 
 
-  newBalance = nextChannel->balance - firstRouteHop->amountToForward;
-  if(newBalance < 0) {
+  if(firstRouteHop->amountToForward > nextChannel->balance) {
     printf("not enough balance\n");
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
     nextEventTime = simulatorTime;
@@ -425,14 +413,14 @@ void sendPayment(Event* event) {
     return;
   }
 
-  nextChannel->balance = newBalance;
+  nextChannel->balance -= firstRouteHop->amountToForward;
 
   //  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
 
 
   //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
   eventType = firstRouteHop->pathHop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  nextEventTime = simulatorTime + 0.1;
+  nextEventTime = simulatorTime + 1;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, firstRouteHop->pathHop->receiver, event->paymentID );
   events = heapInsert(events, nextEvent, compareEvent);
 }
@@ -444,7 +432,7 @@ void forwardPayment(Event *event) {
   long  nextPeerID, prevPeerID, nextChannelID;
   EventType eventType;
   Event* nextEvent;
-  double newBalance, nextEventTime;
+  uint64_t nextEventTime;
   Channel* prevChannel, *nextChannel;
   int isPolicyRespected;
   Peer* peer;
@@ -465,7 +453,7 @@ void forwardPayment(Event *event) {
     printf("Channel %ld has been closed\n", nextRouteHop->pathHop->channel);
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1;
+    nextEventTime = simulatorTime + 1;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -479,7 +467,7 @@ void forwardPayment(Event *event) {
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1;
+    nextEventTime = simulatorTime + 1;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -498,7 +486,7 @@ void forwardPayment(Event *event) {
 
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime =  simulatorTime + 0.1*previousRouteHop->timelock;
+    nextEventTime =  simulatorTime + previousRouteHop->timelock;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -511,24 +499,23 @@ void forwardPayment(Event *event) {
 
   nextChannelID = nextRouteHop->pathHop->channel;
   nextChannel = hashTableGet(channels, nextChannelID);
-  newBalance = nextChannel->balance - nextRouteHop->amountToForward;
-  if(newBalance < 0) {
+  if(nextRouteHop->amountToForward > nextChannel->balance ) {
     printf("not enough balance\n");
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1;
+    nextEventTime = simulatorTime + 1;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
   }
-  nextChannel->balance = newBalance;
+  nextChannel->balance -= nextRouteHop->amountToForward;
 
   //  printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
 
   nextPeerID = nextRouteHop->pathHop->receiver;
   eventType = nextPeerID == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  nextEventTime = simulatorTime + 0.1;
+  nextEventTime = simulatorTime + 1;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, nextPeerID, event->paymentID );
   events = heapInsert(events, nextEvent, compareEvent);
 
@@ -542,7 +529,7 @@ void receivePayment(Event* event ) {
   Channel* forwardChannel,*backwardChannel;
   Event* nextEvent;
   EventType eventType;
-  double nextEventTime;
+  uint64_t nextEventTime;
 
   printf("RECEIVE PAYMENT %ld\n", event->paymentID);
   peerID = event->peerID;
@@ -561,7 +548,7 @@ void receivePayment(Event* event ) {
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1;
+    nextEventTime = simulatorTime + 1;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -576,7 +563,7 @@ void receivePayment(Event* event ) {
 
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1*lastRouteHop->timelock;
+    nextEventTime = simulatorTime + lastRouteHop->timelock;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -589,7 +576,7 @@ void receivePayment(Event* event ) {
 
   prevPeerID = lastRouteHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  nextEventTime = simulatorTime + 0.1;
+  nextEventTime = simulatorTime + 1;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
   events = heapInsert(events, nextEvent, compareEvent);
 }
@@ -606,7 +593,7 @@ void forwardSuccess(Event* event) {
   Event* nextEvent;
   EventType eventType;
   Peer* peer;
-  double nextEventTime;
+  uint64_t nextEventTime;
 
   printf("FORWARD SUCCESS  %ld\n", event->paymentID);
 
@@ -620,7 +607,7 @@ void forwardSuccess(Event* event) {
     printf("Channel %ld is not present\n", prevHop->pathHop->channel);
     prevPeerID = prevHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1;
+    nextEventTime = simulatorTime + 1;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -637,7 +624,7 @@ void forwardSuccess(Event* event) {
 
     prevPeerID = prevHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + 0.1*prevHop->timelock;
+    nextEventTime = simulatorTime + prevHop->timelock;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
 
@@ -652,7 +639,7 @@ void forwardSuccess(Event* event) {
 
   prevPeerID = prevHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  nextEventTime = simulatorTime + 0.1;
+  nextEventTime = simulatorTime + 1;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
   events = heapInsert(events, nextEvent, compareEvent);
 }
@@ -675,7 +662,7 @@ void forwardFail(Event* event) {
   Event* nextEvent;
   EventType eventType;
   Peer* peer;
-  double nextEventTime;
+  uint64_t nextEventTime;
 
   printf("FORWARD FAIL %ld\n", event->paymentID);
 
@@ -693,7 +680,7 @@ void forwardFail(Event* event) {
   prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
   prevPeerID = prevHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-  nextEventTime = simulatorTime + 0.1;
+  nextEventTime = simulatorTime + 1;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
   events = heapInsert(events, nextEvent, compareEvent);
 }
@@ -705,7 +692,7 @@ void receiveFail(Event* event) {
   Channel* nextChannel;
   Event* nextEvent;
   Peer* peer;
-  double nextEventTime;
+  uint64_t nextEventTime;
 
   printf("RECEIVE FAIL %ld\n", event->paymentID);
 

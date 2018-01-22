@@ -1,6 +1,7 @@
 #ifndef FINDROUTE_H
 #define FINDROUTE_H
 #include "../utils/array.h"
+#include <stdint.h>
 
 typedef struct distance{
   long peer;
@@ -20,22 +21,22 @@ typedef struct pathHop{
 
 typedef struct routeHop {
   PathHop* pathHop;
-  double amountToForward;
+  uint64_t amountToForward;
   int timelock;
 } RouteHop;
 
 
 typedef struct route {
-  double totalAmount;
+  uint64_t totalAmount;
   int totalTimelock;
-  double totalFee;
+  uint64_t totalFee;
   Array *routeHops;
 } Route;
 
 Array* findPaths(long source, long destination, double amount);
 
-Array* dijkstra(long source, long destination, double amount, Array* ignoredPeers, Array* ignoredChannels);
+Array* dijkstra(long source, long destination, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels);
 
-Route* transformPathIntoRoute(Array* pathHops, double amountToSend, int finalTimelock);
+Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalTimelock);
 
 #endif

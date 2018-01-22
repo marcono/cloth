@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <stdint.h>
 //#include <gsl/gsl_rng.h>
 //#include <gsl/gsl_randist.h>
 #include <json-c/json.h>
@@ -18,47 +19,6 @@
 #include "./protocol/protocol.h"
 #include "./simulator/stats.h"
 
-typedef enum typeOfPeer {
-  SENDER,
-  HOP,
-  RECEIVER
-} PeerType;
-
-/*
-HashTable* peers, *channels, *channelInfos, *payments;
-long nPeers, nChannels;
-long peerID, channelID, channelInfoID, paymentID;
-long eventID;
-double simulatorTime;
-Heap* events;
-
-
-PeerType getPeerType(long peerID, long paymentID) {
-  Payment* payment;
-  Route* route;
-  RouteHop * firstHop, *lastHop;
-  long routeLength;
-
-  payment = hashTableGet(payments, paymentID);
-  route = payment->route;
-
-  if(route==NULL)
-    return SENDER;
-
-  firstHop = arrayGet(route->routeHops, 0);
-  if(peerID==firstHop->pathHop->sender)
-    return SENDER;
-
-  routeLength = arrayLen(route->routeHops);
-  lastHop=arrayGet(route->routeHops, routeLength-1);
-  if(peerID==lastHop->pathHop->receiver)
-    return RECEIVER;
-
-  //TODO: sto dando per scontato che peerID passato esista nella route dell'evento: cosa succede invece se per qualche bug non esiste?
-  return HOP;
-
-}
-*/
 
 void printBalances() {
   long i, j, *channelID;
@@ -117,11 +77,11 @@ struct json_object* jsonNewChannelDirection(Channel* direction) {
 
   jID = json_object_new_int64(direction->ID);
   jcounterpartyID = json_object_new_int64(direction->counterparty);
-  jbalance = json_object_new_double(direction->balance);
+  jbalance = json_object_new_int64(direction->balance);
 
   jpolicy = json_object_new_object();
-  jfeebase = json_object_new_double(direction->policy.feeBase);
-  jfeeprop = json_object_new_double(direction->policy.feeProportional);
+  jfeebase = json_object_new_int64(direction->policy.feeBase);
+  jfeeprop = json_object_new_int64(direction->policy.feeProportional);
   jtimelock = json_object_new_int(direction->policy.timelock);
   json_object_object_add(jpolicy, "FeeBase", jfeebase );
   json_object_object_add(jpolicy, "FeeProportional", jfeeprop);
@@ -144,8 +104,8 @@ struct json_object* jsonNewChannel(ChannelInfo *channel) {
   jID = json_object_new_int64(channel->ID);
   jpeer1 = json_object_new_int64(channel->peer1);
   jpeer2 = json_object_new_int64(channel->peer2);
-  jcapacity = json_object_new_double(channel->capacity);
-  jlatency = json_object_new_double(channel->latency);
+  jcapacity = json_object_new_int64(channel->capacity);
+  jlatency = json_object_new_int(channel->latency);
   jdirection1 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection1));
   jdirection2 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection2));
 
@@ -252,17 +212,6 @@ void readPreInputAndInitialize() {
 
 int main() {
   Event* event;
-  gsl_rng *r;
-  const gsl_rng_type * T;
-  long i;
-
-  gsl_rng_env_setup();
-  T = gsl_rng_default;
-  r = gsl_rng_alloc (T);
-
-  for(i=0; i<100; i++) {
-    printf("%ld\n", gsl_rng_uniform_int(r, 10));
-    }
 
   readPreInputAndInitialize();
 
@@ -305,7 +254,8 @@ int main() {
   }
 
 
-  printPayments();
+
+  //  printPayments();
 
   jsonWriteOutput();
 

@@ -15,7 +15,7 @@
       "WithholdsR":0,
       "ChannelIDs":[
         4,
-        13
+        6
       ]
     },
     {
@@ -24,7 +24,7 @@
       "WithholdsR":0,
       "ChannelIDs":[
         1,
-        6
+        7
       ]
     },
     {
@@ -41,49 +41,49 @@
       "ChannelsSize":2,
       "WithholdsR":0,
       "ChannelIDs":[
-        5,
+        3,
         9
       ]
     },
     {
       "ID":5,
-      "ChannelsSize":2,
+      "ChannelsSize":1,
       "WithholdsR":0,
       "ChannelIDs":[
-        12,
-        15
+        5
       ]
     },
     {
       "ID":6,
-      "ChannelsSize":0,
+      "ChannelsSize":2,
       "WithholdsR":0,
       "ChannelIDs":[
+        11,
+        12
       ]
     },
     {
       "ID":7,
-      "ChannelsSize":2,
+      "ChannelsSize":1,
       "WithholdsR":0,
       "ChannelIDs":[
-        7,
-        11
+        15
       ]
     },
     {
       "ID":8,
-      "ChannelsSize":2,
+      "ChannelsSize":0,
       "WithholdsR":0,
       "ChannelIDs":[
-        3,
-        14
       ]
     },
     {
       "ID":9,
-      "ChannelsSize":0,
+      "ChannelsSize":2,
       "WithholdsR":0,
       "ChannelIDs":[
+        13,
+        14
       ]
     }
   ],
@@ -92,107 +92,107 @@
       "ID":0,
       "Peer1ID":0,
       "Peer2ID":2,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Capacity":50000000000000000,
+      "Latency":8,
       "Direction1":{
         "ID":0,
         "CounterpartyID":2,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":162,
+          "FeeProportional":4000,
+          "Timelock":73
         }
       },
       "Direction2":{
         "ID":1,
         "CounterpartyID":0,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":478,
+          "FeeProportional":7000,
+          "Timelock":24
         }
       }
     },
     {
       "ID":1,
       "Peer1ID":0,
-      "Peer2ID":8,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer2ID":4,
+      "Capacity":50000000000000000,
+      "Latency":1,
       "Direction1":{
         "ID":2,
-        "CounterpartyID":8,
-        "Balance":25000000000000.0,
+        "CounterpartyID":4,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":149,
+          "FeeProportional":6000,
+          "Timelock":31
         }
       },
       "Direction2":{
         "ID":3,
         "CounterpartyID":0,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":841,
+          "FeeProportional":4000,
+          "Timelock":97
         }
       }
     },
     {
       "ID":2,
       "Peer1ID":1,
-      "Peer2ID":4,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer2ID":5,
+      "Capacity":50000000000000000,
+      "Latency":1,
       "Direction1":{
         "ID":4,
-        "CounterpartyID":4,
-        "Balance":25000000000000.0,
+        "CounterpartyID":5,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":253,
+          "FeeProportional":7000,
+          "Timelock":44
         }
       },
       "Direction2":{
         "ID":5,
         "CounterpartyID":1,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":941,
+          "FeeProportional":4000,
+          "Timelock":59
         }
       }
     },
     {
       "ID":3,
-      "Peer1ID":2,
-      "Peer2ID":7,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer1ID":1,
+      "Peer2ID":2,
+      "Capacity":50000000000000000,
+      "Latency":9,
       "Direction1":{
         "ID":6,
-        "CounterpartyID":7,
-        "Balance":25000000000000.0,
+        "CounterpartyID":2,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":762,
+          "FeeProportional":7000,
+          "Timelock":53
         }
       },
       "Direction2":{
         "ID":7,
-        "CounterpartyID":2,
-        "Balance":25000000000000.0,
+        "CounterpartyID":1,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":840,
+          "FeeProportional":4000,
+          "Timelock":45
         }
       }
     },
@@ -200,107 +200,107 @@
       "ID":4,
       "Peer1ID":3,
       "Peer2ID":4,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Capacity":50000000000000000,
+      "Latency":7,
       "Direction1":{
         "ID":8,
         "CounterpartyID":4,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":164,
+          "FeeProportional":6000,
+          "Timelock":89
         }
       },
       "Direction2":{
         "ID":9,
         "CounterpartyID":3,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":158,
+          "FeeProportional":7000,
+          "Timelock":91
         }
       }
     },
     {
       "ID":5,
       "Peer1ID":3,
-      "Peer2ID":7,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer2ID":6,
+      "Capacity":50000000000000000,
+      "Latency":4,
       "Direction1":{
         "ID":10,
-        "CounterpartyID":7,
-        "Balance":25000000000000.0,
+        "CounterpartyID":6,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":474,
+          "FeeProportional":6000,
+          "Timelock":22
         }
       },
       "Direction2":{
         "ID":11,
         "CounterpartyID":3,
-        "Balance":25000000000000.0,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":740,
+          "FeeProportional":1000,
+          "Timelock":63
         }
       }
     },
     {
       "ID":6,
-      "Peer1ID":5,
-      "Peer2ID":1,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer1ID":6,
+      "Peer2ID":9,
+      "Capacity":50000000000000000,
+      "Latency":2,
       "Direction1":{
         "ID":12,
-        "CounterpartyID":1,
-        "Balance":25000000000000.0,
+        "CounterpartyID":9,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":938,
+          "FeeProportional":5000,
+          "Timelock":94
         }
       },
       "Direction2":{
         "ID":13,
-        "CounterpartyID":5,
-        "Balance":25000000000000.0,
+        "CounterpartyID":6,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":756,
+          "FeeProportional":2000,
+          "Timelock":21
         }
       }
     },
     {
       "ID":7,
-      "Peer1ID":8,
-      "Peer2ID":5,
-      "Capacity":50000000000000.0,
-      "Latency":0.0030000000000000001,
+      "Peer1ID":9,
+      "Peer2ID":7,
+      "Capacity":50000000000000000,
+      "Latency":9,
       "Direction1":{
         "ID":14,
-        "CounterpartyID":5,
-        "Balance":25000000000000.0,
+        "CounterpartyID":7,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.89200000000000002,
-          "FeeProportional":9.9999999999999995e-07,
-          "Timelock":46
+          "FeeBase":373,
+          "FeeProportional":3000,
+          "Timelock":43
         }
       },
       "Direction2":{
         "ID":15,
-        "CounterpartyID":8,
-        "Balance":25000000000000.0,
+        "CounterpartyID":9,
+        "Balance":25000000000000000,
         "Policy":{
-          "FeeBase":0.73799999999999999,
-          "FeeProportional":3.9999999999999998e-06,
-          "Timelock":76
+          "FeeBase":697,
+          "FeeProportional":1000,
+          "Timelock":51
         }
       }
     }
