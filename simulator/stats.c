@@ -66,11 +66,8 @@ float statsComputeRouteLen() {
     routeLen += arrayLen(payment->route->routeHops);
   }
 
-  printf("%f\n", routeLen);
-  printf("%ld\n", nPayments);
-
   if(nPayments==0) return 0.0;
- 
+
   return (routeLen / (nPayments));
 
 }

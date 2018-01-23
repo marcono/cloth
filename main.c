@@ -20,7 +20,7 @@
 #include "./simulator/stats.h"
 
 
-void printBalances() {
+/*void printBalances() {
   long i, j, *channelID;
   Peer* peer;
   Array* peerChannels;
@@ -36,7 +36,7 @@ void printBalances() {
       printf("Peer %ld, Channel %ld, Balance %lf\n", peer->ID, channel->channelInfoID, channel->balance);
     }
   }
-}
+  }*/
 
 void printPayments() {
   long i, j;
@@ -212,16 +212,10 @@ void readPreInputAndInitialize() {
 
 int main() {
   Event* event;
-  Payment* payment;
 
   readPreInputAndInitialize();
 
   jsonWriteInput();
-
-  payment = createPayment(paymentIndex, 0, 3, 100);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, 0, payment->ID);
-  events = heapInsert(events, event, compareEvent);
 
 
   while(heapLen(events) != 0 ) {
@@ -260,7 +254,7 @@ int main() {
 
 
 
-  printPayments();
+  //printPayments();
 
   jsonWriteOutput();
 

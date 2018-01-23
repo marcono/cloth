@@ -6,6 +6,7 @@
 #include "../utils/hashTable.h"
 #include "../simulator/event.h"
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 #include <stdint.h>
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
@@ -16,6 +17,7 @@ extern HashTable* payments;
 extern double pUncoopBeforeLock, pUncoopAfterLock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;
+extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 
 typedef struct policy {
@@ -27,8 +29,8 @@ typedef struct policy {
 typedef struct peer {
   long ID;
   int withholdsR;
-  double initialFunds;
-  double remainingFunds;
+  uint64_t initialFunds;
+  uint64_t remainingFunds;
   Array* channel;
 } Peer;
 
