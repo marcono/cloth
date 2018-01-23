@@ -1,6 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 #include "../utils/heap.h"
+#include <stdint.h>
 
 /*
 typedef struct payment {
@@ -27,13 +28,13 @@ typedef enum eventType {
 
 typedef struct event {
   long ID;
-  double time;
+  uint64_t time;
   EventType type;
   long peerID;
   long paymentID;
 } Event;
 
-Event* createEvent(long ID, double time, EventType type, long peerID, long paymentID);
+Event* createEvent(long ID, uint64_t time, EventType type, long peerID, long paymentID);
 
 int compareEvent(Event* e1, Event *e2);
 

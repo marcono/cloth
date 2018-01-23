@@ -296,7 +296,10 @@ void findRoute(Event *event) {
   printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
-  if(payment->startTime < 1) payment->startTime = simulatorTime;
+  if(payment->startTime < 1) {
+    payment->startTime = simulatorTime;
+    printf( "Simulator time:  %ld", simulatorTime);
+  }
 
   pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                       payment->ignoredChannels);

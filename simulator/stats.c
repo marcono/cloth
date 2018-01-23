@@ -39,7 +39,7 @@ double statsComputePaymentTime(int cooperative) {
     nPayments++;
     currPaymentTime = payment->endTime - payment->startTime;
     if(payment->startTime < 1 || payment->endTime < 1 || currPaymentTime < 1) {
-      printf("Error in payment time\n");
+      printf("Error in payment time %"PRIu64" %"PRIu64"\n", payment->startTime, payment->endTime);
       return -1.0;
     }
     //    printf("%lf\n", currPaymentTime);

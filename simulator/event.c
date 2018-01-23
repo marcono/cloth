@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include "../gc-7.2/include/gc.h"
 #include "event.h"
 
-Event* createEvent(long ID, double time, EventType type, long peerID, long paymentID) {
+Event* createEvent(long ID, uint64_t time, EventType type, long peerID, long paymentID) {
   Event* e;
 
   e = GC_MALLOC(sizeof(Event));
@@ -21,7 +22,7 @@ Event* createEvent(long ID, double time, EventType type, long peerID, long payme
 
 
 int compareEvent(Event *e1, Event *e2) {
-  double time1, time2;
+  uint64_t time1, time2;
 
   time1=e1->time;
   time2=e2->time;

@@ -44,11 +44,11 @@ void heapify(Heap* h, long i, int(*compare)() ){
   rightChild = getRightChild(smallest);
 
   compRes = leftChild < h->index ? (*compare)(h->data[smallest], h->data[leftChild]) : -1;
-  if(compRes>0)
+  if(compRes>=0)
     smallest=leftChild;
 
   compRes = rightChild < h->index ? (*compare)(h->data[smallest], h->data[rightChild]) : -1;
-  if(compRes>0)
+  if(compRes>=0)
     smallest =rightChild;
 
 

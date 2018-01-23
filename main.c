@@ -57,7 +57,7 @@ void printPayments() {
       if(isPresent(hop->pathHop->channel, peer->channel)) {
         forward = hashTableGet(channels, hop->pathHop->channel);
         backward = hashTableGet(channels, forward->otherChannelDirectionID);
-        printf("Sender %ld, Receiver %ld, Channel %ld, Balance forward %.3lf, Balance backward %.3lf\n",
+        printf("Sender %ld, Receiver %ld, Channel %ld, Balance forward %ld, Balance backward %ld\n",
                hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID, forward->balance, backward->balance);
 
       }
@@ -212,11 +212,16 @@ void readPreInputAndInitialize() {
 
 int main() {
   Event* event;
+  Payment* payment;
 
   readPreInputAndInitialize();
 
   jsonWriteInput();
 
+  payment = createPayment(paymentIndex, 0, 3, 100);
+  hashTablePut(payments, payment->ID, payment);
+  event = createEvent(eventIndex, simulatorTime, FINDROUTE, 0, payment->ID);
+  events = heapInsert(events, event, compareEvent);
 
 
   while(heapLen(events) != 0 ) {
@@ -255,7 +260,7 @@ int main() {
 
 
 
-  //  printPayments();
+  printPayments();
 
   jsonWriteOutput();
 
