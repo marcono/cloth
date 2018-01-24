@@ -310,4 +310,7 @@ Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalT
   }
 
 
+void printHop(RouteHop* hop){
+  printf("Sender %ld, Receiver %ld, Channel %ld\n", hop->pathHop->sender, hop->pathHop->receiver, hop->pathHop->channel);
+}
 

@@ -22,7 +22,7 @@
 #define MINFEEPROP 1
 #define MAXLATENCY 10
 #define MINLATENCY 1
-
+#define FAULTYLATENCY 60000 //1 minute waiting for a peer not responding
 
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
 // di vicinanza di chord; memorizzare gli id dei peer in un Array di long
@@ -257,6 +257,8 @@ void closeChannel(long channelInfoID) {
 
   channelInfo = hashTableGet(channelInfos, channelInfoID);
 
+  printf("ChannelInfo %ld, ChannelDirection1 %ld, ChannelDirection2 %ld are now closed\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2);
+
   for(i = 0; i < peerIndex; i++) {
     peer = hashTableGet(peers, i);
     arrayDelete(peer->channel, &(channelInfo->channelDirection1), isEqual);
@@ -367,13 +369,16 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
   fee = computeFee(currHop->amountToForward,currChannel->policy);
   //the check should be: prevHop->amountToForward - fee != currHop->amountToForward
   if(prevHop->amountToForward - fee != currHop->amountToForward) {
-    printf("Error: Fee not respected\n");
+    printf("ERROR: Fee not respected\n");
+    printf("PrevHopAmount %ld - fee %ld != CurrHopAmount %ld\n", prevHop->amountToForward, fee, currHop->amountToForward);
+    printHop(currHop);
     return 0;
   }
 
   if(prevHop->timelock - prevChannel->policy.timelock != currHop->timelock) {
-    printf("Error: Timelock not respected\n");
+    printf("ERROR: Timelock not respected\n");
     printf("PrevHopTimelock %d - policyTimelock %d != currHopTimelock %d \n",prevHop->timelock, policy.timelock, currHop->timelock);
+    printHop(currHop);
     return 0;
   }
 
@@ -414,7 +419,7 @@ void sendPayment(Event* event) {
 
 
   if(firstRouteHop->amountToForward > nextChannel->balance) {
-    printf("not enough balance\n");
+    printf("Not enough balance in channel %ld\n", nextChannel->ID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
     nextEventTime = simulatorTime;
     nextEvent = createEvent(eventIndex, nextEventTime, FINDROUTE, event->peerID, event->paymentID );
@@ -438,7 +443,7 @@ void forwardPayment(Event *event) {
   Payment* payment;
   Route* route;
   RouteHop* nextRouteHop, *previousRouteHop;
-  long  nextPeerID, prevPeerID, nextChannelID;
+  long  nextPeerID, prevPeerID;
   EventType eventType;
   Event* nextEvent;
   uint64_t nextEventTime;
@@ -460,7 +465,7 @@ void forwardPayment(Event *event) {
   nextChannelInfo = hashTableGet(channelInfos, nextChannel->channelInfoID);
 
   if(nextRouteHop == NULL || previousRouteHop == NULL) {
-    printf("no route hop\n");
+    printf("ERROR: no route hop\n");
     return;
   }
 
@@ -482,7 +487,7 @@ void forwardPayment(Event *event) {
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevChannelInfo->latency;
+    nextEventTime = simulatorTime + prevChannelInfo->latency + FAULTYLATENCY;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -492,7 +497,7 @@ void forwardPayment(Event *event) {
   
 
   if(!isCooperativeAfterLock()) {
-    printf("Peer %ld is not cooperative after lock\n", event->peerID);
+    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, prevChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(prevChannel->channelInfoID);
 
@@ -512,7 +517,7 @@ void forwardPayment(Event *event) {
   if(!isPolicyRespected) return;
 
   if(nextRouteHop->amountToForward > nextChannel->balance ) {
-    printf("not enough balance\n");
+    printf("Not enough balance in channel %ld\n", nextChannel->ID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -564,7 +569,7 @@ void receivePayment(Event* event ) {
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + channelInfo->latency;
+    nextEventTime = simulatorTime + channelInfo->latency + FAULTYLATENCY;
     nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
     events = heapInsert(events, nextEvent, compareEvent);
     return;
@@ -573,7 +578,7 @@ void receivePayment(Event* event ) {
 
 
   if(peer->withholdsR) {
-    printf("Peer %ld withholds R\n", event->peerID);
+    printf("Peer %ld withholds R on channel %ld\n", event->peerID, backwardChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(backwardChannel->channelInfoID);
 
@@ -637,7 +642,7 @@ void forwardSuccess(Event* event) {
 
 
   if(!isCooperativeAfterLock()) {
-    printf("Peer %ld is not cooperative after lock\n", event->peerID);
+    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, nextChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(nextChannel->channelInfoID);
 

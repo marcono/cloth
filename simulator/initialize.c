@@ -49,7 +49,6 @@ void initializeEvents(long nPayments, double paymentMean) {
     // perche passa da pagamenti dell'ordine di 100 (classe 0) a pagamenti dell'ordine di 1.000.000 (classe 1)
     //FIXME: metti ampiezza giusta dell'intervallo, aumentando il numero di classi per non avere intervalli troppo ampi
     paymentClass = gsl_ran_discrete(r, discrete);
-    printf("%d", paymentClass);
     switch(paymentClass) {
     case 0:
       paymentAmount = gsl_rng_uniform_int(r, 1000) + 1;
@@ -61,7 +60,6 @@ void initializeEvents(long nPayments, double paymentMean) {
       paymentAmount = (gsl_rng_uniform_int(r, 1000) + 1)*1E8;
       break;
     }
-    printf(" %ld\n", paymentAmount);
 
     payment = createPayment(paymentIndex, senderID, receiverID, paymentAmount);
     hashTablePut(payments, payment->ID, payment);

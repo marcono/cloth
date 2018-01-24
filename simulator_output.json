@@ -1,10 +1,20 @@
 {
-  "TotalPayments":0,
-  "SucceededPayments":0,
-  "FailedPaymentsUncoop":0,
-  "FailedPaymentsNoPath":0,
-  "AveragePaymentTimeCoop":0.0,
-  "AveragePaymentTimeUncoop":0.0,
-  "AverageRouteLen":0.0,
-  "LockedFundCost":0
+  "TotalPayments":10000,
+  "SucceededPayments":8858,
+  "FailedPaymentsUncoop":35,
+  "FailedPaymentsNoPath":1107,
+  "Time":{
+    "AverageCoop":69.804050978607194,
+    "MinCoop":0,
+    "MaxCoop":170,
+    "AverageUncoop":91004745.031007752,
+    "MinUncoop":62,
+    "MaxUncoop":237600105
+  },
+  "RouteLength":{
+    "Average":7.0449705123901367,
+    "Min":1,
+    "Max":15
+  },
+  "LockedFundCost":45273794001
 }

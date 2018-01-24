@@ -248,7 +248,7 @@ int main() {
       receiveFail(event);
       break;
     default:
-      printf("Error wrong event type\n");
+      printf("ERROR wrong event type\n");
     }
   }
 

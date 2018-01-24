@@ -37,5 +37,5 @@ int compareEvent(Event *e1, Event *e2) {
 
 
 void printEvent(Event* e){
-  printf("%ld, %lf\n", e->ID, e->time);
+  printf("%ld, %ld\n", e->ID, e->time);
 }

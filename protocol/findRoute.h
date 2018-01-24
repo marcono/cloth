@@ -39,4 +39,6 @@ Array* dijkstra(long source, long destination, uint64_t amount, Array* ignoredPe
 
 Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalTimelock);
 
+void printHop(RouteHop* hop);
+
 #endif
