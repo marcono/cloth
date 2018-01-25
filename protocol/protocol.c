@@ -140,7 +140,7 @@ void connectPeers(long peerID1, long peerID2) {
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
   balance = gsl_rng_uniform_int(r, 10) + 1;
-  exponent = gsl_ran_poisson(r, 4.5);
+  //  exponent = gsl_ran_poisson(r, 4.5);
   balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11]
 
   policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
@@ -179,6 +179,31 @@ void computePeersInitialFunds(double gini) {
   }
 }
 
+double computeGini() {
+  long i, j;
+  uint64_t num=0, den=0;
+  int64_t difference;
+  ChannelInfo *channeli, *channelj;
+  double gini;
+
+  for(i=0;i<channelInfoIndex; i++) {
+    channeli = hashTableGet(channelInfos, i);
+    den += channeli->capacity;
+    for(j=0; j<channelInfoIndex; j++){
+      if(i==j) continue;
+      channelj = hashTableGet(channelInfos, j);
+      difference = channeli->capacity - channelj->capacity;
+      num += llabs(difference);
+    }
+  }
+
+  den = 2*channelInfoIndex*den;
+
+  gini = num/(den*1.0);
+
+  return gini;
+}
+
 void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) {
   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
   Peer* peer, *counterparty;
@@ -206,12 +231,13 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
       }while(counterpartyID==peer->ID);
 
       counterparty = hashTableGet(peers, counterpartyID);
-      if(arrayLen(counterparty->channel)>=nChannels) continue;
+      //      if(arrayLen(counterparty->channel)>=nChannels) continue;
 
       connectPeers(peer->ID, counterparty->ID);
     }
   }
 
+  printf("GINI: %lf\n",  computeGini());
 
 }
 
@@ -231,7 +257,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   peers = hashTableInitialize(1000);
   channels = hashTableInitialize(1000);
   channelInfos= hashTableInitialize(1000);
-  payments = hashTableInitialize(1000);
+  payments = hashTableInitialize(1000); //TODO: sposta payments in simulator/initialize.c
 
   initializeTopology(nPeers, nChannels, RWithholding, gini);
 
