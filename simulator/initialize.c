@@ -9,6 +9,7 @@
 #include "event.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_math.h>
 #include <stdint.h>
 
 #define MAXMICRO 1E3
@@ -28,12 +29,12 @@ void initializeEvents(long nPayments, double paymentMean) {
   uint64_t  paymentAmount=0, eventTime=0 ;
   uint32_t nextEventInterval;
   unsigned int paymentClass;
-  double paymentClassP[]= {0.7, 0.2, 0.1};
+  double paymentClassP[]= {0.65, 0.2, 0.1, 0.05}, randomDouble;
   gsl_ran_discrete_t* discrete;
   Payment *payment;
   Event* event;
 
-  discrete = gsl_ran_discrete_preproc(3, paymentClassP);
+  discrete = gsl_ran_discrete_preproc(4, paymentClassP);
 
   events = heapInitialize(nPayments);
 
@@ -49,18 +50,21 @@ void initializeEvents(long nPayments, double paymentMean) {
     // perche passa da pagamenti dell'ordine di 100 (classe 0) a pagamenti dell'ordine di 1.000.000 (classe 1)
     //FIXME: metti ampiezza giusta dell'intervallo, aumentando il numero di classi per non avere intervalli troppo ampi
     paymentClass = gsl_ran_discrete(r, discrete);
+    randomDouble = gsl_rng_uniform(r);
     switch(paymentClass) {
     case 0:
-      paymentAmount = gsl_rng_uniform_int(r, 1000) + 1;
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 1);
       break;
     case 1:
-      paymentAmount = (gsl_rng_uniform_int(r, 10000) + 1)*1000;
-      break;
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 3);
+       break;
     case 2:
-      paymentAmount = (gsl_rng_uniform_int(r, 1000) + 1)*1E8;
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 6);
+      break;
+    case 3:
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);
       break;
     }
-
     payment = createPayment(paymentIndex, senderID, receiverID, paymentAmount);
     hashTablePut(payments, payment->ID, payment);
 

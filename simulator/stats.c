@@ -4,7 +4,7 @@
 #include "../protocol/protocol.h"
 
 void statsInitialize() {
-  totalPayments = succeededPayments = failedPaymentsUncoop = failedPaymentsNoPath = 0;
+  totalPayments = succeededPayments = failedPaymentsUncoop = failedPaymentsNoPath = failedPaymentsNoBalance = 0;
   lockedFundCost = 0;
 }
 
@@ -14,10 +14,12 @@ void statsUpdatePayments(Payment* payment) {
     succeededPayments++;
   }
   else {
-    if(payment->isAPeerUncoop)
+    if(payment->route==NULL)
+      failedPaymentsNoPath++;
+    else if(payment->isAPeerUncoop)
       failedPaymentsUncoop++;
     else
-      failedPaymentsNoPath++;
+      failedPaymentsNoBalance++;
   }
 }
 
@@ -25,7 +27,7 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
   long i;
   Payment * payment;
   uint64_t currPaymentTime, totalPaymentsTime;
-  long nPayments;
+  long nPayments, ID;
 
   nPayments = 0;
   totalPaymentsTime = 0;
@@ -33,13 +35,15 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
   *min = UINT64_MAX;
   for(i = 0; i < paymentIndex; i++) {
     payment = hashTableGet(payments, i);
-    if(payment->route == NULL) continue;
+    if(payment->route == NULL || !payment->isSuccess) continue;
     if(cooperative && payment->isAPeerUncoop) continue;
     if(!cooperative && !(payment->isAPeerUncoop)) continue;
     nPayments++;
     currPaymentTime = payment->endTime - payment->startTime;
-    if(currPaymentTime>*max)
+    if(currPaymentTime>*max) {
       *max = currPaymentTime;
+      ID = payment->ID;
+    }
     if(currPaymentTime<*min) 
       *min = currPaymentTime;
 
@@ -52,6 +56,9 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
   }
 
   if(nPayments==0) return 0.0;
+
+  if(cooperative)
+    printf("max pay id: %ld\n", ID);
 
   return totalPaymentsTime / (nPayments*1.0);
 }
@@ -121,7 +128,7 @@ void jsonWriteOutput() {
   int minRouteLen, maxRouteLen;
   struct json_object* joutput;
   struct json_object* jtime, *jroutelen;
-  struct json_object* jtotpay, *jsuccpay, *jfailpayuncoop, *jfailpaynopath, *jlockedcost,
+  struct json_object* jtotpay, *jsuccpay, *jfailpayuncoop, *jfailpaynopath, *jfailpaynobalance, *jlockedcost,
     *javtimecoop, *jmintimecoop, *jmaxtimecoop,  *javtimeuncoop, *jmintimeuncoop, *jmaxtimeuncoop, *javroutelen, *jminroutelen, *jmaxroutelen ;
 
   averagePaymentTimeCoop = statsComputePaymentTime(1, &minPayTimeCoop, &maxPayTimeCoop);
@@ -133,6 +140,7 @@ void jsonWriteOutput() {
   jtotpay = json_object_new_int64(totalPayments);
   jsuccpay = json_object_new_int64(succeededPayments);
   jfailpayuncoop = json_object_new_int64(failedPaymentsUncoop);
+  jfailpaynobalance = json_object_new_int64(failedPaymentsNoBalance);
   jfailpaynopath = json_object_new_int64(failedPaymentsNoPath);
   jlockedcost = json_object_new_int64(lockedFundCost);
 
@@ -162,6 +170,7 @@ void jsonWriteOutput() {
   json_object_object_add(joutput, "TotalPayments", jtotpay);
   json_object_object_add(joutput, "SucceededPayments", jsuccpay);
   json_object_object_add(joutput, "FailedPaymentsUncoop", jfailpayuncoop);
+  json_object_object_add(joutput, "FailedPaymentsNoBalance", jfailpaynobalance);
   json_object_object_add(joutput, "FailedPaymentsNoPath", jfailpaynopath);
   json_object_object_add(joutput, "Time", jtime);
   json_object_object_add(joutput, "RouteLength", jroutelen);

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_math.h>
 #include <stdint.h>
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
@@ -22,6 +23,8 @@
 #define MINFEEPROP 1
 #define MAXLATENCY 10
 #define MINLATENCY 1
+#define MINBALANCE 1E2
+#define MAXBALANCE 1E11
 #define FAULTYLATENCY 60000 //1 minute waiting for a peer not responding
 
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
@@ -126,8 +129,8 @@ void connectPeers(long peerID1, long peerID2) {
   Policy policy1, policy2;
   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
-  double latency;
-
+  uint32_t latency, exponent;
+  uint64_t balance; 
 
   peer1 = hashTableGet(peers, peerID1);
   peer2 = hashTableGet(peers, peerID2);
@@ -136,12 +139,15 @@ void connectPeers(long peerID1, long peerID2) {
   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency);
   hashTablePut(channelInfos, channelInfo->ID, channelInfo);
 
+  balance = gsl_rng_uniform_int(r, 10) + 1;
+  exponent = gsl_ran_poisson(r, 4.5);
+  balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11]
 
   policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
   policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
-  firstChannelDirection->balance = computeChannelBalance(peer1);
+  firstChannelDirection->balance = balance;
   hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
   channelInfo->channelDirection1 = firstChannelDirection->ID;
@@ -150,7 +156,7 @@ void connectPeers(long peerID1, long peerID2) {
   policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
   policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2);
-  secondChannelDirection->balance = computeChannelBalance(peer2);
+  secondChannelDirection->balance = balance;
   hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
   channelInfo->channelDirection2 = secondChannelDirection->ID;
@@ -182,7 +188,7 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
     hashTablePut(peers, peer->ID, peer);
   }
 
-  computePeersInitialFunds(gini);
+  //  computePeersInitialFunds(gini);
 
   nRWithholdingPeers = nPeers*RWithholding;
   for(i=0; i < nRWithholdingPeers ;i++) {

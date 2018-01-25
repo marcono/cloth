@@ -258,8 +258,9 @@ int main() {
 
   jsonWriteOutput();
 
-
+  return 0;
 }
+
 
 /*
 

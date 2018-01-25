@@ -7,6 +7,7 @@ long totalPayments;
 long succeededPayments;
 long failedPaymentsUncoop;
 long failedPaymentsNoPath;
+long failedPaymentsNoBalance;
 uint64_t lockedFundCost;
 
 void statsInitialize();
