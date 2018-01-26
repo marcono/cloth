@@ -213,15 +213,16 @@ void readPreInputAndInitialize() {
 int main() {
   Event* event;
 
-  readPreInputAndInitialize();
+  printf("main\n");
 
+
+  readPreInputAndInitialize();
   jsonWriteInput();
 
 
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     simulatorTime = event->time;
-
     switch(event->type){
     case FINDROUTE:
       findRoute(event);

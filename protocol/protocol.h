@@ -13,7 +13,6 @@ extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 extern HashTable* peers;
 extern HashTable* channels;
 extern HashTable* channelInfos;
-extern HashTable* payments;
 extern double pUncoopBeforeLock, pUncoopAfterLock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;

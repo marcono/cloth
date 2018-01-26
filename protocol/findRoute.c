@@ -27,7 +27,7 @@ int compareDistance(Distance* a, Distance* b) {
 
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance distance[peerIndex], *d;
+  Distance *distance, *d;
   long i, bestPeerID, j,*channelID, nextPeerID, prev;
   Heap *distanceHeap;
   Peer* bestPeer;
@@ -35,11 +35,16 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   ChannelInfo* channelInfo;
   double tmpDist;
   uint64_t capacity;
-  DijkstraHop previousPeer[peerIndex];
+  DijkstraHop *previousPeer;
   Array* hops;
   PathHop* hop;
 
-  distanceHeap = heapInitialize(10);
+  printf("DIJKSTRA\n");
+
+  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
+  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
+
+  distanceHeap = heapInitialize(peerIndex);
 
   for(i=0; i<peerIndex; i++){
     distance[i].peer = i;

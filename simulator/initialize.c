@@ -22,7 +22,7 @@
 long eventIndex;
 Heap* events;
 uint64_t simulatorTime;
-
+HashTable *payments;
 
 void initializeEvents(long nPayments, double paymentMean) {
   long i, senderID, receiverID;
@@ -36,7 +36,7 @@ void initializeEvents(long nPayments, double paymentMean) {
 
   discrete = gsl_ran_discrete_preproc(4, paymentClassP);
 
-  events = heapInitialize(nPayments);
+  events = heapInitialize(nPayments*10);
 
   for(i=0;i<nPayments;i++) {
 
@@ -79,6 +79,7 @@ void initializeEvents(long nPayments, double paymentMean) {
 void initializeSimulatorData(long nPayments, double paymentMean ) {
   eventIndex = 0;
   simulatorTime = 1;
+  payments = hashTableInitialize(nPayments);
   initializeEvents(nPayments, paymentMean);
 }
 

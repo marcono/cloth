@@ -38,7 +38,6 @@ long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 HashTable* peers;
 HashTable* channels;
 HashTable* channelInfos;
-HashTable* payments;
 gsl_rng *r;
 const gsl_rng_type * T;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
@@ -112,8 +111,8 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->receiver = receiver;
   p->amount = amount;
   p->route = NULL;
-  p->ignoredChannels = arrayInitialize(5);
-  p->ignoredPeers = arrayInitialize(5);
+  p->ignoredChannels = arrayInitialize(100);
+  p->ignoredPeers = arrayInitialize(100);
   p->isSuccess = 0;
   p->isAPeerUncoop = 0;
   p->startTime = 0;
@@ -129,7 +128,7 @@ void connectPeers(long peerID1, long peerID2) {
   Policy policy1, policy2;
   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
   ChannelInfo *channelInfo;
-  uint32_t latency, exponent;
+  uint32_t latency;
   uint64_t balance; 
 
   peer1 = hashTableGet(peers, peerID1);
@@ -208,12 +207,17 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
   Peer* peer, *counterparty;
 
+  printf("inittopology\n");
+
   for(i=0; i<nPeers; i++){
     peer = createPeer(peerIndex, nChannels);
     hashTablePut(peers, peer->ID, peer);
   }
 
+
   //  computePeersInitialFunds(gini);
+
+
 
   nRWithholdingPeers = nPeers*RWithholding;
   for(i=0; i < nRWithholdingPeers ;i++) {
@@ -222,6 +226,8 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
     peer->withholdsR = 1;
   }
 
+
+  double mean=0.0;
   for(i=0; i<peerIndex; i++) {
     peer = hashTableGet(peers, i);
     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
@@ -235,9 +241,15 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
       connectPeers(peer->ID, counterparty->ID);
     }
+    mean+=arrayLen(peer->channel);
+
+
   }
 
-  printf("GINI: %lf\n",  computeGini());
+  mean/=peerIndex;
+  printf("MEAN CHANNELS PER PEER: %lf\n", mean);
+
+  //  printf("GINI: %lf\n",  computeGini());
 
 }
 
@@ -254,10 +266,9 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
-  peers = hashTableInitialize(1000);
-  channels = hashTableInitialize(1000);
-  channelInfos= hashTableInitialize(1000);
-  payments = hashTableInitialize(1000); //TODO: sposta payments in simulator/initialize.c
+  peers = hashTableInitialize(nPeers/10);
+  channels = hashTableInitialize((nPeers*nChannels)/10);
+  channelInfos= hashTableInitialize((nPeers*nChannels)/10);
 
   initializeTopology(nPeers, nChannels, RWithholding, gini);
 
