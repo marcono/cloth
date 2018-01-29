@@ -265,10 +265,15 @@ void readPreInputAndInitialize() {
   gini = json_object_get_double(jobj);
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
-  //  printf("press any key\n");
-  //scanf("%*c");
+  printf("change topology and press enter\n");
+  scanf("%*c");
   createTopologyFromCsv();
-  initializeSimulatorData(nPayments, paymentMean);
+
+  initializeSimulatorData(nPayments, paymentMean, isPreproc);
+  printf("change payments and press enter\n");
+  scanf("%*c");
+  createPaymentsFromCsv();
+
   statsInitialize();
 
 }
@@ -278,16 +283,23 @@ void readPreInputAndInitialize() {
 
 int main() {
   Event* event;
-  Peer* peer;
-  ChannelInfo* channelInfo;
-  Channel* channel;
+  //  Peer* peer;
+  //ChannelInfo* channelInfo;
+  //Channel* channel;
+  //Payment* payment;
+
   printf("main\n");
 
 
   readPreInputAndInitialize();
 
-
   /*
+  payment = hashTableGet(payments, 7);
+  if(payment==NULL) printf("NULL\n");
+  printf("Payment %ld,%ld,%ld,%ld\n", payment->ID, payment->sender, payment->receiver, payment->amount);
+
+
+  
   peer = hashTableGet(peers, 0);
   printf("Peer %ld %d\n", peer->ID, peer->withholdsR);
 
@@ -334,7 +346,7 @@ int main() {
       printf("ERROR wrong event type\n");
     }
   }
-
+  
 
 
   //printPayments();

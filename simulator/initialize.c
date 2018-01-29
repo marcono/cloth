@@ -36,7 +36,6 @@ void initializeEvents(long nPayments, double paymentMean) {
 
   discrete = gsl_ran_discrete_preproc(4, paymentClassP);
 
-  events = heapInitialize(nPayments*10);
 
   for(i=0;i<nPayments;i++) {
 
@@ -47,9 +46,6 @@ void initializeEvents(long nPayments, double paymentMean) {
     } while(senderID==receiverID);
 
 
-    //TODO: forse vanno fatte piu classi di pagamento con intervalli piu piccoli,
-    // perche passa da pagamenti dell'ordine di 100 (classe 0) a pagamenti dell'ordine di 1.000.000 (classe 1)
-    //FIXME: metti ampiezza giusta dell'intervallo, aumentando il numero di classi per non avere intervalli troppo ampi
     paymentClass = gsl_ran_discrete(r, discrete);
     randomDouble = gsl_rng_uniform(r);
     switch(paymentClass) {
@@ -77,11 +73,97 @@ void initializeEvents(long nPayments, double paymentMean) {
 
 }
 
-void initializeSimulatorData(long nPayments, double paymentMean ) {
+void initializeEventsPreproc(long nPayments, double paymentMean) {
+  long i, senderID, receiverID;
+  uint64_t  paymentAmount=0, eventTime=0 ;
+  uint32_t nextEventInterval;
+  unsigned int paymentClass;
+  double paymentClassP[]= {0.65, 0.2, 0.1, 0.05}, randomDouble;
+  gsl_ran_discrete_t* discrete;
+  long paymentIDIndex=0;
+
+  discrete = gsl_ran_discrete_preproc(4, paymentClassP);
+
+
+  for(i=0;i<nPayments;i++) {
+
+
+    do{
+      senderID = gsl_rng_uniform_int(r,peerIndex);
+      receiverID = gsl_rng_uniform_int(r, peerIndex);
+    } while(senderID==receiverID);
+
+
+    paymentClass = gsl_ran_discrete(r, discrete);
+    randomDouble = gsl_rng_uniform(r);
+    switch(paymentClass) {
+    case 0:
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 1);
+      break;
+    case 1:
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 3);
+       break;
+    case 2:
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 6);
+      break;
+    case 3:
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);
+      break;
+    }
+    nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
+    eventTime += nextEventInterval;
+
+    fprintf(csvPayment, "%ld,%ld,%ld,%ld,%ld\n", paymentIDIndex++, senderID, receiverID, paymentAmount, eventTime );
+
+  }
+
+  fclose(csvPayment); 
+}
+
+void createPaymentsFromCsv() {
+  Payment* payment;
+  Event* event;
+  char row[256];
+  long ID, sender, receiver;
+  uint64_t amount, time;
+
+  csvPayment = fopen("payment.csv", "r");
+  if(csvPayment==NULL) {
+    printf("ERROR cannot open file payment.csv\n");
+    return;
+  }
+
+
+  fgets(row, 256, csvPayment);
+  while(fgets(row, 256, csvPayment) != NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld", &ID, &sender, &receiver, &amount, &time);
+    payment = createPayment(ID, sender, receiver, amount);
+    hashTablePut(payments, payment->ID, payment);
+    event = createEvent(eventIndex, time, FINDROUTE, sender, payment->ID);
+    events = heapInsert(events, event, compareEvent);
+  }
+  fclose(csvPayment);
+}
+
+void initializeSimulatorData(long nPayments, double paymentMean, unsigned int isPreproc ) {
   eventIndex = 0;
   simulatorTime = 1;
+
   payments = hashTableInitialize(nPayments);
-  initializeEvents(nPayments, paymentMean);
+  events = heapInitialize(nPayments*10);
+
+  csvPayment = fopen("payment.csv", "w");
+  if(csvPayment==NULL) {
+    printf("ERROR cannot open file payment.csv\n");
+    return;
+  }
+  fprintf(csvPayment, "ID,Sender,Receiver,Amount,Time\n");
+
+
+  if(isPreproc)
+    initializeEventsPreproc(nPayments, paymentMean);
+  else
+    initializeEvents(nPayments, paymentMean);
 }
 
 

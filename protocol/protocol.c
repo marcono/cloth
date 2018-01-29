@@ -354,7 +354,7 @@ void createTopologyFromCsv() {
   while(fgets(row, 256, csvPeer)!=NULL) {
     sscanf(row, "%ld,%d", &ID, &withholdsR);
     peer = createPeerPostProc(ID, withholdsR);
-    hashTablePut(peers, ID, peer);
+    hashTablePut(peers,peer->ID, peer);
   }
 
   fclose(csvPeer);
@@ -369,7 +369,7 @@ void createTopologyFromCsv() {
   while(fgets(row, 256, csvChannelInfo)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &ID, &direction1, &direction2, &peerID1, &peerID2, &capacity, &latency);
     channelInfo = createChannelInfoPostProc(ID, direction1, direction2, peerID1, peerID2, capacity, latency);
-    hashTablePut(channelInfos, ID, channelInfo);
+    hashTablePut(channelInfos, channelInfo->ID, channelInfo);
     peer1 = hashTableGet(peers, peerID1);
     peer1->channel = arrayInsert(peer1->channel, &(channelInfo->channelDirection1));
     peer2 = hashTableGet(peers, peerID2);
@@ -388,7 +388,7 @@ void createTopologyFromCsv() {
   while(fgets(row, 256, csvChannel)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.timelock);
     channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
-    hashTablePut(channels, ID, channel);
+    hashTablePut(channels, channel->ID, channel);
   }
 
   fclose(csvChannel);
