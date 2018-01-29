@@ -109,6 +109,16 @@ long heapLen(Heap*h){
   return h->index;
 }
 
+void heapFree(Heap *h) {
+  long i;
+
+  //  for(i=0; i<h->size; i++)
+  // GC_FREE(h->data[i]);
+
+  GC_FREE(h->data);
+  GC_FREE(h);
+}
+
 /*
   void heapify(Heap* h, int i, int(*compare)() ){
   int leftChild, rightChild, compResL, compResR;

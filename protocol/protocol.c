@@ -73,19 +73,6 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency
   return channelInfo;
 }
 
-uint64_t computeChannelBalance(Peer *peer) {
-  uint64_t channelBalance;
-
-  channelBalance = peer->initialFunds/4; //TODO: al posto di 4, il numero di canali per peer o altro
-  if(peer->remainingFunds < channelBalance) {
-    channelBalance = peer->remainingFunds;
-    peer->remainingFunds=0.0;
-  }
-  else
-    peer->remainingFunds -= channelBalance;
-
-  return channelBalance;
-}
 
 Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy){
   Channel* channel;
@@ -122,6 +109,57 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
 
   return p;
 }
+
+Peer* createPeerPostProc(long ID, int withholdsR) {
+  Peer* peer;
+
+  peer = GC_MALLOC(sizeof(Peer));
+  peer->ID=ID;
+  peer->channel = arrayInitialize(5);
+  peer->initialFunds = 0;
+  peer->remainingFunds = 0;
+  peer->withholdsR = withholdsR;
+
+  peerIndex++;
+
+  return peer;
+}
+
+ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency) {
+  ChannelInfo* channelInfo;
+
+  channelInfo = GC_MALLOC(sizeof(ChannelInfo));
+  channelInfo->ID = ID;
+  channelInfo->channelDirection1 = direction1;
+  channelInfo->channelDirection2 = direction2;
+  channelInfo->peer1 = peer1;
+  channelInfo->peer2 = peer2;
+  channelInfo->latency = latency;
+  channelInfo->capacity = capacity;
+
+  channelInfoIndex++;
+
+  return channelInfo;
+}
+
+Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection, long counterparty, uint64_t balance, Policy policy){
+  Channel* channel;
+
+  channel = GC_MALLOC(sizeof(Channel));
+  channel->ID = ID;
+  channel->channelInfoID = channelInfoID;
+  channel->counterparty = counterparty;
+  channel->otherChannelDirectionID = otherDirection;
+  channel->policy = policy;
+  channel->balance = balance;
+
+  channelIndex++;
+
+  return channel;
+}
+
+
+
 
 void connectPeers(long peerID1, long peerID2) {
   Peer* peer1, *peer2;
@@ -178,6 +216,23 @@ void computePeersInitialFunds(double gini) {
   }
 }
 
+/*
+  uint64_t computeChannelBalance(Peer *peer) {
+  uint64_t channelBalance;
+
+  channelBalance = peer->initialFunds/4; //TODO: al posto di 4, il numero di canali per peer o altro
+  if(peer->remainingFunds < channelBalance) {
+  channelBalance = peer->remainingFunds;
+  peer->remainingFunds=0.0;
+  }
+  else
+  peer->remainingFunds -= channelBalance;
+
+  return channelBalance;
+  }
+*/
+
+
 double computeGini() {
   long i, j;
   uint64_t num=0, den=0;
@@ -203,6 +258,144 @@ double computeGini() {
   return gini;
 }
 
+void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, double gini) {
+  long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
+  double RwithholdingP[] = {1-RWithholding, RWithholding};
+  gsl_ran_discrete_t* RwithholdingDiscrete;
+  int *peerChannels;
+  uint32_t latency;
+  uint64_t balance, capacity;
+  Policy policy1, policy2;
+
+  RwithholdingDiscrete = gsl_ran_discrete_preproc(2, RwithholdingP);
+
+  peerIDIndex=0;
+  for(i=0; i<nPeers; i++){
+    fprintf(csvPeer, "%ld,%ld\n", peerIDIndex, gsl_ran_discrete(r, RwithholdingDiscrete));
+    peerIDIndex++;
+  }
+
+
+  /*
+  rewind(csvPeer);
+  unsigned long nR=0, withholdsR=0, ID=0;
+  char row[100];
+  while(fgets(row, 100, csvPeer)!=NULL) {
+    sscanf(row, "%ld,%ld\n", &ID, &withholdsR);
+    if(withholdsR) ++nR;
+  }
+  */
+
+  peerChannels = GC_MALLOC(peerIDIndex*sizeof(int));
+  for(i=0;i<peerIDIndex;i++) 
+    peerChannels[i] = 0;
+
+  channelInfoIDIndex = channelIDIndex= 0;
+  for(i=0; i<peerIDIndex; i++) {
+    peer1 = i;
+    for(j=0; j<nChannels && (peerChannels[peer1] < nChannels); j++){
+
+      do {
+        peer2 = gsl_rng_uniform_int(r,peerIDIndex);
+      }while(peer2==peer1);
+
+      if(peerChannels[peer2]>=nChannels) continue;
+
+      ++peerChannels[peer1];
+      ++peerChannels[peer2];
+      info = channelInfoIDIndex;
+      ++channelInfoIDIndex;
+      direction1 = channelIDIndex;
+      ++channelIDIndex;
+      direction2 = channelIDIndex;
+      ++channelIDIndex;
+
+      latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
+      balance = gsl_rng_uniform_int(r, 10) + 1;
+      balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4);
+      capacity = balance*2;
+      policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
+      policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+      policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
+      policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+
+      fprintf(csvChannelInfo, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
+
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction1, info, direction2, peer2, balance, policy1.feeBase, policy1.feeProportional, policy1.timelock);
+
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction2, info, direction1, peer1, balance, policy2.feeBase, policy2.feeProportional, policy2.timelock);
+
+    }
+
+  }
+}
+
+
+void createTopologyFromCsv() {
+  char row[256];
+  Peer* peer, *peer1, *peer2;
+  long ID, direction1, direction2, peerID1, peerID2, channelInfoID, otherDirection, counterparty;
+  Policy policy;
+  int withholdsR;
+  uint32_t latency;
+  uint64_t capacity, balance;
+  ChannelInfo* channelInfo;
+  Channel* channel;
+
+  csvPeer = fopen("peer.csv", "r");
+  if(csvPeer==NULL) {
+    printf("ERROR cannot open file peer.csv\n");
+    return;
+  }
+
+  fgets(row, 256, csvPeer);
+  while(fgets(row, 256, csvPeer)!=NULL) {
+    sscanf(row, "%ld,%d", &ID, &withholdsR);
+    peer = createPeerPostProc(ID, withholdsR);
+    hashTablePut(peers, ID, peer);
+  }
+
+  fclose(csvPeer);
+
+  csvChannelInfo = fopen("channelInfo.csv", "r");
+  if(csvChannelInfo==NULL) {
+    printf("ERROR cannot open file channelInfo.csv\n");
+    return;
+  }
+
+  fgets(row, 256, csvChannelInfo);
+  while(fgets(row, 256, csvChannelInfo)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &ID, &direction1, &direction2, &peerID1, &peerID2, &capacity, &latency);
+    channelInfo = createChannelInfoPostProc(ID, direction1, direction2, peerID1, peerID2, capacity, latency);
+    hashTablePut(channelInfos, ID, channelInfo);
+    peer1 = hashTableGet(peers, peerID1);
+    peer1->channel = arrayInsert(peer1->channel, &(channelInfo->channelDirection1));
+    peer2 = hashTableGet(peers, peerID2);
+    peer2->channel = arrayInsert(peer2->channel, &(channelInfo->channelDirection2));
+  }
+
+  fclose(csvChannelInfo);
+
+  csvChannel = fopen("channel.csv", "r");
+  if(csvChannel==NULL) {
+    printf("ERROR cannot open file channel.csv\n");
+    return;
+  }
+
+  fgets(row, 256, csvChannel);
+  while(fgets(row, 256, csvChannel)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.timelock);
+    channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
+    hashTablePut(channels, ID, channel);
+  }
+
+  fclose(csvChannel);
+
+}
+
+
 void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) {
   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
   Peer* peer, *counterparty;
@@ -227,7 +420,6 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
   }
 
 
-  double mean=0.0;
   for(i=0; i<peerIndex; i++) {
     peer = hashTableGet(peers, i);
     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
@@ -237,25 +429,26 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
       }while(counterpartyID==peer->ID);
 
       counterparty = hashTableGet(peers, counterpartyID);
-      //      if(arrayLen(counterparty->channel)>=nChannels) continue;
+      if(arrayLen(counterparty->channel)>=nChannels) continue;
 
       connectPeers(peer->ID, counterparty->ID);
     }
-    mean+=arrayLen(peer->channel);
+
 
 
   }
 
-  mean/=peerIndex;
-  printf("MEAN CHANNELS PER PEER: %lf\n", mean);
+
 
   //  printf("GINI: %lf\n",  computeGini());
 
 }
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini) {
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
+
+  initializeFindRoute();
 
   gsl_rng_env_setup();
   T = gsl_rng_default;
@@ -267,11 +460,38 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
   peers = hashTableInitialize(nPeers/10);
-  channels = hashTableInitialize((nPeers*nChannels)/10);
-  channelInfos= hashTableInitialize((nPeers*nChannels)/10);
+  channels = hashTableInitialize((nPeers)/10);
+  channelInfos= hashTableInitialize((nPeers)/10);
 
-  initializeTopology(nPeers, nChannels, RWithholding, gini);
+  csvPeer = fopen("peer.csv", "w");
+  if(csvPeer==NULL) {
+    printf("ERROR cannot open file peer.csv\n");
+    return;
+  }
+  fprintf(csvPeer, "ID,WithholdsR\n");
 
+  csvChannelInfo = fopen("channelInfo.csv", "w");
+  if(csvChannelInfo==NULL) {
+    printf("ERROR cannot open file channelInfo.csv\n");
+    return;
+  }
+  fprintf(csvChannelInfo, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency\n");
+
+  csvChannel = fopen("channel.csv", "w");
+  if(csvChannel==NULL) {
+    printf("ERROR cannot open file channel.csv\n");
+    return;
+  }
+  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
+
+  if(isPreproc)
+    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini);
+  else
+    initializeTopology(nPeers, nChannels, RWithholding, gini);
+
+  fclose(csvPeer);
+  fclose(csvChannelInfo);
+  fclose(csvChannel);
 }
 
 
@@ -358,6 +578,8 @@ void findRoute(Event *event) {
     statsUpdatePayments(payment);
     return;
   }
+
+
 
   route = transformPathIntoRoute(pathHops, payment->amount, finalTimelock);
   if(route==NULL) {

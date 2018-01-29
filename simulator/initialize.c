@@ -40,6 +40,7 @@ void initializeEvents(long nPayments, double paymentMean) {
 
   for(i=0;i<nPayments;i++) {
 
+
     do{
       senderID = gsl_rng_uniform_int(r,peerIndex);
       receiverID = gsl_rng_uniform_int(r, peerIndex);

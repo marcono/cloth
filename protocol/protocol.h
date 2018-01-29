@@ -17,12 +17,12 @@ extern double pUncoopBeforeLock, pUncoopAfterLock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
-
+FILE *csvPeer, *csvChannel, *csvChannelInfo;
 
 typedef struct policy {
   uint32_t feeBase;
   uint32_t feeProportional;
-  int timelock;
+  uint16_t timelock;
 } Policy;
 
 typedef struct peer {
@@ -83,7 +83,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini);
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini, unsigned int isPreproc);
 
 Peer* createPeer(long ID, long channelsSize);
 
@@ -94,6 +94,8 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
 Payment* createPayment(long ID, long sender, long receiver, uint64_t amount);
 
 void connectPeers(long peer1, long peer2);
+
+void createTopologyFromCsv();
 
 int isPresent(long element, Array* longArray);
 

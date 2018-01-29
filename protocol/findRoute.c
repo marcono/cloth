@@ -1,20 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "../gc-7.2/include/gc.h"
 #include "../simulator/initialize.h"
 #include "../protocol/protocol.h"
 #include "../utils/heap.h"
 #include "../utils/array.h"
 #include "findRoute.h"
-#define INF 10000000.0
+#define INF UINT16_MAX 
 #define HOPSLIMIT 20
 
 //FIXME: non globale ma passato per riferimento a dijkstra
 char error[100];
 
+
+
+void initializeFindRoute() {
+  distanceHeap=NULL;
+  previousPeer = NULL;
+  distance = NULL;
+}
+
 int compareDistance(Distance* a, Distance* b) {
-  double d1, d2;
+  uint16_t d1, d2;
   d1=a->distance;
   d2=b->distance;
   if(d1==d2)
@@ -27,24 +36,31 @@ int compareDistance(Distance* a, Distance* b) {
 
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance *distance, *d;
+  Distance *d;
   long i, bestPeerID, j,*channelID, nextPeerID, prev;
-  Heap *distanceHeap;
+  //  Heap *distanceHeap;
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
   double tmpDist;
   uint64_t capacity;
-  DijkstraHop *previousPeer;
+  //DijkstraHop *previousPeer;
   Array* hops;
   PathHop* hop;
 
   printf("DIJKSTRA\n");
 
-  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
-  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
+  if(distance==NULL) {
+    distance = GC_MALLOC(sizeof(Distance)*peerIndex);
+  }
 
-  distanceHeap = heapInitialize(peerIndex);
+  if(previousPeer==NULL) {
+    previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
+  }
+
+  if(distanceHeap==NULL) {
+    distanceHeap = heapInitialize(peerIndex);
+  }
 
   for(i=0; i<peerIndex; i++){
     distance[i].peer = i;
@@ -54,7 +70,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   }
 
   distance[source].peer = source;
-  distance[source].distance = 0.0;
+  distance[source].distance = 0;
 
   //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
   distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance); 
@@ -100,6 +116,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
     return NULL;
   }
 
+
   hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
@@ -113,12 +130,17 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
     prev = previousPeer[prev].peer;
   }
 
+
   if(arrayLen(hops)>HOPSLIMIT) {
     strcpy(error, "limitExceeded");
     return NULL;
   }
 
   arrayReverse(hops);
+
+  //  GC_FREE(previousPeer);
+  //GC_FREE(distance);
+  //heapFree(distanceHeap);
 
   return hops;
 }

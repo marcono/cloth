@@ -2,6 +2,7 @@
 #include <json-c/json.h>
 #include "stats.h"
 #include "../protocol/protocol.h"
+#include "../simulator/initialize.h"
 
 void statsInitialize() {
   totalPayments = succeededPayments = failedPaymentsUncoop = failedPaymentsNoPath = failedPaymentsNoBalance = 0;
@@ -40,11 +41,10 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
     if(!cooperative && !(payment->isAPeerUncoop)) continue;
     nPayments++;
     currPaymentTime = payment->endTime - payment->startTime;
-    if(currPaymentTime>*max) {
+    if(currPaymentTime>*max)
       *max = currPaymentTime;
-      ID = payment->ID;
-    }
-    if(currPaymentTime<*min) 
+
+    if(currPaymentTime<*min)
       *min = currPaymentTime;
 
     if(payment->startTime < 1 || payment->endTime < 1 || payment->startTime > payment->endTime) {
@@ -57,8 +57,6 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
 
   if(nPayments==0) return 0.0;
 
-  if(cooperative)
-    printf("max pay id: %ld\n", ID);
 
   return totalPaymentsTime / (nPayments*1.0);
 }

@@ -17,4 +17,6 @@ void* heapPop(Heap* h, int(*compare)());
 
 long heapLen(Heap*h);
 
+void heapFree(Heap* h);
+
 #endif

@@ -177,11 +177,73 @@ void jsonWriteInput() {
 
 }
 
+void csvWriteInput() {
+  FILE *csvPeer, *csvChannelInfo, *csvChannel;
+  Peer* peer;
+  ChannelInfo* channelInfo;
+  Channel* channel;
+  long i, j, *channelID;
+
+  csvPeer = fopen("peer.csv", "w");
+   if(csvPeer==NULL) {
+    printf("ERROR cannot open file peer.csv\n");
+    return;
+  }
+
+  fprintf(csvPeer, "ID,ChannelsSize,WithholdsR,ChannelIDs\n");
+  for(i=0; i<peerIndex; i++) {
+    peer = hashTableGet(peers, i);
+    fprintf(csvPeer, "%ld,%ld,%d,", peer->ID, arrayLen(peer->channel), peer->withholdsR);
+    for(j=0; j<arrayLen(peer->channel); j++) {
+      channelID = arrayGet(peer->channel, j);
+      if(j==arrayLen(peer->channel)-1) 
+        fprintf(csvPeer,"%ld\n", *channelID);
+      else
+        fprintf(csvPeer,"%ld-", *channelID);
+    }
+  }
+
+  fclose(csvPeer);
+ 
+  csvChannelInfo = fopen("channelInfo.csv", "w");
+  if(csvChannelInfo==NULL) {
+    printf("ERROR cannot open file channelInfo.csv\n");
+    return;
+  }
+
+  fprintf(csvChannelInfo, "ID,Peer1,Peer2,Direction1,Direction2,Capacity,Latency\n");
+  for(i=0; i<channelInfoIndex; i++) {
+    channelInfo = hashTableGet(channelInfos, i);
+    fprintf(csvChannelInfo,"%ld,%ld,%ld,%ld,%ld,%ld,%d\n",channelInfo->ID, channelInfo->peer1, channelInfo->peer2, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->capacity, channelInfo->latency);
+  }
+
+  fclose(csvChannelInfo);
+
+  csvChannel = fopen("channel.csv", "w");
+  if(csvChannel==NULL) {
+    printf("ERROR cannot open file channel.csv\n");
+    return;
+  }
+
+
+  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
+  for(i=0; i<channelIndex; i++) {
+    channel = hashTableGet(channels, i);
+    fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
+  }
+
+
+  fclose(csvChannel);
+
+}
+
+
 
 void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
   struct json_object* jpreinput, *jobj;
+  unsigned int isPreproc=1;
 
   jpreinput = json_object_from_file("simulator_preinput.json");
 
@@ -202,7 +264,10 @@ void readPreInputAndInitialize() {
   jobj = json_object_object_get(jpreinput, "Gini");
   gini = json_object_get_double(jobj);
 
-  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini);
+  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
+  //  printf("press any key\n");
+  //scanf("%*c");
+  createTopologyFromCsv();
   initializeSimulatorData(nPayments, paymentMean);
   statsInitialize();
 
@@ -210,16 +275,33 @@ void readPreInputAndInitialize() {
 
 
 
+
 int main() {
   Event* event;
-
+  Peer* peer;
+  ChannelInfo* channelInfo;
+  Channel* channel;
   printf("main\n");
 
 
   readPreInputAndInitialize();
-  jsonWriteInput();
 
 
+  /*
+  peer = hashTableGet(peers, 0);
+  printf("Peer %ld %d\n", peer->ID, peer->withholdsR);
+
+  channelInfo = hashTableGet(channelInfos, 10);
+  printf("ChannelInfo %ld %ld %ld %ld %ld %ld %d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency);
+
+  channel = hashTableGet(channels, channelIndex-1);
+  printf("Channel %ld %ld %ld %ld %ld %d %d %d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
+  */
+
+  //  csvWriteInput();
+  //jsonWriteInput();
+
+  
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     simulatorTime = event->time;
@@ -258,7 +340,7 @@ int main() {
   //printPayments();
 
   jsonWriteOutput();
-
+  
   return 0;
 }
 
