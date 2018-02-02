@@ -203,6 +203,7 @@ void csvWriteInput() {
     }
   }
 
+
   fclose(csvPeer);
  
   csvChannelInfo = fopen("channelInfo.csv", "w");
@@ -245,7 +246,7 @@ void readPreInputAndInitialize() {
   struct json_object* jpreinput, *jobj;
   unsigned int isPreproc=1;
 
-  jpreinput = json_object_from_file("simulator_preinput.json");
+  jpreinput = json_object_from_file("preinput.json");
 
   jobj = json_object_object_get(jpreinput, "PaymentMean");
   paymentMean = json_object_get_double(jobj);
@@ -265,13 +266,13 @@ void readPreInputAndInitialize() {
   gini = json_object_get_double(jobj);
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
-  printf("change topology and press enter\n");
-  scanf("%*c");
+  //  printf("change topology and press enter\n");
+  //scanf("%*c");
   createTopologyFromCsv();
 
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
-  printf("change payments and press enter\n");
-  scanf("%*c");
+  //printf("change payments and press enter\n");
+  //scanf("%*c");
   createPaymentsFromCsv();
 
   statsInitialize();
@@ -298,8 +299,6 @@ int main() {
   if(payment==NULL) printf("NULL\n");
   printf("Payment %ld,%ld,%ld,%ld\n", payment->ID, payment->sender, payment->receiver, payment->amount);
 
-
-  
   peer = hashTableGet(peers, 0);
   printf("Peer %ld %d\n", peer->ID, peer->withholdsR);
 
@@ -313,7 +312,6 @@ int main() {
   //  csvWriteInput();
   //jsonWriteInput();
 
-  
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     simulatorTime = event->time;
@@ -346,13 +344,12 @@ int main() {
       printf("ERROR wrong event type\n");
     }
   }
-  
 
 
   //printPayments();
 
   jsonWriteOutput();
-  
+
   return 0;
 }
 
