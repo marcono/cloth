@@ -97,7 +97,10 @@ void connectPeers(long peer1, long peer2);
 
 void createTopologyFromCsv();
 
+//TODO: sposta queste due funzioni in qualche file utils.h
 int isPresent(long element, Array* longArray);
+
+int isEqual(long *a, long *b);
 
 uint64_t computeFee(uint64_t amountToForward, Policy policy);
 

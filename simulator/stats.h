@@ -13,10 +13,16 @@ uint64_t* lockedFundCost;
 double* avgTimeCoop;
 double*avgTimeUncoop;
 double* avgRouteLen;
+uint64_t* minTimeCoop;
+uint64_t* maxTimeCoop;
+uint64_t* minTimeUncoop;
+uint64_t *maxTimeUncoop;
+int* minRouteLen;
+int*maxRouteLen;
 long currentBatch;
 Array* batchPayments;
 
-typedef struct statsMean{
+typedef struct stats{
   double totalPayments;
   double succeededPayments;
   double failedPaymentsUncoop;
@@ -24,9 +30,15 @@ typedef struct statsMean{
   double failedPaymentsNoBalance;
   double lockedFundCost;
   double avgTimeCoop;
+  double minTimeCoop;
+  double maxTimeCoop;
   double avgTimeUncoop;
+  double minTimeUncoop;
+  double maxTimeUncoop;
   double avgRouteLen;
-} StatsMean;
+  double minRouteLen;
+  double maxRouteLen;
+} Stats;
 
 void statsInitialize();
 

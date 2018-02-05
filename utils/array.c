@@ -42,7 +42,7 @@ Array* arrayInsert(Array* a, void* data) {
 }
 
 void* arrayGet(Array* a,long i) {
-  if(i>=a->size) return NULL;
+  if(i>=a->size || i>=a->index) return NULL;
   return a->element[i];
 }
 
@@ -81,3 +81,6 @@ void arrayDelete(Array* a, void* element,  int(*isEqual)()) {
   }
 }
 
+void arrayDeleteAll(Array* a) {
+  a->index = 0;
+}
