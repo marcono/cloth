@@ -82,6 +82,14 @@ void initializeEventsPreproc(long nPayments, double paymentMean) {
   gsl_ran_discrete_t* discrete;
   long paymentIDIndex=0;
 
+  csvPayment = fopen("payment.csv", "w");
+  if(csvPayment==NULL) {
+    printf("ERROR cannot open file payment.csv\n");
+    return;
+  }
+  fprintf(csvPayment, "ID,Sender,Receiver,Amount,Time\n");
+
+
   discrete = gsl_ran_discrete_preproc(4, paymentClassP);
 
 
@@ -117,7 +125,11 @@ void initializeEventsPreproc(long nPayments, double paymentMean) {
 
   }
 
-  fclose(csvPayment); 
+  fclose(csvPayment);
+
+  //printf("change payments and press enter\n");
+  //scanf("%*c");
+
 }
 
 void createPaymentsFromCsv() {
@@ -133,7 +145,6 @@ void createPaymentsFromCsv() {
     return;
   }
 
-
   fgets(row, 256, csvPayment);
   while(fgets(row, 256, csvPayment) != NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld", &ID, &sender, &receiver, &amount, &time);
@@ -142,6 +153,7 @@ void createPaymentsFromCsv() {
     event = createEvent(eventIndex, time, FINDROUTE, sender, payment->ID);
     events = heapInsert(events, event, compareEvent);
   }
+
   fclose(csvPayment);
 }
 
@@ -152,18 +164,12 @@ void initializeSimulatorData(long nPayments, double paymentMean, unsigned int is
   payments = hashTableInitialize(nPayments);
   events = heapInitialize(nPayments*10);
 
-  csvPayment = fopen("payment.csv", "w");
-  if(csvPayment==NULL) {
-    printf("ERROR cannot open file payment.csv\n");
-    return;
-  }
-  fprintf(csvPayment, "ID,Sender,Receiver,Amount,Time\n");
 
 
   if(isPreproc)
     initializeEventsPreproc(nPayments, paymentMean);
-  else
-    initializeEvents(nPayments, paymentMean);
+
+  createPaymentsFromCsv();
 }
 
 

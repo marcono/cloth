@@ -244,7 +244,7 @@ void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreproc=1;
+  unsigned int isPreproc=0;
 
   jpreinput = json_object_from_file("preinput.json");
 
@@ -266,14 +266,8 @@ void readPreInputAndInitialize() {
   gini = json_object_get_double(jobj);
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
-  //  printf("change topology and press enter\n");
-  //scanf("%*c");
-  createTopologyFromCsv();
 
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
-  //printf("change payments and press enter\n");
-  //scanf("%*c");
-  createPaymentsFromCsv();
 
   statsInitialize();
 

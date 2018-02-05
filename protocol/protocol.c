@@ -267,6 +267,28 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   uint64_t balance, capacity;
   Policy policy1, policy2;
 
+  csvPeer = fopen("peer.csv", "w");
+  if(csvPeer==NULL) {
+    printf("ERROR cannot open file peer.csv\n");
+    return;
+  }
+  fprintf(csvPeer, "ID,WithholdsR\n");
+
+  csvChannelInfo = fopen("channelInfo.csv", "w");
+  if(csvChannelInfo==NULL) {
+    printf("ERROR cannot open file channelInfo.csv\n");
+    return;
+  }
+  fprintf(csvChannelInfo, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency\n");
+
+  csvChannel = fopen("channel.csv", "w");
+  if(csvChannel==NULL) {
+    printf("ERROR cannot open file channel.csv\n");
+    return;
+  }
+  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
+
+
   RwithholdingDiscrete = gsl_ran_discrete_preproc(2, RwithholdingP);
 
   peerIDIndex=0;
@@ -330,6 +352,14 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     }
 
   }
+
+  fclose(csvPeer);
+  fclose(csvChannelInfo);
+  fclose(csvChannel);
+
+  //  printf("change topology and press enter\n");
+  //scanf("%*c");
+
 }
 
 
@@ -463,35 +493,13 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   channels = hashTableInitialize((nPeers)/10);
   channelInfos= hashTableInitialize((nPeers)/10);
 
-  csvPeer = fopen("peer.csv", "w");
-  if(csvPeer==NULL) {
-    printf("ERROR cannot open file peer.csv\n");
-    return;
-  }
-  fprintf(csvPeer, "ID,WithholdsR\n");
-
-  csvChannelInfo = fopen("channelInfo.csv", "w");
-  if(csvChannelInfo==NULL) {
-    printf("ERROR cannot open file channelInfo.csv\n");
-    return;
-  }
-  fprintf(csvChannelInfo, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency\n");
-
-  csvChannel = fopen("channel.csv", "w");
-  if(csvChannel==NULL) {
-    printf("ERROR cannot open file channel.csv\n");
-    return;
-  }
-  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
 
   if(isPreproc)
     initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini);
-  else
-    initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  fclose(csvPeer);
-  fclose(csvChannelInfo);
-  fclose(csvChannel);
+  createTopologyFromCsv();
+  //initializeTopology(nPeers, nChannels, RWithholding, gini);
+
 }
 
 
