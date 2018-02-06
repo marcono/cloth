@@ -67,6 +67,7 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency
   channelInfo->peer2 = peer2;
   channelInfo->latency = latency;
   channelInfo->capacity = 0;
+  channelInfo->isClosed = 0;
 
   channelInfoIndex++;
 
@@ -83,6 +84,7 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
   channel->counterparty = counterparty;
   channel->policy = policy;
   channel->balance = 0;
+  channel->isClosed = 0;
 
   channelIndex++;
 
@@ -98,8 +100,8 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->receiver = receiver;
   p->amount = amount;
   p->route = NULL;
-  p->ignoredChannels = arrayInitialize(100);
-  p->ignoredPeers = arrayInitialize(100);
+  p->ignoredChannels = arrayInitialize(10);
+  p->ignoredPeers = arrayInitialize(10);
   p->isSuccess = 0;
   p->isAPeerUncoop = 0;
   p->startTime = 0;
@@ -136,6 +138,7 @@ ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2
   channelInfo->peer2 = peer2;
   channelInfo->latency = latency;
   channelInfo->capacity = capacity;
+  channelInfo->isClosed = 0;
 
   channelInfoIndex++;
 
@@ -152,6 +155,7 @@ Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection,
   channel->otherChannelDirectionID = otherDirection;
   channel->policy = policy;
   channel->balance = balance;
+  channel->isClosed = 0;
 
   channelIndex++;
 
@@ -525,8 +529,15 @@ void closeChannel(long channelInfoID) {
   long i;
   Peer *peer;
   ChannelInfo *channelInfo;
+  Channel* direction1, *direction2;
 
   channelInfo = hashTableGet(channelInfos, channelInfoID);
+  direction1 = hashTableGet(channels, channelInfo->channelDirection1);
+  direction2 = hashTableGet(channels, channelInfo->channelDirection2);
+
+  channelInfo->isClosed = 1;
+  direction1->isClosed = 1;
+  direction2->isClosed = 1;
 
   printf("ChannelInfo %ld, ChannelDirection1 %ld, ChannelDirection2 %ld are now closed\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2);
 

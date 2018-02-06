@@ -36,7 +36,7 @@
       printf("Peer %ld, Channel %ld, Balance %lf\n", peer->ID, channel->channelInfoID, channel->balance);
     }
   }
-  }*/
+  }
 
 void printPayments() {
   long i, j;
@@ -238,13 +238,109 @@ void csvWriteInput() {
 
 }
 
+*/
 
+void csvWriteOutput() {
+  FILE* csvChannelInfoOutput, *csvChannelOutput, *csvPaymentOutput;
+  long i,j, *ignored;
+  ChannelInfo* channelInfo;
+  Channel* channel;
+  Payment* payment;
+  Route* route;
+  Array* hops;
+  RouteHop* hop;
+
+  csvChannelInfoOutput = fopen("channelInfo_output.csv", "w");
+  if(csvChannelInfoOutput  == NULL) {
+    printf("ERROR cannot open channelInfo_output.csv\n");
+    return;
+  }
+  fprintf(csvChannelInfoOutput, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency,IsClosed\n");
+
+  for(i=0; i<channelInfoIndex; i++) {
+    channelInfo = hashTableGet(channelInfos, i);
+    fprintf(csvChannelInfoOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency, channelInfo->isClosed);
+  }
+
+  fclose(csvChannelInfoOutput);
+
+  csvChannelOutput = fopen("channel_output.csv", "w");
+  if(csvChannelInfoOutput  == NULL) {
+    printf("ERROR cannot open channel_output.csv\n");
+    return;
+  }
+  fprintf(csvChannelOutput, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock, isClosed\n");
+
+  for(i=0; i<channelIndex; i++) {
+    channel = hashTableGet(channels, i);
+    fprintf(csvChannelOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock, channel->isClosed);
+  }
+
+  fclose(csvChannelOutput);
+
+  csvPaymentOutput = fopen("payment_output.csv", "w");
+  if(csvChannelInfoOutput  == NULL) {
+    printf("ERROR cannot open payment_output.csv\n");
+    return;
+  }
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,IsSuccess,IsAPeerUncoop,Route,IgnoredPeers,IgnoredChannels\n");
+
+  for(i=0; i<paymentIndex; i++)  {
+    payment = hashTableGet(payments, i);
+    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->isSuccess, payment->isAPeerUncoop);
+    route = payment->route;
+
+    if(route==NULL)
+      fprintf(csvPaymentOutput, "-1");
+    else {
+      hops = route->routeHops;
+      for(j=0; j<arrayLen(hops); j++) {
+        hop = arrayGet(hops, j);
+        if(j==arrayLen(hops)-1)
+          fprintf(csvPaymentOutput,"%ld",hop->pathHop->channel);
+        else
+          fprintf(csvPaymentOutput,"%ld-",hop->pathHop->channel);
+      }
+    }
+    fprintf(csvPaymentOutput,",");
+
+
+    if(arrayLen(payment->ignoredPeers)==0)
+      fprintf(csvPaymentOutput, "-1");
+    else {
+      for(j=0; j<arrayLen(payment->ignoredPeers); j++) {
+        ignored = arrayGet(payment->ignoredPeers, j);
+        if(j==arrayLen(payment->ignoredPeers)-1)
+          fprintf(csvPaymentOutput,"%ld",*ignored);
+        else
+          fprintf(csvPaymentOutput,"%ld-",*ignored);
+      }
+    }
+    fprintf(csvPaymentOutput,",");
+
+    if(arrayLen(payment->ignoredChannels)==0)
+      fprintf(csvPaymentOutput, "-1");
+    else {
+      for(j=0; j<arrayLen(payment->ignoredChannels); j++) {
+        ignored = arrayGet(payment->ignoredChannels, j);
+        if(j==arrayLen(payment->ignoredChannels)-1)
+          fprintf(csvPaymentOutput,"%ld",*ignored);
+        else
+          fprintf(csvPaymentOutput,"%ld-",*ignored);
+      }
+    }
+    fprintf(csvPaymentOutput,"\n");
+  }
+
+  fclose(csvPaymentOutput);
+
+}
 
 void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreproc=0;
+  unsigned int isPreproc=1;
 
   jpreinput = json_object_from_file("preinput.json");
 
@@ -343,6 +439,8 @@ int main() {
   //printPayments();
 
   jsonWriteOutput();
+
+  csvWriteOutput();
 
   return 0;
 }

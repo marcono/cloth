@@ -41,6 +41,7 @@ typedef struct channelInfo {
   long channelDirection2;
   uint64_t capacity;
   uint32_t latency;
+  unsigned int isClosed;
 } ChannelInfo;
 
 typedef struct channel {
@@ -50,6 +51,7 @@ typedef struct channel {
   long otherChannelDirectionID;
   Policy policy;
   uint64_t balance;
+  unsigned int isClosed;
 } Channel;
 
 typedef struct payment{
