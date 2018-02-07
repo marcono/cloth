@@ -361,8 +361,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   fclose(csvChannelInfo);
   fclose(csvChannel);
 
-  //  printf("change topology and press enter\n");
-  //scanf("%*c");
+  printf("change topology and press enter\n");
+  scanf("%*c");
 
 }
 
