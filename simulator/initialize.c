@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "../gc-7.2/include/gc.h"
 #include "../utils/hashTable.h"
@@ -132,12 +133,17 @@ void initializeEventsPreproc(long nPayments, double paymentMean) {
 
 }
 
-void createPaymentsFromCsv() {
+void createPaymentsFromCsv(unsigned int isPreproc) {
   Payment* payment;
   Event* event;
-  char row[256];
+  char row[256], filePayment[64];
   long ID, sender, receiver;
   uint64_t amount, time;
+
+  if(isPreproc)
+    strcpy(filePayment, "payment.csv");
+  else
+    strcpy(filePayment, "payment_output.csv");
 
   csvPayment = fopen("payment.csv", "r");
   if(csvPayment==NULL) {
@@ -164,12 +170,10 @@ void initializeSimulatorData(long nPayments, double paymentMean, unsigned int is
   payments = hashTableInitialize(nPayments);
   events = heapInitialize(nPayments*10);
 
-
-
   if(isPreproc)
     initializeEventsPreproc(nPayments, paymentMean);
 
-  createPaymentsFromCsv();
+  createPaymentsFromCsv(isPreproc);
 }
 
 

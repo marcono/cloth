@@ -14,6 +14,6 @@ void initializeSimulatorData();
 
 void initialize();
 
-void createPaymentsFromCsv();
+void createPaymentsFromCsv(unsigned int isPreproc);
 
 #endif

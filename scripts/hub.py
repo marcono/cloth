@@ -17,6 +17,10 @@ with open('../channelInfo.csv', 'rb') as csv_info, open('../channel.csv', 'rb') 
 
      for peer_id in range(0, npeers_hub):
           found = 0
+          iter_info = iter(info_lines)
+          next(iter_info)
+          iter_channel = iter(channel_lines)
+          next(iter_channel)
           for info_line in iter_info:
                if int(info_line[3]) == peer_id and int(info_line[4]) != hub_id:
                     found = 1

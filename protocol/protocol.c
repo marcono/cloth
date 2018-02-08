@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_math.h>
@@ -361,14 +362,14 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   fclose(csvChannelInfo);
   fclose(csvChannel);
 
-  printf("change topology and press enter\n");
-  scanf("%*c");
+  //printf("change topology and press enter\n");
+  //scanf("%*c");
 
 }
 
 
-void createTopologyFromCsv() {
-  char row[256];
+void createTopologyFromCsv(unsigned int isPreproc) {
+  char row[256], channelFile[64], infoFile[64];
   Peer* peer, *peer1, *peer2;
   long ID, direction1, direction2, peerID1, peerID2, channelInfoID, otherDirection, counterparty;
   Policy policy;
@@ -377,6 +378,16 @@ void createTopologyFromCsv() {
   uint64_t capacity, balance;
   ChannelInfo* channelInfo;
   Channel* channel;
+
+  if(isPreproc) {
+    strcpy(channelFile, "channel.csv");
+    strcpy(infoFile, "channelInfo.csv");
+  }
+  else {
+    strcpy(channelFile, "channel_output.csv");
+    strcpy(infoFile, "channelInfo_output.csv");
+    }
+
 
   csvPeer = fopen("peer.csv", "r");
   if(csvPeer==NULL) {
@@ -393,9 +404,9 @@ void createTopologyFromCsv() {
 
   fclose(csvPeer);
 
-  csvChannelInfo = fopen("channelInfo.csv", "r");
+  csvChannelInfo = fopen(infoFile, "r");
   if(csvChannelInfo==NULL) {
-    printf("ERROR cannot open file channelInfo.csv\n");
+    printf("ERROR cannot open file %s\n", infoFile);
     return;
   }
 
@@ -412,9 +423,9 @@ void createTopologyFromCsv() {
 
   fclose(csvChannelInfo);
 
-  csvChannel = fopen("channel.csv", "r");
+  csvChannel = fopen(channelFile, "r");
   if(csvChannel==NULL) {
-    printf("ERROR cannot open file channel.csv\n");
+    printf("ERROR cannot open file %s\n", channelFile);
     return;
   }
 
@@ -501,7 +512,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   if(isPreproc)
     initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini);
 
-  createTopologyFromCsv();
+  createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
 }

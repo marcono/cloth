@@ -340,7 +340,7 @@ void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreproc=1;
+  unsigned int isPreproc=0;
 
   jpreinput = json_object_from_file("preinput.json");
 

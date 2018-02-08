@@ -97,7 +97,7 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount);
 
 void connectPeers(long peer1, long peer2);
 
-void createTopologyFromCsv();
+void createTopologyFromCsv(unsigned int isPreproc);
 
 //TODO: sposta queste due funzioni in qualche file utils.h
 int isPresent(long element, Array* longArray);
