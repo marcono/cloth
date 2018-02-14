@@ -87,8 +87,8 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
   }
 
   if(nPayments==0){
-    *max = -1;
-    *min = -1;
+    *max = 0;
+    *min = 0;
     return -1.0;
   }
 
@@ -123,8 +123,8 @@ float statsComputeRouteLen(int* min, int* max) {
   }
 
   if(nPayments==0) {
-    *max = -1;
-    *min = -1;
+    *max = 0;
+    *min = 0;
     return -1.0;
   }
 
@@ -188,7 +188,7 @@ void statsUpdatePayments(Payment* payment) {
 
 Stats statsComputeMeans() {
   Stats means;
-  long i;
+  long i, batchRouteLen=0, batchTimeCoop=0, batchTimeUncoop=0;
 
   means.totalPayments = means.succeededPayments = means.failedPaymentsNoPath = means.failedPaymentsUncoop = means.failedPaymentsNoBalance = means.avgRouteLen = means.avgTimeCoop = means.avgTimeUncoop = means.lockedFundCost = 0.0;
   for(i=0;i<NBATCH;i++) {
@@ -197,15 +197,24 @@ Stats statsComputeMeans() {
     means.failedPaymentsNoPath += failedPaymentsNoPath[i];
     means.failedPaymentsUncoop += failedPaymentsUncoop[i];
     means.failedPaymentsNoBalance += failedPaymentsNoBalance[i];
-    means.avgRouteLen += avgRouteLen[i];
-    means.avgTimeCoop += avgTimeCoop[i];
-    means.avgTimeUncoop += avgTimeUncoop[i];
-    means.minRouteLen += minRouteLen[i];
-    means.maxRouteLen += maxRouteLen[i];
-    means.minTimeCoop += minTimeCoop[i];
-    means.maxTimeCoop += maxTimeCoop[i];
-    means.minTimeUncoop += minTimeUncoop[i];
-    means.maxTimeUncoop += maxTimeUncoop[i];
+    if(avgRouteLen[i]>=0) {
+      means.avgRouteLen += avgRouteLen[i];
+      means.minRouteLen += minRouteLen[i];
+      means.maxRouteLen += maxRouteLen[i];
+      batchRouteLen++;
+      }
+    if(avgTimeCoop[i]>=0) {
+      means.avgTimeCoop += avgTimeCoop[i];
+      means.minTimeCoop += minTimeCoop[i];
+      means.maxTimeCoop += maxTimeCoop[i];
+      batchTimeCoop++;
+    }
+    if(avgTimeUncoop[i]>=0) {
+      means.avgTimeUncoop += avgTimeUncoop[i];
+      means.minTimeUncoop += minTimeUncoop[i];
+      means.maxTimeUncoop += maxTimeUncoop[i];
+      batchTimeUncoop++;
+    }
     means.lockedFundCost += lockedFundCost[i];
   }
 
@@ -214,15 +223,15 @@ Stats statsComputeMeans() {
   means.failedPaymentsNoPath /= NBATCH;
   means.failedPaymentsUncoop /= NBATCH;
   means.failedPaymentsNoBalance /= NBATCH;
-  means.avgRouteLen /= NBATCH;
-  means.avgTimeCoop /= NBATCH;
-  means.avgTimeUncoop /= NBATCH;
-  means.minTimeCoop /= NBATCH;
-  means.maxTimeCoop /= NBATCH;
-  means.minTimeUncoop /= NBATCH;
-  means.maxTimeUncoop /= NBATCH;
-  means.minRouteLen /= NBATCH;
-  means.maxRouteLen /= NBATCH;
+  means.avgRouteLen /= batchRouteLen;
+  means.avgTimeCoop /= batchTimeCoop;
+  means.avgTimeUncoop /= batchTimeUncoop;
+  means.minTimeCoop /= batchTimeCoop;
+  means.maxTimeCoop /= batchTimeCoop;
+  means.minTimeUncoop /= batchTimeUncoop;
+  means.maxTimeUncoop /= batchTimeUncoop;
+  means.minRouteLen /= batchRouteLen;
+  means.maxRouteLen /= batchRouteLen;
   means.lockedFundCost /= NBATCH;
 
   return means;
@@ -230,7 +239,7 @@ Stats statsComputeMeans() {
 
 Stats statsComputeVariances(Stats means) {
   Stats variances;
-  long i;
+  long i, batchRouteLen=1, batchTimeCoop=1, batchTimeUncoop=1;
 
   variances.totalPayments = variances.succeededPayments = variances.failedPaymentsNoPath = variances.failedPaymentsUncoop = variances.failedPaymentsNoBalance = variances.avgRouteLen = variances.avgTimeCoop = variances.avgTimeUncoop = variances.lockedFundCost = 0.0;
   for(i=0;i<NBATCH;i++) {
@@ -239,15 +248,24 @@ Stats statsComputeVariances(Stats means) {
     variances.failedPaymentsNoPath += (failedPaymentsNoPath[i] - means.failedPaymentsNoPath)*(failedPaymentsNoPath[i] - means.failedPaymentsNoPath);
     variances.failedPaymentsUncoop += (failedPaymentsUncoop[i] - means.failedPaymentsUncoop)*(failedPaymentsUncoop[i] - means.failedPaymentsUncoop);
     variances.failedPaymentsNoBalance += (failedPaymentsNoBalance[i] - means.failedPaymentsNoBalance)*(failedPaymentsNoBalance[i] - means.failedPaymentsNoBalance);
-    variances.avgRouteLen += (avgRouteLen[i] - means.avgRouteLen)*(avgRouteLen[i] - means.avgRouteLen);
-    variances.avgTimeCoop += (avgTimeCoop[i] - means.avgTimeCoop)*(avgTimeCoop[i] - means.avgTimeCoop);
-    variances.avgTimeUncoop += (avgTimeUncoop[i] - means.avgTimeUncoop)*(avgTimeUncoop[i] - means.avgTimeUncoop);
-    variances.minRouteLen += (minRouteLen[i] - means.minRouteLen)*(minRouteLen[i] - means.minRouteLen);
-    variances.maxRouteLen += (maxRouteLen[i] - means.maxRouteLen)*(maxRouteLen[i] - means.maxRouteLen);
-    variances.minTimeCoop += (minTimeCoop[i] - means.minTimeCoop)*(minTimeCoop[i] - means.minTimeCoop);
-    variances.maxTimeCoop += (maxTimeCoop[i] - means.maxTimeCoop)*(maxTimeCoop[i] - means.maxTimeCoop);
-    variances.minTimeUncoop += (minTimeUncoop[i] - means.minTimeUncoop)*(minTimeUncoop[i] - means.minTimeUncoop);
-    variances.maxTimeUncoop += (maxTimeUncoop[i] - means.maxTimeUncoop)*(maxTimeUncoop[i] - means.maxTimeUncoop);
+    if(avgRouteLen[i]>=0) {
+      variances.avgRouteLen += (avgRouteLen[i] - means.avgRouteLen)*(avgRouteLen[i] - means.avgRouteLen);
+      variances.minRouteLen += (minRouteLen[i] - means.minRouteLen)*(minRouteLen[i] - means.minRouteLen);
+      variances.maxRouteLen += (maxRouteLen[i] - means.maxRouteLen)*(maxRouteLen[i] - means.maxRouteLen);
+      batchRouteLen++;
+    }
+    if(avgTimeCoop[i]>=0) {
+      variances.avgTimeCoop += (avgTimeCoop[i] - means.avgTimeCoop)*(avgTimeCoop[i] - means.avgTimeCoop);
+      variances.minTimeCoop += (minTimeCoop[i] - means.minTimeCoop)*(minTimeCoop[i] - means.minTimeCoop);
+      variances.maxTimeCoop += (maxTimeCoop[i] - means.maxTimeCoop)*(maxTimeCoop[i] - means.maxTimeCoop);
+      batchTimeCoop++;
+    }
+    if(avgTimeUncoop[i]>=0) {
+      variances.avgTimeUncoop += (avgTimeUncoop[i] - means.avgTimeUncoop)*(avgTimeUncoop[i] - means.avgTimeUncoop);
+      variances.minTimeUncoop += (minTimeUncoop[i] - means.minTimeUncoop)*(minTimeUncoop[i] - means.minTimeUncoop);
+      variances.maxTimeUncoop += (maxTimeUncoop[i] - means.maxTimeUncoop)*(maxTimeUncoop[i] - means.maxTimeUncoop);
+      batchTimeUncoop++;
+    }
     variances.lockedFundCost += (lockedFundCost[i] - means.lockedFundCost)*(lockedFundCost[i] - means.lockedFundCost);
   }
 
@@ -256,15 +274,15 @@ Stats statsComputeVariances(Stats means) {
   variances.failedPaymentsNoPath /= (NBATCH-1);
   variances.failedPaymentsUncoop /= (NBATCH-1);
   variances.failedPaymentsNoBalance /= (NBATCH-1);
-  variances.avgRouteLen /= (NBATCH-1);
-  variances.avgTimeCoop /= (NBATCH-1);
-  variances.avgTimeUncoop /= (NBATCH-1);
-  variances.minRouteLen /= (NBATCH-1);
-  variances.maxRouteLen /= (NBATCH-1);
-  variances.minTimeUncoop /= (NBATCH-1);
-  variances.maxTimeUncoop /= (NBATCH-1);
-  variances.minTimeCoop /= (NBATCH-1);
-  variances.maxTimeCoop /= (NBATCH-1);
+  variances.avgRouteLen /= (batchRouteLen-1);
+  variances.avgTimeCoop /= (batchTimeCoop-1);
+  variances.avgTimeUncoop /= (batchTimeUncoop-1);
+  variances.minRouteLen /= (batchRouteLen-1);
+  variances.maxRouteLen /= (batchRouteLen-1);
+  variances.minTimeUncoop /= (batchTimeUncoop-1);
+  variances.maxTimeUncoop /= (batchTimeUncoop-1);
+  variances.minTimeCoop /= (batchTimeCoop-1);
+  variances.maxTimeCoop /= (batchTimeCoop-1);
   variances.lockedFundCost /= (NBATCH-1);
 
   return variances;
