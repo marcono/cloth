@@ -795,6 +795,7 @@ void forwardPayment(Event *event) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, prevChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(prevChannel->channelInfoID);
+    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(prevChannel->ID));
 
     statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
 
@@ -876,6 +877,7 @@ void receivePayment(Event* event ) {
     printf("Peer %ld withholds R on channel %ld\n", event->peerID, backwardChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(backwardChannel->channelInfoID);
+    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(forwardChannel->ID));
 
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -940,6 +942,7 @@ void forwardSuccess(Event* event) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, nextChannel->ID);
     payment->isAPeerUncoop = 1;
     closeChannel(nextChannel->channelInfoID);
+    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
 
     prevPeerID = prevHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
