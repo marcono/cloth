@@ -107,6 +107,7 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->isAPeerUncoop = 0;
   p->startTime = 0;
   p->endTime = 0;
+  p->attempts = -1;
 
   paymentIndex++;
 
@@ -597,17 +598,26 @@ void findRoute(Event *event) {
   printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = hashTableGet(payments, event->paymentID);
-  if(payment->startTime < 1) 
+  ++(payment->attempts);
+
+  if(payment->startTime < 1)
     payment->startTime = simulatorTime;
 
-  pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                      payment->ignoredChannels);
-  if (pathHops == NULL) {
-    printf("No available path\n");
-    payment->endTime = simulatorTime;
-    statsUpdatePayments(payment);
-    return;
+  if(payment->attempts == 0) {
+    pathHops = getPath(payment->sender, payment->receiver);
   }
+  else {
+    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                        payment->ignoredChannels);
+  }
+
+  if (pathHops == NULL) {
+      printf("No available path\n");
+      payment->endTime = simulatorTime;
+      statsUpdatePayments(payment);
+      return;
+    }
+
 
 
 

@@ -8,13 +8,13 @@
 #include "../utils/heap.h"
 #include "../utils/array.h"
 #include "findRoute.h"
-#define INF UINT16_MAX 
+#define INF UINT16_MAX
 #define HOPSLIMIT 20
 
 //FIXME: non globale ma passato per riferimento a dijkstra
 char error[100];
-
-
+uint32_t** dist;
+PathHop** next;
 
 void initializeFindRoute() {
   distanceHeap=NULL;
@@ -34,6 +34,102 @@ int compareDistance(Distance* a, Distance* b) {
     return 1;
 }
 
+void floydWarshall() {
+  long i, j, k;
+  ChannelInfo* channelInfo;
+  Channel* direction1, *direction2;
+
+  dist = GC_MALLOC(sizeof(uint32_t*)*peerIndex);
+  next = GC_MALLOC(sizeof(PathHop*)*peerIndex);
+  //  paths = GC_MALLOC(sizeof(Array**)*peerIndex);
+  for(i=0; i<peerIndex; i++) {
+    dist[i] = GC_MALLOC(sizeof(uint32_t)*peerIndex);
+    next[i] = GC_MALLOC(sizeof(PathHop)*peerIndex);
+    //paths[i] = GC_MALLOC(sizeof(Array*)*peerIndex);
+  }
+
+
+  for(i=0; i<peerIndex; i++){
+    for(j=0; j<peerIndex; j++) {
+      if(i==j)
+        dist[i][j] = 0;
+      else
+        dist[i][j] = INF;
+
+      next[i][j].channel = -1;
+      //      paths[i][j] = arrayInitialize(10);
+    }
+  }
+
+  for(i=0; i<channelInfoIndex; i++) {
+    channelInfo = hashTableGet(channelInfos, i);
+    direction1 = hashTableGet(channels, channelInfo->channelDirection1);
+    direction2 = hashTableGet(channels, channelInfo->channelDirection2);
+    dist[channelInfo->peer1][channelInfo->peer2] = direction1->policy.timelock;
+    dist[channelInfo->peer2][channelInfo->peer1] = direction2->policy.timelock;
+    next[channelInfo->peer1][channelInfo->peer2].sender = channelInfo->peer1;
+    next[channelInfo->peer1][channelInfo->peer2].receiver = channelInfo->peer2;
+    next[channelInfo->peer1][channelInfo->peer2].channel = channelInfo->channelDirection1;
+    next[channelInfo->peer2][channelInfo->peer1].sender = channelInfo->peer2;
+    next[channelInfo->peer2][channelInfo->peer1].receiver = channelInfo->peer1;
+    next[channelInfo->peer2][channelInfo->peer1].channel = channelInfo->channelDirection2;
+  }
+
+  for(k=0; k<peerIndex; k++) {
+    for(i=0; i<peerIndex; i++){
+      for(j=0; j<peerIndex; j++){
+        if(dist[i][j] > dist[i][k] + dist[k][j]) {
+          dist[i][j] = dist[i][k] + dist[k][j];
+          next[i][j] = next[i][k];
+        }
+      }
+    }
+  }
+
+  /*
+  for(i=0; i<paymentIndex; i++) {
+    payment = hashTableGet(payments, i);
+    source = payment->sender;
+    destination = payment->receiver;
+
+    if(next[source][destination].channel==-1)
+      continue;
+
+    paths[source][destination] = arrayInsert(paths[source][destination], &(next[source][destination]));
+    nextPeer = next[source][destination].receiver;
+    while(nextPeer != destination ) {
+      paths[source][destination] = arrayInsert(paths[source][destination], &(next[nextPeer][destination]));
+      nextPeer = next[nextPeer][destination].receiver;
+    }
+
+    if(arrayLen(paths[source][destination])>HOPSLIMIT)
+      arrayDeleteAll(paths[source][destination]);
+  }
+  */
+
+}
+
+Array* getPath(long source, long destination) {
+  Array* path;
+  long nextPeer;
+
+  if(next[source][destination].channel==-1) {
+    return NULL;
+  }
+  path = arrayInitialize(10);
+
+  path = arrayInsert(path, &(next[source][destination]));
+  nextPeer = next[source][destination].receiver;
+  while(nextPeer != destination ) {
+    path = arrayInsert(path, &(next[nextPeer][destination]));
+    nextPeer = next[nextPeer][destination].receiver;
+  }
+
+  if(arrayLen(path)>HOPSLIMIT)
+    return NULL;
+
+  return path;
+}
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
   Distance *d;
@@ -42,7 +138,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
-  double tmpDist;
+  uint32_t tmpDist;
   uint64_t capacity;
   //DijkstraHop *previousPeer;
   Array* hops;

@@ -66,6 +66,7 @@ typedef struct payment{
   int isAPeerUncoop;
   uint64_t startTime;
   uint64_t endTime;
+  int attempts;
 } Payment;
 
 

@@ -7,7 +7,7 @@
 
 typedef struct distance{
   long peer;
-  uint16_t distance;
+  uint32_t distance;
 } Distance;
 
 typedef struct dijkstraHop {
@@ -30,7 +30,7 @@ typedef struct routeHop {
 
 typedef struct route {
   uint64_t totalAmount;
-  uint16_t totalTimelock;
+  uint32_t totalTimelock;
   uint64_t totalFee;
   Array *routeHops;
 } Route;
@@ -39,7 +39,15 @@ Distance* distance;
 DijkstraHop* previousPeer;
 Heap* distanceHeap;
 
+extern uint32_t** dist;
+extern PathHop** next;
+
+
 void initializeFindRoute();
+
+void floydWarshall();
+
+Array* getPath(long source, long destination);
 
 Array* findPaths(long source, long destination, double amount);
 

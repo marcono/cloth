@@ -362,10 +362,11 @@ void readPreInputAndInitialize() {
   gini = json_object_get_double(jobj);
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
-
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
 
   statsInitialize();
+
+  //floydWarshall();
 
 }
 
