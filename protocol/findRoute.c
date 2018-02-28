@@ -16,10 +16,25 @@ char error[100];
 uint32_t** dist;
 PathHop** next;
 
+HashTable* distht;
+HashTable* nextht;
+
 void initializeFindRoute() {
   distanceHeap=NULL;
   previousPeer = NULL;
   distance = NULL;
+}
+
+int present(long i) {
+  long p;
+  Payment *payment;
+
+  for(p=0; p<paymentIndex; p++) {
+    payment = hashTableGet(payments, p);
+    if(i==payment->sender || i == payment->receiver) return 1;
+  }
+
+  return 0;
 }
 
 int compareDistance(Distance* a, Distance* b) {
@@ -33,6 +48,129 @@ int compareDistance(Distance* a, Distance* b) {
   else
     return 1;
 }
+
+/* version for not all peers (doesn't work)
+void floydWarshall() {
+  long i, j, k, p;
+  ChannelInfo* channelInfo;
+  Channel* direction1, *direction2;
+  PathHop *hop1, *hop2;
+  uint16_t* d, *newd, dij, dik, dkj;
+  Payment* payment;
+
+
+  distht = hashTableInitialize(peerIndex);
+  nextht = hashTableInitialize(peerIndex);
+
+  for(i=0; i<channelInfoIndex; i++) {
+    channelInfo = hashTableGet(channelInfos, i);
+    direction1 = hashTableGet(channels, channelInfo->channelDirection1);
+    direction2 = hashTableGet(channels, channelInfo->channelDirection2);
+
+    hashTableMatrixPut(distht, channelInfo->peer1, channelInfo->peer2, &(direction1->policy.timelock));
+    hashTableMatrixPut(distht, channelInfo->peer2, channelInfo->peer1, &(direction2->policy.timelock));
+
+    hop1 = GC_MALLOC(sizeof(PathHop));
+    hop1->sender = channelInfo->peer1;
+    hop1->receiver = channelInfo->peer2;
+    hop1->channel = channelInfo->channelDirection1;
+    hashTableMatrixPut(nextht, channelInfo->peer1, channelInfo->peer2, hop1);
+
+    hop2 = GC_MALLOC(sizeof(PathHop));
+    hop2->sender = channelInfo->peer2;
+    hop2->receiver = channelInfo->peer1;
+    hop2->channel = channelInfo->channelDirection2;
+    hashTableMatrixPut(nextht, channelInfo->peer2, channelInfo->peer1, hop2);
+  }
+
+  long* peersPay;
+  peersPay = GC_MALLOC(sizeof(long)*2*paymentIndex);
+  for(i=0; i<paymentIndex; i++) {
+    payment = hashTableGet(payments, i);
+    j = i*2;
+    peersPay[j] = payment->sender;
+    peersPay[j+1] = payment->receiver;
+  }
+
+
+  for(k=0; k<peerIndex; k++) {
+    for(p=0; p<paymentIndex*2; p++){
+      i = peersPay[p];
+      for(j=0; j<peerIndex; j++) {
+
+        d = hashTableMatrixGet(distht, i, j);
+        if(d==NULL && i!=j)
+          dij = INF;
+        else if (d==NULL && i==j)
+          dij = 0;
+        else 
+          dij = *d;
+
+        d = hashTableMatrixGet(distht, i, k);
+        if(d==NULL && i!=k)
+          dik = INF;
+        else if (d==NULL && i==k)
+          dik = 0;
+        else{
+          dik = *d;
+          //  printf("%u\n", dik);
+        }
+
+        d = hashTableMatrixGet(distht, k, j);
+        if(d==NULL && k!=j)
+          dkj = INF;
+        else if (d==NULL && k==j)
+          dkj = 0;
+        else{
+          dkj = *d;
+          //        printf("%u\n", dkj);
+    }
+
+
+
+        if(dij > dik + dkj) {
+          newd = GC_MALLOC(sizeof(uint16_t));
+          *newd = dik+dkj;
+          hashTableMatrixPut(distht, i, j, newd);
+          hashTableMatrixPut(nextht, i, j, hashTableMatrixGet(nextht, i, k));
+        }
+
+      }
+    }
+    printf("%ld\n", k);
+    }
+
+}
+
+
+Array* getPath(long source, long destination) {
+  Array* path;
+  long nextPeer;
+  PathHop* hop;
+
+  hop = hashTableMatrixGet(nextht, source, destination);
+
+  if(hop == NULL) {
+    return NULL;
+  }
+
+  path = arrayInitialize(10);
+
+  path = arrayInsert(path, hop);
+  nextPeer = hop->receiver;
+  while(nextPeer != destination ) {
+    hop = hashTableMatrixGet(nextht, nextPeer, destination);
+    path = arrayInsert(path, hop);
+    nextPeer = hop->receiver;
+  }
+
+  if(arrayLen(path)>HOPSLIMIT)
+    return NULL;
+
+  return path;
+}
+*/
+
 
 void floydWarshall() {
   long i, j, k;
@@ -105,7 +243,7 @@ void floydWarshall() {
     if(arrayLen(paths[source][destination])>HOPSLIMIT)
       arrayDeleteAll(paths[source][destination]);
   }
-  */
+*/
 
 }
 

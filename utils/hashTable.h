@@ -18,4 +18,9 @@ void hashTablePut(HashTable* ht, long key, void *val);
 
 void* hashTableGet(HashTable *ht, long key);
 
+void hashTableMatrixPut(HashTable* ht, long i, long j, void* val);
+
+void* hashTableMatrixGet(HashTable* ht, long i, long j);
+
+
 #endif

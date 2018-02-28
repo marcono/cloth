@@ -8,6 +8,7 @@
 
 /**************************/
 
+ 
 Element *lput(long key, void *value, Element *list) {
 		Element *first;
 		first = (Element *) GC_MALLOC(sizeof(Element));
@@ -24,6 +25,20 @@ void* lget(long key, Element *list) {
 		return list->value;
 	return lget(key, list->next);
 }
+
+Element *lupdate(long key, void* value, Element* list) {
+  Element* node;
+
+  for(node = list; node != NULL; node = node->next) {
+    if(node->key == key){
+      node->value = value;
+      return list;
+    }
+  }
+
+  return lput(key, value, list);
+}
+
 
 
 /********************************/
@@ -59,6 +74,14 @@ void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
 	index = hashv(key) % ht->size;
     return lget(key, ht->table[index]);
+}
+
+void hashTableMatrixPut(HashTable* ht, long i, long j, void* val){
+  ht->table[i] = lput(j, val, ht->table[i]);
+}
+
+void* hashTableMatrixGet(HashTable* ht, long i, long j){
+  return lget(j, ht->table[i]);
 }
 
 

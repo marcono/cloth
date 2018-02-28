@@ -366,9 +366,10 @@ void readPreInputAndInitialize() {
 
   statsInitialize();
 
-  //floydWarshall();
+  floydWarshall();
 
 }
+
 
 
 
@@ -395,6 +396,7 @@ int main() {
 
   channelInfo = hashTableGet(channelInfos, 10);
   printf("ChannelInfo %ld %ld %ld %ld %ld %ld %d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency);
+
 
   channel = hashTableGet(channels, channelIndex-1);
   printf("Channel %ld %ld %ld %ld %ld %d %d %d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
