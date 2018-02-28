@@ -18,7 +18,7 @@
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
 #include "./simulator/stats.h"
-
+#include "./global.h"
 
 /*void printBalances() {
   long i, j, *channelID;
@@ -336,6 +336,40 @@ void csvWriteOutput() {
 
 }
 
+pthread_mutex_t pathsMutex;
+pthread_mutex_t* condMutex;
+pthread_cond_t* condVar;
+Array** paths;
+unsigned short* condPaths;
+
+
+
+void initializeThreads() {
+  long i;
+  pthread_t tid;
+
+  pthread_mutex_init(&pathsMutex, NULL);
+
+  paths = GC_MALLOC(sizeof(Array*)*paymentIndex);
+  condPaths = GC_MALLOC(sizeof(unsigned short)*paymentIndex);
+  condMutex = GC_MALLOC(sizeof(pthread_mutex_t*)*paymentIndex);
+  condVar = GC_MALLOC(sizeof(pthread_cond_t*)*paymentIndex);
+
+
+  for(i=0; i<paymentIndex;i++){
+    paths[i] = NULL;
+    condPaths[i]=0;
+    pthread_mutex_init(&(condMutex[i]), NULL);
+    pthread_cond_init(&(condVar[i]), NULL);
+  }
+
+  for(i=0; i<paymentIndex; i++) {
+    pthread_create(&tid, NULL, &dijkstraThread, hashTableGet(payments, i));
+  }
+
+
+}
+
 void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
@@ -366,7 +400,9 @@ void readPreInputAndInitialize() {
 
   statsInitialize();
 
-  floydWarshall();
+  initializeThreads();
+
+  //  floydWarshall();
 
 }
 

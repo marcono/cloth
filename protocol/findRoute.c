@@ -16,14 +16,12 @@ char error[100];
 uint32_t** dist;
 PathHop** next;
 
-HashTable* distht;
-HashTable* nextht;
 
-void initializeFindRoute() {
-  distanceHeap=NULL;
-  previousPeer = NULL;
-  distance = NULL;
-}
+/* void initializeFindRoute() { */
+/*   distanceHeap=NULL; */
+/*   previousPeer = NULL; */
+/*   distance = NULL; */
+/* } */
 
 int present(long i) {
   long p;
@@ -270,31 +268,25 @@ Array* getPath(long source, long destination) {
 }
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance *d;
+  Distance *d, *distance;
   long i, bestPeerID, j,*channelID, nextPeerID, prev;
-  //  Heap *distanceHeap;
+  Heap *distanceHeap;
   Peer* bestPeer;
   Channel* channel;
   ChannelInfo* channelInfo;
   uint32_t tmpDist;
   uint64_t capacity;
-  //DijkstraHop *previousPeer;
+  DijkstraHop *previousPeer;
   Array* hops;
   PathHop* hop;
 
   printf("DIJKSTRA\n");
 
-  if(distance==NULL) {
-    distance = GC_MALLOC(sizeof(Distance)*peerIndex);
-  }
+  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
 
-  if(previousPeer==NULL) {
-    previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
-  }
+  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
 
-  if(distanceHeap==NULL) {
-    distanceHeap = heapInitialize(peerIndex);
-  }
+  distanceHeap = heapInitialize(peerIndex/10);
 
   for(i=0; i<peerIndex; i++){
     distance[i].peer = i;
@@ -307,7 +299,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   distance[source].distance = 0;
 
   //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
-  distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance); 
+  distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance);
 
   while(heapLen(distanceHeap)!=0) {
     d = heapPop(distanceHeap, compareDistance);
@@ -325,6 +317,8 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
       if(isPresent(nextPeerID, ignoredPeers)) continue;
       if(isPresent(*channelID, ignoredChannels)) continue;
+
+      printf("hey\n");
 
       tmpDist = distance[bestPeerID].distance + channel->policy.timelock;
 
@@ -372,9 +366,9 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
   arrayReverse(hops);
 
-  //  GC_FREE(previousPeer);
-  //GC_FREE(distance);
-  //heapFree(distanceHeap);
+  GC_FREE(previousPeer);
+  GC_FREE(distance);
+  heapFree(distanceHeap);
 
   return hops;
 }

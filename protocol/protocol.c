@@ -5,6 +5,8 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_math.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <pthread.h>
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
@@ -14,6 +16,7 @@
 #include "findRoute.h"
 #include "../simulator/event.h"
 #include "../simulator/stats.h"
+#include "../global.h"
 
 #define MAXMSATOSHI 1E13 //100  bitcoin
 #define MAXTIMELOCK 100
@@ -27,6 +30,8 @@
 #define MINBALANCE 1E2
 #define MAXBALANCE 1E11
 #define FAULTYLATENCY 60000 //1 minute waiting for a peer not responding
+#define INF UINT16_MAX
+#define HOPSLIMIT 20
 
 //TODO: creare ID randomici e connettere peer "vicini" usando il concetto
 // di vicinanza di chord; memorizzare gli id dei peer in un Array di long
@@ -494,7 +499,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
 
-  initializeFindRoute();
+  //  initializeFindRoute();
 
   gsl_rng_env_setup();
   T = gsl_rng_default;
@@ -515,6 +520,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
+
 
 }
 
@@ -587,6 +593,135 @@ uint64_t computeFee(uint64_t amountToForward, Policy policy) {
   return policy.feeBase + fee;
 }
 
+void* dijkstraThread(void*arg) {
+  Payment * payment;
+  Distance *d, *distance;
+  long i, bestPeerID, j,*channelID, nextPeerID, prev, source, target;
+  Heap *distanceHeap;
+  Peer* bestPeer;
+  Channel* channel;
+  ChannelInfo* channelInfo;
+  uint32_t tmpDist;
+  uint64_t capacity, amount;
+  DijkstraHop *previousPeer;
+  Array* hops, *ignoredPeers, *ignoredChannels;
+  PathHop* hop;
+
+  payment = (Payment*) arg;
+
+  printf("DIJKSTRA %ld\n", payment->ID);
+
+  source = payment->sender;
+  target = payment->receiver;
+  amount = payment->amount;
+  ignoredPeers = payment->ignoredPeers;
+  ignoredChannels = payment->ignoredChannels;
+
+
+  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
+
+  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
+
+  distanceHeap = heapInitialize(peerIndex/10);
+
+  for(i=0; i<peerIndex; i++){
+    distance[i].peer = i;
+    distance[i].distance = INF;
+    previousPeer[i].channel = -1;
+    previousPeer[i].peer = -1;
+  }
+
+  distance[source].peer = source;
+  distance[source].distance = 0;
+
+  //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
+  distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance);
+
+  while(heapLen(distanceHeap)!=0) {
+    d = heapPop(distanceHeap, compareDistance);
+    bestPeerID = d->peer;
+    if(bestPeerID==target) break;
+
+    bestPeer = hashTableGet(peers, bestPeerID);
+
+    for(j=0; j<arrayLen(bestPeer->channel); j++) {
+      channelID = arrayGet(bestPeer->channel, j);
+      if(channelID==NULL) continue;
+
+      channel = hashTableGet(channels, *channelID);
+      nextPeerID = channel->counterparty;
+
+      if(isPresent(nextPeerID, ignoredPeers)) continue;
+      if(isPresent(*channelID, ignoredChannels)) continue;
+
+      printf("hey %ld\n", payment->ID);
+
+      tmpDist = distance[bestPeerID].distance + channel->policy.timelock;
+
+      channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
+      capacity = channelInfo->capacity;
+
+      if(tmpDist < distance[nextPeerID].distance && amount<=capacity) {
+        distance[nextPeerID].peer = nextPeerID;
+        distance[nextPeerID].distance = tmpDist;
+
+        previousPeer[nextPeerID].channel = *channelID;
+        previousPeer[nextPeerID].peer = bestPeerID;
+
+        distanceHeap = heapInsert(distanceHeap, &distance[nextPeerID], compareDistance);
+      }
+      }
+
+    }
+
+  if(previousPeer[target].peer == -1) {
+    hops = NULL;
+  }
+  else {
+    hops=arrayInitialize(HOPSLIMIT);
+    prev=target;
+    while(prev!=source) {
+      //    printf("%ld ", previousPeer[prev].peer);
+      hop = GC_MALLOC(sizeof(PathHop));
+      hop->channel = previousPeer[prev].channel;
+      hop->sender = previousPeer[prev].peer;
+      channel = hashTableGet(channels, hop->channel);
+      hop->receiver = channel->counterparty;
+      hops=arrayInsert(hops, hop );
+      prev = previousPeer[prev].peer;
+    }
+
+
+    if(arrayLen(hops)>HOPSLIMIT) {
+      //    strcpy(error, "limitExceeded");
+      hops = NULL;
+    }
+    else
+      arrayReverse(hops);
+
+  }
+
+  pthread_mutex_lock(&pathsMutex);
+  paths[payment->ID] = hops;
+  pthread_mutex_unlock(&pathsMutex);
+
+  pthread_mutex_lock(&(condMutex[payment->ID]));
+  condPaths[payment->ID] = 1;
+  pthread_cond_signal(&(condVar[payment->ID]));
+  pthread_mutex_unlock(&(condMutex[payment->ID]));
+
+
+  GC_FREE(previousPeer);
+  GC_FREE(distance);
+  heapFree(distanceHeap);
+
+  printf("finish %ld\n", payment->ID);
+
+  return NULL;
+
+}
+
+
 void findRoute(Event *event) {
   Payment *payment;
   Array *pathHops;
@@ -594,6 +729,7 @@ void findRoute(Event *event) {
   int finalTimelock=9;
   Event* sendEvent;
   uint64_t nextEventTime;
+  pthread_t tid;
 
   printf("FINDROUTE %ld\n", event->paymentID);
 
@@ -603,13 +739,35 @@ void findRoute(Event *event) {
   if(payment->startTime < 1)
     payment->startTime = simulatorTime;
 
+  /*
+  // dijkstra version
+  pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                      payment->ignoredChannels);
+  */
+
+  /* floydWarshall version
   if(payment->attempts == 0) {
     pathHops = getPath(payment->sender, payment->receiver);
   }
   else {
     pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                         payment->ignoredChannels);
-  }
+                        }*/
+
+  //dijkstra parallel version
+  if(payment->attempts > 0)
+    pthread_create(&tid, NULL, &dijkstraThread, payment);
+
+  pthread_mutex_lock(&(condMutex[payment->ID]));
+  while(!condPaths[payment->ID])
+    pthread_cond_wait(&(condVar[payment->ID]), &(condMutex[payment->ID]));
+  condPaths[payment->ID] = 0;
+  pthread_mutex_unlock(&(condMutex[payment->ID]));
+
+  pthread_mutex_lock(&pathsMutex);
+  pathHops = paths[payment->ID];
+  pthread_mutex_unlock(&pathsMutex);
+
 
   if (pathHops == NULL) {
       printf("No available path\n");

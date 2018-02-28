@@ -35,9 +35,9 @@ typedef struct route {
   Array *routeHops;
 } Route;
 
-Distance* distance;
-DijkstraHop* previousPeer;
-Heap* distanceHeap;
+/* Distance* distance; */
+/* DijkstraHop* previousPeer; */
+/* Heap* distanceHeap; */
 
 extern uint32_t** dist;
 extern PathHop** next;
@@ -56,5 +56,8 @@ Array* dijkstra(long source, long destination, uint64_t amount, Array* ignoredPe
 Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalTimelock);
 
 void printHop(RouteHop* hop);
+
+int compareDistance(Distance* a, Distance* b);
+ 
 
 #endif

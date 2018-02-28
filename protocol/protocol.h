@@ -8,6 +8,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <stdint.h>
+#include <pthread.h>
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 extern HashTable* peers;
@@ -122,6 +123,8 @@ void receiveSuccess(Event* event);
 void forwardFail(Event* event);
 
 void receiveFail(Event* event);
+
+void* dijkstraThread(void*arg);
 
 long getEdgeIndex(Peer*n);
 
