@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
+
 #include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
@@ -595,111 +596,15 @@ uint64_t computeFee(uint64_t amountToForward, Policy policy) {
 
 void* dijkstraThread(void*arg) {
   Payment * payment;
-  Distance *d, *distance;
-  long i, bestPeerID, j,*channelID, nextPeerID, prev, source, target;
-  Heap *distanceHeap;
-  Peer* bestPeer;
-  Channel* channel;
-  ChannelInfo* channelInfo;
-  uint32_t tmpDist;
-  uint64_t capacity, amount;
-  DijkstraHop *previousPeer;
-  Array* hops, *ignoredPeers, *ignoredChannels;
-  PathHop* hop;
+  Array* hops;
 
   payment = (Payment*) arg;
 
   printf("DIJKSTRA %ld\n", payment->ID);
 
-  source = payment->sender;
-  target = payment->receiver;
-  amount = payment->amount;
-  ignoredPeers = payment->ignoredPeers;
-  ignoredChannels = payment->ignoredChannels;
+  hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                      payment->ignoredChannels);
 
-
-  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
-
-  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
-
-  distanceHeap = heapInitialize(peerIndex/10);
-
-  for(i=0; i<peerIndex; i++){
-    distance[i].peer = i;
-    distance[i].distance = INF;
-    previousPeer[i].channel = -1;
-    previousPeer[i].peer = -1;
-  }
-
-  distance[source].peer = source;
-  distance[source].distance = 0;
-
-  //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
-  distanceHeap =  heapInsert(distanceHeap, &distance[source], compareDistance);
-
-  while(heapLen(distanceHeap)!=0) {
-    d = heapPop(distanceHeap, compareDistance);
-    bestPeerID = d->peer;
-    if(bestPeerID==target) break;
-
-    bestPeer = hashTableGet(peers, bestPeerID);
-
-    for(j=0; j<arrayLen(bestPeer->channel); j++) {
-      channelID = arrayGet(bestPeer->channel, j);
-      if(channelID==NULL) continue;
-
-      channel = hashTableGet(channels, *channelID);
-      nextPeerID = channel->counterparty;
-
-      if(isPresent(nextPeerID, ignoredPeers)) continue;
-      if(isPresent(*channelID, ignoredChannels)) continue;
-
-      printf("hey %ld\n", payment->ID);
-
-      tmpDist = distance[bestPeerID].distance + channel->policy.timelock;
-
-      channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
-      capacity = channelInfo->capacity;
-
-      if(tmpDist < distance[nextPeerID].distance && amount<=capacity) {
-        distance[nextPeerID].peer = nextPeerID;
-        distance[nextPeerID].distance = tmpDist;
-
-        previousPeer[nextPeerID].channel = *channelID;
-        previousPeer[nextPeerID].peer = bestPeerID;
-
-        distanceHeap = heapInsert(distanceHeap, &distance[nextPeerID], compareDistance);
-      }
-      }
-
-    }
-
-  if(previousPeer[target].peer == -1) {
-    hops = NULL;
-  }
-  else {
-    hops=arrayInitialize(HOPSLIMIT);
-    prev=target;
-    while(prev!=source) {
-      //    printf("%ld ", previousPeer[prev].peer);
-      hop = GC_MALLOC(sizeof(PathHop));
-      hop->channel = previousPeer[prev].channel;
-      hop->sender = previousPeer[prev].peer;
-      channel = hashTableGet(channels, hop->channel);
-      hop->receiver = channel->counterparty;
-      hops=arrayInsert(hops, hop );
-      prev = previousPeer[prev].peer;
-    }
-
-
-    if(arrayLen(hops)>HOPSLIMIT) {
-      //    strcpy(error, "limitExceeded");
-      hops = NULL;
-    }
-    else
-      arrayReverse(hops);
-
-  }
 
   pthread_mutex_lock(&pathsMutex);
   paths[payment->ID] = hops;
@@ -710,12 +615,6 @@ void* dijkstraThread(void*arg) {
   pthread_cond_signal(&(condVar[payment->ID]));
   pthread_mutex_unlock(&(condMutex[payment->ID]));
 
-
-  GC_FREE(previousPeer);
-  GC_FREE(distance);
-  heapFree(distanceHeap);
-
-  printf("finish %ld\n", payment->ID);
 
   return NULL;
 
@@ -755,8 +654,8 @@ void findRoute(Event *event) {
                         }*/
 
   //dijkstra parallel version
-  if(payment->attempts > 0)
-    pthread_create(&tid, NULL, &dijkstraThread, payment);
+  /* if(payment->attempts > 0) */
+  /*   pthread_create(&tid, NULL, &dijkstraThread, payment); */
 
   pthread_mutex_lock(&(condMutex[payment->ID]));
   while(!condPaths[payment->ID])

@@ -337,18 +337,25 @@ void csvWriteOutput() {
 }
 
 pthread_mutex_t pathsMutex;
+pthread_mutex_t peersMutex;
+pthread_mutex_t channelsMutex;
+pthread_mutex_t channelInfosMutex;
 pthread_mutex_t* condMutex;
 pthread_cond_t* condVar;
 Array** paths;
 unsigned short* condPaths;
 
-
-
 void initializeThreads() {
   long i;
-  pthread_t tid;
+  Payment *payment;
+  pthread_t *tid;
+
+  tid = GC_MALLOC(sizeof(pthread_t)*paymentIndex);
 
   pthread_mutex_init(&pathsMutex, NULL);
+  pthread_mutex_init(&channelsMutex, NULL);
+  pthread_mutex_init(&channelInfosMutex, NULL);
+
 
   paths = GC_MALLOC(sizeof(Array*)*paymentIndex);
   condPaths = GC_MALLOC(sizeof(unsigned short)*paymentIndex);
@@ -356,17 +363,21 @@ void initializeThreads() {
   condVar = GC_MALLOC(sizeof(pthread_cond_t*)*paymentIndex);
 
 
-  for(i=0; i<paymentIndex;i++){
+  for(i=0; i<paymentIndex ;i++){
     paths[i] = NULL;
     condPaths[i]=0;
     pthread_mutex_init(&(condMutex[i]), NULL);
     pthread_cond_init(&(condVar[i]), NULL);
   }
 
-  for(i=0; i<paymentIndex; i++) {
-    pthread_create(&tid, NULL, &dijkstraThread, hashTableGet(payments, i));
+  for(i=0; i<4; i++) {
+    pthread_create(&(tid[i]), NULL, &dijkstraThread, hashTableGet(payments, i));
   }
 
+  for(i=0; i<4; i++)
+    pthread_join(tid[i], NULL);
+
+  printf("finished");
 
 }
 
@@ -419,6 +430,7 @@ int main() {
 
   printf("main\n");
 
+  pthread_mutex_init(&peersMutex, NULL);
 
   readPreInputAndInitialize();
 

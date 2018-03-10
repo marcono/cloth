@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "../gc-7.2/include/gc.h"
 #include "hashTable.h"
-
+#include "../global.h"
 
 
 
@@ -72,8 +73,10 @@ void hashTablePut(HashTable* ht, long key, void *val) {
 
 void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
+  void* result;
 	index = hashv(key) % ht->size;
-    return lget(key, ht->table[index]);
+  result = lget(key, ht->table[index]);
+  return result;
 }
 
 void hashTableMatrixPut(HashTable* ht, long i, long j, void* val){
