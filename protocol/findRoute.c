@@ -354,12 +354,14 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
   if(previousPeer[target].peer == -1) {
     //    printf ("no path available!\n");
-    strcpy(error, "noPath");
+    //    strcpy(error, "noPath");
     return NULL;
   }
 
 
+  pthread_mutex_lock(&peersMutex);
   hops=arrayInitialize(HOPSLIMIT);
+  pthread_mutex_unlock(&peersMutex);
   prev=target;
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
@@ -378,15 +380,17 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
 
   if(arrayLen(hops)>HOPSLIMIT) {
-    strcpy(error, "limitExceeded");
+    //    strcpy(error, "limitExceeded");
     return NULL;
   }
 
   arrayReverse(hops);
 
+  pthread_mutex_lock(&peersMutex);
   GC_FREE(previousPeer);
   GC_FREE(distance);
   heapFree(distanceHeap);
+  pthread_mutex_unlock(&peersMutex);
 
   return hops;
 }
