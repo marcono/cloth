@@ -13,21 +13,21 @@
 void statsInitialize() {
   long i;
 
-  totalPayments = GC_MALLOC(sizeof(long)*NBATCH);
-  succeededPayments = GC_MALLOC(sizeof(long)*NBATCH);
-  failedPaymentsUncoop = GC_MALLOC(sizeof(long)*NBATCH);
-  failedPaymentsNoPath = GC_MALLOC(sizeof(long)*NBATCH);
-  failedPaymentsNoBalance = GC_MALLOC(sizeof(long)*NBATCH);
-  avgTimeCoop = GC_MALLOC(sizeof(double)*NBATCH);
-  avgTimeUncoop = GC_MALLOC(sizeof(double)*NBATCH);
-  avgRouteLen = GC_MALLOC(sizeof(double)*NBATCH);
-  lockedFundCost = GC_MALLOC(sizeof(uint64_t)*NBATCH);
-  maxTimeCoop = GC_MALLOC(sizeof(uint64_t)*NBATCH);
-  minTimeCoop = GC_MALLOC(sizeof(uint64_t)*NBATCH);
-  maxTimeUncoop = GC_MALLOC(sizeof(uint64_t)*NBATCH);
-  minTimeUncoop = GC_MALLOC(sizeof(uint64_t)*NBATCH);
-  maxRouteLen = GC_MALLOC(sizeof(int)*NBATCH);
-  minRouteLen = GC_MALLOC(sizeof(int)*NBATCH);
+  totalPayments = malloc(sizeof(long)*NBATCH);
+  succeededPayments = malloc(sizeof(long)*NBATCH);
+  failedPaymentsUncoop = malloc(sizeof(long)*NBATCH);
+  failedPaymentsNoPath = malloc(sizeof(long)*NBATCH);
+  failedPaymentsNoBalance = malloc(sizeof(long)*NBATCH);
+  avgTimeCoop = malloc(sizeof(double)*NBATCH);
+  avgTimeUncoop = malloc(sizeof(double)*NBATCH);
+  avgRouteLen = malloc(sizeof(double)*NBATCH);
+  lockedFundCost = malloc(sizeof(uint64_t)*NBATCH);
+  maxTimeCoop = malloc(sizeof(uint64_t)*NBATCH);
+  minTimeCoop = malloc(sizeof(uint64_t)*NBATCH);
+  maxTimeUncoop = malloc(sizeof(uint64_t)*NBATCH);
+  minTimeUncoop = malloc(sizeof(uint64_t)*NBATCH);
+  maxRouteLen = malloc(sizeof(int)*NBATCH);
+  minRouteLen = malloc(sizeof(int)*NBATCH);
 
   batchPayments = arrayInitialize(paymentIndex/NBATCH);
 

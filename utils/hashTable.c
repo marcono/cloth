@@ -12,7 +12,7 @@
  
 Element *lput(long key, void *value, Element *list) {
 		Element *first;
-		first = (Element *) GC_MALLOC(sizeof(Element));
+		first = (Element *) malloc(sizeof(Element));
 		first->key= key;
 		first->value= value;
 		first->next = list;
@@ -47,9 +47,9 @@ Element *lupdate(long key, void* value, Element* list) {
 HashTable* hashTableInitialize(int size) {
 	int i;
 	HashTable* ht;
-  ht = GC_MALLOC(sizeof(HashTable));
+  ht = malloc(sizeof(HashTable));
 	ht->size = size;
-	ht->table = (Element **) GC_MALLOC(size*sizeof(Element *));
+	ht->table = (Element **) malloc(size*sizeof(Element *));
 
 	for(i=0; i < size; i++)
 		ht->table[i] = NULL;

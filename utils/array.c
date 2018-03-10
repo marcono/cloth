@@ -7,10 +7,10 @@ Array* resizeArray(Array* a) {
   Array* new;
   long i;
 
-  new=GC_MALLOC(sizeof(Array));
+  new=malloc(sizeof(Array));
   new->size = a->size*2;
   new->index = a->index;
-  new->element = GC_MALLOC(new->size*sizeof(void*));
+  new->element = malloc(new->size*sizeof(void*));
   for(i=0; i<new->index; i++)
     new->element[i]=a->element[i];
   for(;i<new->size;i++)
@@ -22,10 +22,10 @@ Array* resizeArray(Array* a) {
 Array* arrayInitialize(long size) {
   Array* a;
 
-  a = GC_MALLOC(sizeof(Array));
+  a = malloc(sizeof(Array));
   a->size = size;
   a->index = 0;
-  a->element = GC_MALLOC(a->size*sizeof(void*));
+  a->element = malloc(a->size*sizeof(void*));
 
   return a;
 }

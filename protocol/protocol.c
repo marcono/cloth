@@ -53,7 +53,7 @@ gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
 
-  peer = GC_MALLOC(sizeof(Peer));
+  peer = malloc(sizeof(Peer));
   peer->ID=ID;
   peer->channel = arrayInitialize(channelsSize);
   peer->initialFunds = 0;
@@ -68,7 +68,7 @@ Peer* createPeer(long ID, long channelsSize) {
 ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency) {
   ChannelInfo* channelInfo;
 
-  channelInfo = GC_MALLOC(sizeof(ChannelInfo));
+  channelInfo = malloc(sizeof(ChannelInfo));
   channelInfo->ID = ID;
   channelInfo->peer1 = peer1;
   channelInfo->peer2 = peer2;
@@ -85,7 +85,7 @@ ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency
 Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy){
   Channel* channel;
 
-  channel = GC_MALLOC(sizeof(Channel));
+  channel = malloc(sizeof(Channel));
   channel->ID = ID;
   channel->channelInfoID = channelInfoID;
   channel->counterparty = counterparty;
@@ -101,7 +101,7 @@ Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy po
 Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   Payment * p;
 
-  p = GC_MALLOC(sizeof(Payment));
+  p = malloc(sizeof(Payment));
   p->ID=ID;
   p->sender= sender;
   p->receiver = receiver;
@@ -123,7 +123,7 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
 Peer* createPeerPostProc(long ID, int withholdsR) {
   Peer* peer;
 
-  peer = GC_MALLOC(sizeof(Peer));
+  peer = malloc(sizeof(Peer));
   peer->ID=ID;
   peer->channel = arrayInitialize(5);
   peer->initialFunds = 0;
@@ -138,7 +138,7 @@ Peer* createPeerPostProc(long ID, int withholdsR) {
 ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency) {
   ChannelInfo* channelInfo;
 
-  channelInfo = GC_MALLOC(sizeof(ChannelInfo));
+  channelInfo = malloc(sizeof(ChannelInfo));
   channelInfo->ID = ID;
   channelInfo->channelDirection1 = direction1;
   channelInfo->channelDirection2 = direction2;
@@ -156,7 +156,7 @@ ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2
 Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection, long counterparty, uint64_t balance, Policy policy){
   Channel* channel;
 
-  channel = GC_MALLOC(sizeof(Channel));
+  channel = malloc(sizeof(Channel));
   channel->ID = ID;
   channel->channelInfoID = channelInfoID;
   channel->counterparty = counterparty;
@@ -320,7 +320,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   }
   */
 
-  peerChannels = GC_MALLOC(peerIDIndex*sizeof(int));
+  peerChannels = malloc(peerIDIndex*sizeof(int));
   for(i=0;i<peerIDIndex;i++) 
     peerChannels[i] = 0;
 

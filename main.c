@@ -340,8 +340,8 @@ pthread_mutex_t pathsMutex;
 pthread_mutex_t peersMutex;
 pthread_mutex_t channelsMutex;
 pthread_mutex_t channelInfosMutex;
-pthread_mutex_t* condMutex;
-pthread_cond_t* condVar;
+pthread_mutex_t condMutex[3000];
+pthread_cond_t condVar[3000];
 Array** paths;
 unsigned short* condPaths;
 
@@ -350,17 +350,17 @@ void initializeThreads() {
   Payment *payment;
   pthread_t *tid;
 
-  tid = GC_MALLOC(sizeof(pthread_t)*paymentIndex);
+  tid = malloc(sizeof(pthread_t)*paymentIndex);
 
   pthread_mutex_init(&pathsMutex, NULL);
   pthread_mutex_init(&channelsMutex, NULL);
   pthread_mutex_init(&channelInfosMutex, NULL);
 
 
-  paths = GC_MALLOC(sizeof(Array*)*paymentIndex);
-  condPaths = GC_MALLOC(sizeof(unsigned short)*paymentIndex);
-  condMutex = GC_MALLOC(sizeof(pthread_mutex_t*)*paymentIndex);
-  condVar = GC_MALLOC(sizeof(pthread_cond_t*)*paymentIndex);
+  paths = malloc(sizeof(Array*)*paymentIndex);
+  condPaths = malloc(sizeof(unsigned short)*paymentIndex);
+  //  condMutex = malloc(sizeof(pthread_mutex_t*)*paymentIndex);
+  //condVar = malloc(sizeof(pthread_cond_t*)*paymentIndex);
 
 
   for(i=0; i<paymentIndex ;i++){
@@ -370,11 +370,11 @@ void initializeThreads() {
     pthread_cond_init(&(condVar[i]), NULL);
   }
 
-  for(i=0; i<4; i++) {
+  for(i=0; i<8; i++) {
     pthread_create(&(tid[i]), NULL, &dijkstraThread, hashTableGet(payments, i));
   }
 
-  for(i=0; i<4; i++)
+  for(i=0; i<8; i++)
     pthread_join(tid[i], NULL);
 
   printf("finished");
@@ -1540,7 +1540,7 @@ int main() {
   a=arrayInitialize(10);
 
   for(i=0; i< 21; i++){
-    data = GC_MALLOC(sizeof(long));
+    data = malloc(sizeof(long));
     *data = i;
    a = arrayInsert(a,data);
   }
@@ -1566,7 +1566,7 @@ int main() {
   ht = initializeHashTable(10);
 
   for(i=0; i<N; i++) {
-    e = GC_MALLOC(sizeof(Event));
+    e = malloc(sizeof(Event));
     e->time=0.0;
     e->ID=i;
     strcpy(e->type, "Send");

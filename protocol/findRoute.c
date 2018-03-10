@@ -70,13 +70,13 @@ void floydWarshall() {
     hashTableMatrixPut(distht, channelInfo->peer1, channelInfo->peer2, &(direction1->policy.timelock));
     hashTableMatrixPut(distht, channelInfo->peer2, channelInfo->peer1, &(direction2->policy.timelock));
 
-    hop1 = GC_MALLOC(sizeof(PathHop));
+    hop1 = malloc(sizeof(PathHop));
     hop1->sender = channelInfo->peer1;
     hop1->receiver = channelInfo->peer2;
     hop1->channel = channelInfo->channelDirection1;
     hashTableMatrixPut(nextht, channelInfo->peer1, channelInfo->peer2, hop1);
 
-    hop2 = GC_MALLOC(sizeof(PathHop));
+    hop2 = malloc(sizeof(PathHop));
     hop2->sender = channelInfo->peer2;
     hop2->receiver = channelInfo->peer1;
     hop2->channel = channelInfo->channelDirection2;
@@ -84,7 +84,7 @@ void floydWarshall() {
   }
 
   long* peersPay;
-  peersPay = GC_MALLOC(sizeof(long)*2*paymentIndex);
+  peersPay = malloc(sizeof(long)*2*paymentIndex);
   for(i=0; i<paymentIndex; i++) {
     payment = hashTableGet(payments, i);
     j = i*2;
@@ -129,7 +129,7 @@ void floydWarshall() {
 
 
         if(dij > dik + dkj) {
-          newd = GC_MALLOC(sizeof(uint16_t));
+          newd = malloc(sizeof(uint16_t));
           *newd = dik+dkj;
           hashTableMatrixPut(distht, i, j, newd);
           hashTableMatrixPut(nextht, i, j, hashTableMatrixGet(nextht, i, k));
@@ -177,13 +177,13 @@ void floydWarshall() {
   ChannelInfo* channelInfo;
   Channel* direction1, *direction2;
 
-  dist = GC_MALLOC(sizeof(uint32_t*)*peerIndex);
-  next = GC_MALLOC(sizeof(PathHop*)*peerIndex);
-  //  paths = GC_MALLOC(sizeof(Array**)*peerIndex);
+  dist = malloc(sizeof(uint32_t*)*peerIndex);
+  next = malloc(sizeof(PathHop*)*peerIndex);
+  //  paths = malloc(sizeof(Array**)*peerIndex);
   for(i=0; i<peerIndex; i++) {
-    dist[i] = GC_MALLOC(sizeof(uint32_t)*peerIndex);
-    next[i] = GC_MALLOC(sizeof(PathHop)*peerIndex);
-    //paths[i] = GC_MALLOC(sizeof(Array*)*peerIndex);
+    dist[i] = malloc(sizeof(uint32_t)*peerIndex);
+    next[i] = malloc(sizeof(PathHop)*peerIndex);
+    //paths[i] = malloc(sizeof(Array*)*peerIndex);
   }
 
 
@@ -285,9 +285,9 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   //  printf("DIJKSTRA\n");
 
   pthread_mutex_lock(&peersMutex);
-  distance = GC_MALLOC(sizeof(Distance)*peerIndex);
+  distance = malloc(sizeof(Distance)*peerIndex);
 
-  previousPeer = GC_MALLOC(sizeof(DijkstraHop)*peerIndex);
+  previousPeer = malloc(sizeof(DijkstraHop)*peerIndex);
 
   distanceHeap = heapInitialize(peerIndex/10);
   pthread_mutex_unlock(&peersMutex);
@@ -366,7 +366,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   while(prev!=source) {
     //    printf("%ld ", previousPeer[prev].peer);
     pthread_mutex_lock(&peersMutex);
-    hop = GC_MALLOC(sizeof(PathHop));
+    hop = malloc(sizeof(PathHop));
     hop->channel = previousPeer[prev].channel;
     hop->sender = previousPeer[prev].peer;
 
@@ -387,8 +387,8 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   arrayReverse(hops);
 
   pthread_mutex_lock(&peersMutex);
-  GC_FREE(previousPeer);
-  GC_FREE(distance);
+  free(previousPeer);
+  free(distance);
   heapFree(distanceHeap);
   pthread_mutex_unlock(&peersMutex);
 
@@ -438,7 +438,7 @@ Array* findPaths(long source, long target, double amount){
   if(startingPath==NULL) return NULL;
 
   firstPath = arrayInitialize(arrayLen(startingPath)+1);
-  hop = GC_MALLOC(sizeof(PathHop));
+  hop = malloc(sizeof(PathHop));
   hop->receiver = source;
   firstPath=arrayInsert(firstPath, hop);
   for(i=0; i<arrayLen(startingPath); i++) {
@@ -513,7 +513,7 @@ Array* findPaths(long source, long target, double amount){
 Route* routeInitialize(long nHops) {
   Route* r;
 
-  r = GC_MALLOC(sizeof(Route));
+  r = malloc(sizeof(Route));
   r->routeHops = arrayInitialize(nHops);
   r->totalAmount = 0.0;
   r->totalFee = 0.0;
@@ -545,7 +545,7 @@ Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalT
     channelInfo = hashTableGet(channelInfos,channel->channelInfoID);
     currentChannelCapacity = channelInfo->capacity;
 
-    routeHop = GC_MALLOC(sizeof(RouteHop));
+    routeHop = malloc(sizeof(RouteHop));
     routeHop->pathHop = pathHop;
 
     if(i == arrayLen(pathHops)-1) {

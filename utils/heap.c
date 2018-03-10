@@ -26,10 +26,10 @@ void swap(void** a, void** b) {
 Heap* resizeHeap(Heap* h) {
   Heap* new;
   long i;
-  new=GC_MALLOC(sizeof(Heap));
+  new=malloc(sizeof(Heap));
   new->size = h->size*2;
   new->index = h->index;
-  new->data = GC_MALLOC(new->size*sizeof(void*));
+  new->data = malloc(new->size*sizeof(void*));
   for(i=0; i<new->index; i++)
     new->data[i]=h->data[i];
   return new;
@@ -61,8 +61,8 @@ void heapify(Heap* h, long i, int(*compare)() ){
 
 Heap* heapInitialize(long size) {
   Heap *h;
-  h=GC_MALLOC(sizeof(Heap));
-  h->data = GC_MALLOC(size*sizeof(void*));
+  h=malloc(sizeof(Heap));
+  h->data = malloc(size*sizeof(void*));
   h->size = size;
   h->index = 0;
   return h;
@@ -113,10 +113,10 @@ void heapFree(Heap *h) {
   long i;
 
   //  for(i=0; i<h->size; i++)
-  // GC_FREE(h->data[i]);
+  // free(h->data[i]);
 
-  GC_FREE(h->data);
-  GC_FREE(h);
+  free(h->data);
+  free(h);
 }
 
 /*
