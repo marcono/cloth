@@ -43,13 +43,15 @@ extern uint32_t** dist;
 extern PathHop** next;
 
 
-void initializeFindRoute();
+void initializeDijkstra();
 
 void floydWarshall();
 
 Array* getPath(long source, long destination);
 
 Array* findPaths(long source, long destination, double amount);
+
+Array* dijkstraP(long source, long destination, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels, long p);
 
 Array* dijkstra(long source, long destination, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels);
 

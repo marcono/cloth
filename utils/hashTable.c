@@ -27,6 +27,17 @@ void* lget(long key, Element *list) {
 	return lget(key, list->next);
 }
 
+void* lgetnew(long key, Element* list) {
+  Element* node;
+
+  for(node = list; node != NULL; node = node->next) {
+    if(node->key == key)
+      return node->value;
+  }
+
+  return NULL;
+}
+
 Element *lupdate(long key, void* value, Element* list) {
   Element* node;
 
@@ -49,7 +60,7 @@ HashTable* hashTableInitialize(int size) {
 	HashTable* ht;
   ht = malloc(sizeof(HashTable));
 	ht->size = size;
-	ht->table = (Element **) malloc(size*sizeof(Element *));
+	ht->table =  malloc(size*sizeof(Element *));
 
 	for(i=0; i < size; i++)
 		ht->table[i] = NULL;
@@ -73,10 +84,8 @@ void hashTablePut(HashTable* ht, long key, void *val) {
 
 void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
-  void* result;
 	index = hashv(key) % ht->size;
-  result = lget(key, ht->table[index]);
-  return result;
+  return lget(key, ht->table[index]);
 }
 
 void hashTableMatrixPut(HashTable* ht, long i, long j, void* val){

@@ -597,24 +597,39 @@ uint64_t computeFee(uint64_t amountToForward, Policy policy) {
 void* dijkstraThread(void*arg) {
   Payment * payment;
   Array* hops;
+  long paymentID;
+  int *index;
 
-  payment = (Payment*) arg;
-
-  printf("DIJKSTRA %ld\n", payment->ID);
-
-  hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                      payment->ignoredChannels);
+  index = (int*) arg;
 
 
-  pthread_mutex_lock(&pathsMutex);
-  paths[payment->ID] = hops;
-  pthread_mutex_unlock(&pathsMutex);
+  while(1) {
+    pthread_mutex_lock(&jobsMutex);
+    jobs = pop(jobs, &paymentID);
+    pthread_mutex_unlock(&jobsMutex);
 
-  pthread_mutex_lock(&(condMutex[payment->ID]));
-  condPaths[payment->ID] = 1;
-  pthread_cond_signal(&(condVar[payment->ID]));
-  pthread_mutex_unlock(&(condMutex[payment->ID]));
+    if(paymentID==-1) return NULL;
 
+    pthread_mutex_lock(&peersMutex);
+    payment = hashTableGet(payments, paymentID);
+    pthread_mutex_unlock(&peersMutex);
+    
+    printf("DIJKSTRA %ld\n", payment->ID);
+
+    hops = dijkstraP(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                     payment->ignoredChannels, *index);
+
+
+    pthread_mutex_lock(&pathsMutex);
+    paths[payment->ID] = hops;
+    pthread_mutex_unlock(&pathsMutex);
+
+    pthread_mutex_lock(&(condMutex[payment->ID]));
+    condPaths[payment->ID] = 1;
+    pthread_cond_signal(&(condVar[payment->ID]));
+    pthread_mutex_unlock(&(condMutex[payment->ID]));
+
+  }
 
   return NULL;
 

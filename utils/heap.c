@@ -71,8 +71,9 @@ Heap* heapInitialize(long size) {
 Heap* heapInsert(Heap *h, void* data, int(*compare)()) {
   int i, parent, compRes;
 
-  if(h->index>=h->size)
+  if(h->index>=h->size) {
     h = resizeHeap(h);
+  }
 
   i=h->index;
   (h->index)++;

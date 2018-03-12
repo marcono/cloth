@@ -269,6 +269,166 @@ Array* getPath(long source, long destination) {
   return path;
 }
 
+Distance **distance;
+DijkstraHop ** previousPeer;
+Heap** distanceHeap;
+Array** hops;
+
+void initializeDijkstra() {
+  int i, j;
+  PathHop *hop;
+
+  distance = malloc(sizeof(Distance*)*4);
+  previousPeer = malloc(sizeof(DijkstraHop*)*4);
+  distanceHeap = malloc(sizeof(Heap*)*4);
+  hops = malloc(sizeof(Array*)*4);
+
+  for(i=0; i<4; i++) {
+    distance[i] = malloc(sizeof(Distance)*peerIndex);
+    previousPeer[i] = malloc(sizeof(DijkstraHop)*peerIndex);
+    distanceHeap[i] = heapInitialize(channelIndex);
+    hops[i] = arrayInitialize(HOPSLIMIT);
+    for(j=0; j<HOPSLIMIT; j++) {
+      hop = malloc(sizeof(PathHop));
+      arrayInsert(hops[i], hop);
+    }
+    printf("hop_index: %ld\n", hops[i]->index);
+  }
+
+}
+
+Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels, long p) {
+  Distance *d=NULL;
+  long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;
+  Peer* bestPeer=NULL;
+  Channel* channel=NULL;
+  ChannelInfo* channelInfo=NULL;
+  uint32_t tmpDist;
+  uint64_t capacity;
+  PathHop* hop=NULL;
+
+  //  printf("DIJKSTRA\n");
+
+  /* pthread_mutex_lock(&peersMutex); */
+  /* distance = malloc(sizeof(Distance)*peerIndex); */
+
+  /* previousPeer[p] = malloc(sizeof(DijkstraHop)*peerIndex); */
+
+  /* distanceHeap[p] = heapInitialize(peerIndex/10); */
+  /* pthread_mutex_unlock(&peersMutex); */
+
+  while(heapLen(distanceHeap[p])!=0) {
+    heapPop(distanceHeap[p], compareDistance);
+    //    printf("popping\n");
+  }
+
+  hops[p]->index = HOPSLIMIT;
+
+  for(i=0; i<peerIndex; i++){
+    distance[p][i].peer = i;
+    distance[p][i].distance = INF;
+    previousPeer[p][i].channel = -1;
+    previousPeer[p][i].peer = -1;
+  }
+
+  distance[p][source].peer = source;
+  distance[p][source].distance = 0;
+
+  //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
+  pthread_mutex_lock(&peersMutex);
+  distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][source], compareDistance);
+  pthread_mutex_unlock(&peersMutex);
+
+  while(heapLen(distanceHeap[p])!=0) {
+    d = heapPop(distanceHeap[p], compareDistance);
+    bestPeerID = d->peer;
+    if(bestPeerID==target) break;
+
+     pthread_mutex_lock(&peersMutex);
+    bestPeer = hashTableGet(peers, bestPeerID);
+    pthread_mutex_unlock(&peersMutex);
+
+    for(j=0; j<arrayLen(bestPeer->channel); j++) {
+      channelID = arrayGet(bestPeer->channel, j);
+      if(channelID==NULL) continue;
+
+      pthread_mutex_lock(&peersMutex);
+      channel = hashTableGet(channels, *channelID);
+      pthread_mutex_unlock(&peersMutex);
+
+      nextPeerID = channel->counterparty;
+
+      if(isPresent(nextPeerID, ignoredPeers)) continue;
+      if(isPresent(*channelID, ignoredChannels)) continue;
+
+      tmpDist = distance[p][bestPeerID].distance + channel->policy.timelock;
+
+      pthread_mutex_lock(&peersMutex);
+      channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
+      pthread_mutex_unlock(&peersMutex);
+
+      capacity = channelInfo->capacity;
+
+      if(tmpDist < distance[p][nextPeerID].distance && amount<=capacity) {
+        distance[p][nextPeerID].peer = nextPeerID;
+        distance[p][nextPeerID].distance = tmpDist;
+
+        previousPeer[p][nextPeerID].channel = *channelID;
+        previousPeer[p][nextPeerID].peer = bestPeerID;
+
+        pthread_mutex_lock(&peersMutex);
+        distanceHeap[p] = heapInsert(distanceHeap[p], &distance[p][nextPeerID], compareDistance);
+        pthread_mutex_unlock(&peersMutex);
+      }
+      }
+
+    }
+
+  if(previousPeer[p][target].peer == -1) {
+    //    printf ("no path available!\n");
+    //    strcpy(error, "noPath");
+    return NULL;
+  }
+
+
+  i=0;  
+  prev=target;
+  while(prev!=source) {
+    //    printf("%ld ", previousPeer[p][prev].peer);
+    pthread_mutex_lock(&peersMutex);
+    hop = arrayGet(hops[p], i);
+    if(hop==NULL) printf("index here: %ld\n", hops[p]->index);
+    hop->channel = previousPeer[p][prev].channel;
+    hop->sender = previousPeer[p][prev].peer;
+
+   channel = hashTableGet(channels, hop->channel);
+
+    hop->receiver = channel->counterparty;
+    pthread_mutex_unlock(&peersMutex);
+    prev = previousPeer[p][prev].peer;
+    i++;
+    if(i>=HOPSLIMIT) return NULL;
+  }
+
+  hops[p]->index = i;
+
+  /* if(arrayLen(hops)>HOPSLIMIT) { */
+  /*   //    strcpy(error, "limitExceeded"); */
+  /*   return NULL; */
+  /* } */
+
+  arrayReverse(hops[p]);
+
+  /* pthread_mutex_lock(&peersMutex); */
+  /* free(previousPeer[p]); */
+  /* free(distance); */
+  /* heapFree(distanceHeap[p]); */
+  /* pthread_mutex_unlock(&peersMutex); */
+
+  return hops[p];
+}
+
+
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
   Distance *d=NULL, *distance=NULL;
   long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;

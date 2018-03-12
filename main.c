@@ -19,6 +19,7 @@
 #include "./protocol/protocol.h"
 #include "./simulator/stats.h"
 #include "./global.h"
+#include "./utils/list.h"
 
 /*void printBalances() {
   long i, j, *channelID;
@@ -338,23 +339,25 @@ void csvWriteOutput() {
 
 pthread_mutex_t pathsMutex;
 pthread_mutex_t peersMutex;
-pthread_mutex_t channelsMutex;
-pthread_mutex_t channelInfosMutex;
+pthread_mutex_t jobsMutex;
 pthread_mutex_t condMutex[3000];
 pthread_cond_t condVar[3000];
 Array** paths;
 unsigned short* condPaths;
+Node* jobs=NULL;
+
 
 void initializeThreads() {
   long i;
   Payment *payment;
   pthread_t *tid;
+  int dataIndex[4];
 
   tid = malloc(sizeof(pthread_t)*paymentIndex);
 
+  pthread_mutex_init(&peersMutex, NULL);
+  pthread_mutex_init(&jobsMutex, NULL);
   pthread_mutex_init(&pathsMutex, NULL);
-  pthread_mutex_init(&channelsMutex, NULL);
-  pthread_mutex_init(&channelInfosMutex, NULL);
 
 
   paths = malloc(sizeof(Array*)*paymentIndex);
@@ -368,16 +371,19 @@ void initializeThreads() {
     condPaths[i]=0;
     pthread_mutex_init(&(condMutex[i]), NULL);
     pthread_cond_init(&(condVar[i]), NULL);
+    payment = hashTableGet(payments, i);
+    jobs = push(jobs, payment->ID);
   }
 
-  for(i=0; i<8; i++) {
-    pthread_create(&(tid[i]), NULL, &dijkstraThread, hashTableGet(payments, i));
+  for(i=0; i<4; i++) {
+    dataIndex[i] = i;
+    pthread_create(&(tid[i]), NULL, &dijkstraThread, &(dataIndex[i]));
   }
 
-  for(i=0; i<8; i++)
+  for(i=0; i<4; i++)
     pthread_join(tid[i], NULL);
 
-  printf("finished");
+  printf("finished\n");
 
 }
 
@@ -411,6 +417,8 @@ void readPreInputAndInitialize() {
 
   statsInitialize();
 
+  initializeDijkstra();
+
   initializeThreads();
 
   //  floydWarshall();
@@ -429,8 +437,6 @@ int main() {
   //Payment* payment;
 
   printf("main\n");
-
-  pthread_mutex_init(&peersMutex, NULL);
 
   readPreInputAndInitialize();
 

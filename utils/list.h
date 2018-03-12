@@ -4,9 +4,11 @@
 
 typedef struct node {
 	struct node* next;
-	int data;
+	long data;
 } Node;
 
-Node* push(Node* head, int data);
+Node* push(Node* head, long data);
+
+Node* pop(Node* head, long* data);
 
 #endif
