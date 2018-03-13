@@ -272,27 +272,25 @@ Array* getPath(long source, long destination) {
 Distance **distance;
 DijkstraHop ** previousPeer;
 Heap** distanceHeap;
-Array** hops;
+//Array** hops;
 
 void initializeDijkstra() {
-  int i, j;
-  PathHop *hop;
+  int i;
 
-  distance = malloc(sizeof(Distance*)*4);
-  previousPeer = malloc(sizeof(DijkstraHop*)*4);
-  distanceHeap = malloc(sizeof(Heap*)*4);
-  hops = malloc(sizeof(Array*)*4);
+  distance = malloc(sizeof(Distance*)*PARALLEL);
+  previousPeer = malloc(sizeof(DijkstraHop*)*PARALLEL);
+  distanceHeap = malloc(sizeof(Heap*)*PARALLEL);
+  //  hops = malloc(sizeof(Array*)*4);
 
-  for(i=0; i<4; i++) {
+  for(i=0; i<PARALLEL; i++) {
     distance[i] = malloc(sizeof(Distance)*peerIndex);
     previousPeer[i] = malloc(sizeof(DijkstraHop)*peerIndex);
     distanceHeap[i] = heapInitialize(channelIndex);
-    hops[i] = arrayInitialize(HOPSLIMIT);
-    for(j=0; j<HOPSLIMIT; j++) {
-      hop = malloc(sizeof(PathHop));
-      arrayInsert(hops[i], hop);
-    }
-    printf("hop_index: %ld\n", hops[i]->index);
+    //    hops[i] = arrayInitialize(HOPSLIMIT);
+    /* for(j=0; j<HOPSLIMIT; j++) { */
+    /*   hop = malloc(sizeof(PathHop)); */
+    /*   arrayInsert(hops[i], hop); */
+    /* } */
   }
 
 }
@@ -306,6 +304,7 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   uint32_t tmpDist;
   uint64_t capacity;
   PathHop* hop=NULL;
+  Array* hops=NULL;
 
   //  printf("DIJKSTRA\n");
 
@@ -322,7 +321,7 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
     //    printf("popping\n");
   }
 
-  hops[p]->index = HOPSLIMIT;
+  //  hops[p]->index = HOPSLIMIT;
 
   for(i=0; i<peerIndex; i++){
     distance[p][i].peer = i;
@@ -391,33 +390,47 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   }
 
 
-  i=0;  
+  i=0;
+  pthread_mutex_lock(&peersMutex);
+  hops=arrayInitialize(HOPSLIMIT);
+  pthread_mutex_unlock(&peersMutex);
   prev=target;
   while(prev!=source) {
-    //    printf("%ld ", previousPeer[p][prev].peer);
+   /*  pthread_mutex_lock(&peersMutex); */
+   /*  hop = arrayGet(hops[p], i); */
+   /*  if(hop==NULL) printf("index here: %ld\n", hops[p]->index); */
+   /*  hop->channel = previousPeer[p][prev].channel; */
+   /*  hop->sender = previousPeer[p][prev].peer; */
+
+   /* channel = hashTableGet(channels, hop->channel); */
+
+   /*  hop->receiver = channel->counterparty; */
+   /*  pthread_mutex_unlock(&peersMutex); */
+   /*  prev = previousPeer[p][prev].peer; */
+   /*  i++; */
+   /*  if(i>=HOPSLIMIT) return NULL; */
     pthread_mutex_lock(&peersMutex);
-    hop = arrayGet(hops[p], i);
-    if(hop==NULL) printf("index here: %ld\n", hops[p]->index);
+    hop = malloc(sizeof(PathHop));
     hop->channel = previousPeer[p][prev].channel;
     hop->sender = previousPeer[p][prev].peer;
 
-   channel = hashTableGet(channels, hop->channel);
+    channel = hashTableGet(channels, hop->channel);
 
     hop->receiver = channel->counterparty;
+    hops=arrayInsert(hops, hop );
     pthread_mutex_unlock(&peersMutex);
     prev = previousPeer[p][prev].peer;
-    i++;
-    if(i>=HOPSLIMIT) return NULL;
+
   }
 
-  hops[p]->index = i;
+  //  hops[p]->index = i;
 
   /* if(arrayLen(hops)>HOPSLIMIT) { */
   /*   //    strcpy(error, "limitExceeded"); */
   /*   return NULL; */
   /* } */
 
-  arrayReverse(hops[p]);
+  arrayReverse(hops);
 
   /* pthread_mutex_lock(&peersMutex); */
   /* free(previousPeer[p]); */
@@ -425,7 +438,7 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   /* heapFree(distanceHeap[p]); */
   /* pthread_mutex_unlock(&peersMutex); */
 
-  return hops[p];
+  return hops;
 }
 
 

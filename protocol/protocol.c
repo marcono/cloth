@@ -613,7 +613,7 @@ void* dijkstraThread(void*arg) {
     pthread_mutex_lock(&peersMutex);
     payment = hashTableGet(payments, paymentID);
     pthread_mutex_unlock(&peersMutex);
-    
+
     printf("DIJKSTRA %ld\n", payment->ID);
 
     hops = dijkstraP(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
@@ -624,10 +624,10 @@ void* dijkstraThread(void*arg) {
     paths[payment->ID] = hops;
     pthread_mutex_unlock(&pathsMutex);
 
-    pthread_mutex_lock(&(condMutex[payment->ID]));
-    condPaths[payment->ID] = 1;
-    pthread_cond_signal(&(condVar[payment->ID]));
-    pthread_mutex_unlock(&(condMutex[payment->ID]));
+    /* pthread_mutex_lock(&(condMutex[payment->ID])); */
+    /* condPaths[payment->ID] = 1; */
+    /* pthread_cond_signal(&(condVar[payment->ID])); */
+    /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
 
   }
 
@@ -672,16 +672,22 @@ void findRoute(Event *event) {
   /* if(payment->attempts > 0) */
   /*   pthread_create(&tid, NULL, &dijkstraThread, payment); */
 
-  pthread_mutex_lock(&(condMutex[payment->ID]));
-  while(!condPaths[payment->ID])
-    pthread_cond_wait(&(condVar[payment->ID]), &(condMutex[payment->ID]));
-  condPaths[payment->ID] = 0;
-  pthread_mutex_unlock(&(condMutex[payment->ID]));
+  /* pthread_mutex_lock(&(condMutex[payment->ID])); */
+  /* while(!condPaths[payment->ID]) */
+  /*   pthread_cond_wait(&(condVar[payment->ID]), &(condMutex[payment->ID])); */
+  /* condPaths[payment->ID] = 0; */
+  /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
 
-  pthread_mutex_lock(&pathsMutex);
-  pathHops = paths[payment->ID];
-  pthread_mutex_unlock(&pathsMutex);
-
+  if(payment->attempts==0) {
+    pthread_mutex_lock(&pathsMutex);
+    pathHops = paths[payment->ID];
+    pthread_mutex_unlock(&pathsMutex);
+  }
+  else {
+    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                        payment->ignoredChannels);
+    paths[payment->ID] = pathHops;
+  }
 
   if (pathHops == NULL) {
       printf("No available path\n");

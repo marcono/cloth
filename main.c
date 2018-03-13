@@ -340,47 +340,34 @@ void csvWriteOutput() {
 pthread_mutex_t pathsMutex;
 pthread_mutex_t peersMutex;
 pthread_mutex_t jobsMutex;
-pthread_mutex_t condMutex[3000];
-pthread_cond_t condVar[3000];
 Array** paths;
-unsigned short* condPaths;
 Node* jobs=NULL;
 
 
 void initializeThreads() {
   long i;
   Payment *payment;
-  pthread_t *tid;
-  int dataIndex[4];
-
-  tid = malloc(sizeof(pthread_t)*paymentIndex);
+  pthread_t tid[PARALLEL];
+  int dataIndex[PARALLEL];
 
   pthread_mutex_init(&peersMutex, NULL);
   pthread_mutex_init(&jobsMutex, NULL);
   pthread_mutex_init(&pathsMutex, NULL);
 
-
   paths = malloc(sizeof(Array*)*paymentIndex);
-  condPaths = malloc(sizeof(unsigned short)*paymentIndex);
-  //  condMutex = malloc(sizeof(pthread_mutex_t*)*paymentIndex);
-  //condVar = malloc(sizeof(pthread_cond_t*)*paymentIndex);
-
 
   for(i=0; i<paymentIndex ;i++){
     paths[i] = NULL;
-    condPaths[i]=0;
-    pthread_mutex_init(&(condMutex[i]), NULL);
-    pthread_cond_init(&(condVar[i]), NULL);
     payment = hashTableGet(payments, i);
     jobs = push(jobs, payment->ID);
   }
 
-  for(i=0; i<4; i++) {
+  for(i=0; i<PARALLEL; i++) {
     dataIndex[i] = i;
     pthread_create(&(tid[i]), NULL, &dijkstraThread, &(dataIndex[i]));
   }
 
-  for(i=0; i<4; i++)
+  for(i=0; i<PARALLEL; i++)
     pthread_join(tid[i], NULL);
 
   printf("finished\n");
