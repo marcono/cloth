@@ -620,9 +620,9 @@ void* dijkstraThread(void*arg) {
                      payment->ignoredChannels, *index);
 
 
-    pthread_mutex_lock(&pathsMutex);
+    //    pthread_mutex_lock(&pathsMutex);
     paths[payment->ID] = hops;
-    pthread_mutex_unlock(&pathsMutex);
+    //    pthread_mutex_unlock(&pathsMutex);
 
     /* pthread_mutex_lock(&(condMutex[payment->ID])); */
     /* condPaths[payment->ID] = 1; */
@@ -635,6 +635,21 @@ void* dijkstraThread(void*arg) {
 
 }
 
+unsigned int isAnyChannelClosed(Array* hops) {
+  int i;
+  Channel* channel;
+  PathHop* hop;
+
+  for(i=0;i<arrayLen(hops);i++) {
+    hop = arrayGet(hops, i);
+    channel = hashTableGet(channels, hop->channel);
+    if(channel->isClosed)
+      return 1;
+  }
+
+  return 0;
+}
+
 
 void findRoute(Event *event) {
   Payment *payment;
@@ -643,7 +658,6 @@ void findRoute(Event *event) {
   int finalTimelock=9;
   Event* sendEvent;
   uint64_t nextEventTime;
-  pthread_t tid;
 
   printf("FINDROUTE %ld\n", event->paymentID);
 
@@ -668,7 +682,7 @@ void findRoute(Event *event) {
                         payment->ignoredChannels);
                         }*/
 
-  //dijkstra parallel version
+  //dijkstra parallel OLD version
   /* if(payment->attempts > 0) */
   /*   pthread_create(&tid, NULL, &dijkstraThread, payment); */
 
@@ -678,26 +692,34 @@ void findRoute(Event *event) {
   /* condPaths[payment->ID] = 0; */
   /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
 
+
   if(payment->attempts==0) {
-    pthread_mutex_lock(&pathsMutex);
     pathHops = paths[payment->ID];
-    pthread_mutex_unlock(&pathsMutex);
+    if(pathHops!=NULL)
+      if(isAnyChannelClosed(pathHops)) {
+        pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                            payment->ignoredChannels);
+      }
   }
-  else {
+  else
     pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                         payment->ignoredChannels);
+
+
+  if(pathHops!=NULL)
+    if(isAnyChannelClosed(pathHops)) {
+    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
+                                       payment->ignoredChannels);
     paths[payment->ID] = pathHops;
   }
 
+
   if (pathHops == NULL) {
-      printf("No available path\n");
-      payment->endTime = simulatorTime;
-      statsUpdatePayments(payment);
-      return;
-    }
-
-
-
+    printf("No available path\n");
+    payment->endTime = simulatorTime;
+    statsUpdatePayments(payment);
+    return;
+  }
 
   route = transformPathIntoRoute(pathHops, payment->amount, finalTimelock);
   if(route==NULL) {

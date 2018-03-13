@@ -13,22 +13,22 @@
     "ConfidenceIntervalMax":0.77229592875609077
   },
   "FailedPaymentsNoBalance":{
-    "Mean":1.0,
-    "Variance":1.3103448275862069,
-    "ConfidenceIntervalMin":0.9848679569412605,
-    "ConfidenceIntervalMax":1.0151320430587394
+    "Mean":0.93333333333333335,
+    "Variance":1.2367816091954025,
+    "ConfidenceIntervalMin":0.91905080848140031,
+    "ConfidenceIntervalMax":0.94761585818526639
   },
   "FailedPaymentsNoPath":{
-    "Mean":5.0666666666666664,
-    "Variance":4.4781609195402279,
-    "ConfidenceIntervalMin":5.0149522458273257,
-    "ConfidenceIntervalMax":5.1183810875060072
+    "Mean":5.1333333333333337,
+    "Variance":4.4643678160919551,
+    "ConfidenceIntervalMin":5.0817781971577691,
+    "ConfidenceIntervalMax":5.1848884695088984
   },
   "AvgTimeCoop":{
-    "Mean":70.036093367584016,
-    "Variance":33.001985756407379,
-    "ConfidenceIntervalMin":69.654981877710171,
-    "ConfidenceIntervalMax":70.417204857457861
+    "Mean":69.611173416376985,
+    "Variance":31.258494416550558,
+    "ConfidenceIntervalMin":69.250196005313413,
+    "ConfidenceIntervalMax":69.972150827440558
   },
   "MinTimeCoop":{
     "Mean":12.866666666666667,
@@ -37,10 +37,10 @@
     "ConfidenceIntervalMax":13.210595882521847
   },
   "MaxTimeCoop":{
-    "Mean":353.13333333333333,
-    "Variance":29664.448888888892,
-    "ConfidenceIntervalMin":10.564180198784754,
-    "ConfidenceIntervalMax":695.70248646788195
+    "Mean":352.39999999999998,
+    "Variance":29652.373333333337,
+    "ConfidenceIntervalMin":9.9702970489282734,
+    "ConfidenceIntervalMax":694.82970295107168
   },
   "AvgTimeUncoop":{
     "Mean":111600095.0,
@@ -50,7 +50,7 @@
   },
   "MinTimeUncoop":{
     "Mean":111600095.0,
-    "Variance":6.9527529197809137e-310,
+    "Variance":6.9525226346142302e-310,
     "ConfidenceIntervalMin":111600095.0,
     "ConfidenceIntervalMax":111600095.0
   },
@@ -61,10 +61,10 @@
     "ConfidenceIntervalMax":111600095.0
   },
   "AvgRouteLen":{
-    "Mean":6.3022920290629072,
-    "Variance":0.053828072075541238,
-    "ConfidenceIntervalMin":6.3016704150516425,
-    "ConfidenceIntervalMax":6.3029136430741719
+    "Mean":6.299938694636027,
+    "Variance":0.053340441641838009,
+    "ConfidenceIntervalMin":6.2993227118483635,
+    "ConfidenceIntervalMax":6.3005546774236905
   },
   "MinRouteLen":{
     "Mean":1.7666666666666666,

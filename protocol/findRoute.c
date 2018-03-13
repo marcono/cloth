@@ -334,16 +334,16 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   distance[p][source].distance = 0;
 
   //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
-  pthread_mutex_lock(&peersMutex);
+  //  pthread_mutex_lock(&peersMutex);
   distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][source], compareDistance);
-  pthread_mutex_unlock(&peersMutex);
+  //pthread_mutex_unlock(&peersMutex);
 
   while(heapLen(distanceHeap[p])!=0) {
     d = heapPop(distanceHeap[p], compareDistance);
     bestPeerID = d->peer;
     if(bestPeerID==target) break;
 
-     pthread_mutex_lock(&peersMutex);
+    pthread_mutex_lock(&peersMutex);
     bestPeer = hashTableGet(peers, bestPeerID);
     pthread_mutex_unlock(&peersMutex);
 
@@ -375,9 +375,9 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
         previousPeer[p][nextPeerID].channel = *channelID;
         previousPeer[p][nextPeerID].peer = bestPeerID;
 
-        pthread_mutex_lock(&peersMutex);
+        //    pthread_mutex_lock(&peersMutex);
         distanceHeap[p] = heapInsert(distanceHeap[p], &distance[p][nextPeerID], compareDistance);
-        pthread_mutex_unlock(&peersMutex);
+        //pthread_mutex_unlock(&peersMutex);
       }
       }
 
@@ -391,9 +391,9 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
 
 
   i=0;
-  pthread_mutex_lock(&peersMutex);
+  //pthread_mutex_lock(&peersMutex);
   hops=arrayInitialize(HOPSLIMIT);
-  pthread_mutex_unlock(&peersMutex);
+  //pthread_mutex_unlock(&peersMutex);
   prev=target;
   while(prev!=source) {
    /*  pthread_mutex_lock(&peersMutex); */
@@ -410,15 +410,21 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
    /*  i++; */
    /*  if(i>=HOPSLIMIT) return NULL; */
     pthread_mutex_lock(&peersMutex);
+    channel = hashTableGet(channels, previousPeer[p][prev].channel);
+    pthread_mutex_unlock(&peersMutex);
+
+    //pthread_mutex_lock(&peersMutex);
     hop = malloc(sizeof(PathHop));
+    //pthread_mutex_unlock(&peersMutex);
+
     hop->channel = previousPeer[p][prev].channel;
     hop->sender = previousPeer[p][prev].peer;
-
-    channel = hashTableGet(channels, hop->channel);
-
     hop->receiver = channel->counterparty;
+
+    //pthread_mutex_lock(&peersMutex);
     hops=arrayInsert(hops, hop );
-    pthread_mutex_unlock(&peersMutex);
+    //pthread_mutex_unlock(&peersMutex);
+
     prev = previousPeer[p][prev].peer;
 
   }
