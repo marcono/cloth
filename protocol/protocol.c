@@ -49,6 +49,10 @@ gsl_rng *r;
 const gsl_rng_type * T;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
+Peer** peersVect;
+Channel** channelsVect;
+ChannelInfo** channelInfosVect;
+
 
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
@@ -511,9 +515,9 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
-  peers = hashTableInitialize(nPeers/10);
-  channels = hashTableInitialize((nPeers)/10);
-  channelInfos= hashTableInitialize((nPeers)/10);
+  peers = hashTableInitialize(nPeers);
+  channels = hashTableInitialize(nChannels*nPeers*2);
+  channelInfos= hashTableInitialize(nChannels*nPeers);
 
 
   if(isPreproc)
@@ -522,6 +526,19 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
+  peersVect = malloc(sizeof(Peer*)*peerIndex);
+  channelsVect = malloc(sizeof(Channel*)*channelIndex);
+  channelInfosVect = malloc(sizeof(ChannelInfo*)*channelInfoIndex);
+
+  long i;
+  for(i=0; i<peerIndex; i++)
+    peersVect[i] = hashTableGet(peers, i);
+
+  for(i=0; i<channelIndex; i++)
+    channelsVect[i] = hashTableGet(channels, i);
+
+  for(i=0; i<channelInfoIndex; i++)
+    channelInfosVect[i] = hashTableGet(channelInfos, i);
 
 }
 
@@ -614,11 +631,12 @@ void* dijkstraThread(void*arg) {
     payment = hashTableGet(payments, paymentID);
     pthread_mutex_unlock(&peersMutex);
 
-    printf("DIJKSTRA %ld\n", payment->ID);
+    printf("START DIJKSTRA %ld\n", payment->ID);
 
     hops = dijkstraP(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                      payment->ignoredChannels, *index);
 
+    printf("END DIJKSTRA %ld\n", payment->ID);
 
     //    pthread_mutex_lock(&pathsMutex);
     paths[payment->ID] = hops;
@@ -671,7 +689,7 @@ void findRoute(Event *event) {
   // dijkstra version
   pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                       payment->ignoredChannels);
-  */
+*/  
 
   /* floydWarshall version
   if(payment->attempts == 0) {
@@ -692,7 +710,8 @@ void findRoute(Event *event) {
   /* condPaths[payment->ID] = 0; */
   /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
 
-
+  
+  //dijkstra parallel NEW version
   if(payment->attempts==0) {
     pathHops = paths[payment->ID];
     if(pathHops!=NULL)
@@ -712,6 +731,7 @@ void findRoute(Event *event) {
                                        payment->ignoredChannels);
     paths[payment->ID] = pathHops;
   }
+  
 
 
   if (pathHops == NULL) {

@@ -402,6 +402,16 @@ void readPreInputAndInitialize() {
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
 
+
+  /* printf("PEERS:\n"); */
+  /* hashTableCountElements(peers); */
+
+  /* printf("CHANNELS:\n"); */
+  /* hashTableCountElements(channels); */
+
+  /* printf("CHANNEL INFOS:\n"); */
+  /* hashTableCountElements(channelInfos); */
+
   statsInitialize();
 
   initializeDijkstra();

@@ -6,7 +6,6 @@
 #include "../global.h"
 
 
-
 /**************************/
 
  
@@ -31,9 +30,12 @@ void* lgetnew(long key, Element* list) {
   Element* node;
 
   for(node = list; node != NULL; node = node->next) {
-    if(node->key == key)
+    if(node->key == key) {
       return node->value;
+    }
   }
+
+
 
   return NULL;
 }
@@ -51,6 +53,16 @@ Element *lupdate(long key, void* value, Element* list) {
   return lput(key, value, list);
 }
 
+long lgetsize(Element* list) {
+  long size =0;
+  Element* node;
+
+  for(node = list; node != NULL; node = node->next) {
+    size++;
+  }
+
+  return size;
+}
 
 
 /********************************/
@@ -85,7 +97,7 @@ void hashTablePut(HashTable* ht, long key, void *val) {
 void* hashTableGet(HashTable *ht, long key) {
 	unsigned long index;
 	index = hashv(key) % ht->size;
-  return lget(key, ht->table[index]);
+  return lgetnew(key, ht->table[index]);
 }
 
 void hashTableMatrixPut(HashTable* ht, long i, long j, void* val){
@@ -94,6 +106,14 @@ void hashTableMatrixPut(HashTable* ht, long i, long j, void* val){
 
 void* hashTableMatrixGet(HashTable* ht, long i, long j){
   return lget(j, ht->table[i]);
+}
+
+void hashTableCountElements(HashTable *ht) {
+  long i;
+
+  for(i=0; i<ht->size; i++) {
+    printf("%ld\n", lgetsize(ht->table[i]));
+  }
 }
 
 

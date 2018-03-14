@@ -49,10 +49,10 @@
     "ConfidenceIntervalMax":111600095.0
   },
   "MinTimeUncoop":{
-    "Mean":111600095.0,
-    "Variance":6.9525226346142302e-310,
-    "ConfidenceIntervalMin":111600095.0,
-    "ConfidenceIntervalMax":111600095.0
+    "Mean":NaN,
+    "Variance":NaN,
+    "ConfidenceIntervalMin":NaN,
+    "ConfidenceIntervalMax":NaN
   },
   "MaxTimeUncoop":{
     "Mean":111600095.0,

@@ -305,6 +305,8 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   uint64_t capacity;
   PathHop* hop=NULL;
   Array* hops=NULL;
+  clock_t  begin, end, begin1, end1;
+  double timeSpentTotal=0.0, timeSpentHash=0.0;
 
   //  printf("DIJKSTRA\n");
 
@@ -338,22 +340,34 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
   distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][source], compareDistance);
   //pthread_mutex_unlock(&peersMutex);
 
+  i=0;
+  begin = clock();
   while(heapLen(distanceHeap[p])!=0) {
+    i++;
     d = heapPop(distanceHeap[p], compareDistance);
+
     bestPeerID = d->peer;
     if(bestPeerID==target) break;
 
-    pthread_mutex_lock(&peersMutex);
-    bestPeer = hashTableGet(peers, bestPeerID);
-    pthread_mutex_unlock(&peersMutex);
+    begin1 = clock();
+    //    pthread_mutex_lock(&peersMutex);
+    //bestPeer = hashTableGet(peers, bestPeerID);
+    bestPeer = peersVect[bestPeerID];
+    //pthread_mutex_unlock(&peersMutex);
+    end1 = clock();
+    timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
     for(j=0; j<arrayLen(bestPeer->channel); j++) {
       channelID = arrayGet(bestPeer->channel, j);
       if(channelID==NULL) continue;
 
-      pthread_mutex_lock(&peersMutex);
-      channel = hashTableGet(channels, *channelID);
-      pthread_mutex_unlock(&peersMutex);
+      begin1 = clock();
+      //pthread_mutex_lock(&peersMutex);
+      //  channel = hashTableGet(channels, *channelID);
+      channel = channelsVect[*channelID];
+      //pthread_mutex_unlock(&peersMutex);
+      end1 = clock();
+      timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       nextPeerID = channel->counterparty;
 
@@ -362,9 +376,13 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
 
       tmpDist = distance[p][bestPeerID].distance + channel->policy.timelock;
 
-      pthread_mutex_lock(&peersMutex);
-      channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
-      pthread_mutex_unlock(&peersMutex);
+      begin1 = clock();
+      //      pthread_mutex_lock(&peersMutex);
+      //channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
+      channelInfo = channelInfosVect[channel->channelInfoID];
+      //pthread_mutex_unlock(&peersMutex);
+      end1 = clock();
+      timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       capacity = channelInfo->capacity;
 
@@ -382,6 +400,11 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
       }
 
     }
+  end = clock();
+  timeSpentTotal = (double) (end-begin)/CLOCKS_PER_SEC;
+  printf("total, hash: %lf %lf\n", timeSpentTotal, timeSpentHash);
+
+
 
   if(previousPeer[p][target].peer == -1) {
     //    printf ("no path available!\n");
@@ -409,9 +432,10 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
    /*  prev = previousPeer[p][prev].peer; */
    /*  i++; */
    /*  if(i>=HOPSLIMIT) return NULL; */
-    pthread_mutex_lock(&peersMutex);
-    channel = hashTableGet(channels, previousPeer[p][prev].channel);
-    pthread_mutex_unlock(&peersMutex);
+    //    pthread_mutex_lock(&peersMutex);
+    //channel = hashTableGet(channels, previousPeer[p][prev].channel);
+    channel = channelsVect[previousPeer[p][prev].channel];
+    //pthread_mutex_unlock(&peersMutex);
 
     //pthread_mutex_lock(&peersMutex);
     hop = malloc(sizeof(PathHop));
@@ -457,6 +481,8 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   uint64_t capacity;
   Array* hops=NULL;
   PathHop* hop=NULL;
+  clock_t begin1, end1, begin, end;
+  double timeSpentTotal, timeSpentHash=0.0;
 
   printf("DIJKSTRA\n");
 
@@ -476,18 +502,27 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
   distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][source], compareDistance);
 
+  begin = clock();
   while(heapLen(distanceHeap[0])!=0) {
     d = heapPop(distanceHeap[0], compareDistance);
     bestPeerID = d->peer;
     if(bestPeerID==target) break;
 
-    bestPeer = hashTableGet(peers, bestPeerID);
+    begin1 = clock();
+    //    bestPeer = hashTableGet(peers, bestPeerID);
+    bestPeer = peersVect[bestPeerID];
+    end1 = clock();
+    timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
     for(j=0; j<arrayLen(bestPeer->channel); j++) {
       channelID = arrayGet(bestPeer->channel, j);
       if(channelID==NULL) continue;
 
-      channel = hashTableGet(channels, *channelID);
+      begin1 = clock();
+      //channel = hashTableGet(channels, *channelID);
+      channel = channelsVect[*channelID];
+      end1 = clock();
+      timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       nextPeerID = channel->counterparty;
 
@@ -496,7 +531,11 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
       tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock;
 
-      channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
+      begin1 = clock();
+      //channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
+      channelInfo = channelInfosVect[channel->channelInfoID];
+      end1 = clock();
+      timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       capacity = channelInfo->capacity;
 
@@ -512,6 +551,10 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
       }
 
     }
+  end = clock();
+  timeSpentTotal = (double) (end-begin)/CLOCKS_PER_SEC;
+  //  printf("total, hash: %lf %lf\n", timeSpentTotal, timeSpentHash);
+
 
   if(previousPeer[0][target].peer == -1) {
     //    printf ("no path available!\n");

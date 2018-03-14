@@ -22,5 +22,6 @@ void hashTableMatrixPut(HashTable* ht, long i, long j, void* val);
 
 void* hashTableMatrixGet(HashTable* ht, long i, long j);
 
+void hashTableCountElements(HashTable* ht);
 
 #endif

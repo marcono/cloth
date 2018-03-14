@@ -70,6 +70,9 @@ typedef struct payment{
   int attempts;
 } Payment;
 
+extern Peer** peersVect;
+extern Channel** channelsVect;
+extern ChannelInfo** channelInfosVect;
 
 /*
 typedef struct peer {
