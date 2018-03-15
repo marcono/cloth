@@ -11,9 +11,9 @@
 #include <pthread.h>
 
 extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-extern HashTable* peers;
-extern HashTable* channels;
-extern HashTable* channelInfos;
+/* extern HashTable* peers; */
+/* extern HashTable* channels; */
+/* extern HashTable* channelInfos; */
 extern double pUncoopBeforeLock, pUncoopAfterLock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;
@@ -70,9 +70,9 @@ typedef struct payment{
   int attempts;
 } Payment;
 
-extern Peer** peersVect;
-extern Channel** channelsVect;
-extern ChannelInfo** channelInfosVect;
+extern Array* peers;
+extern Array* channels;
+extern Array* channelInfos;
 
 /*
 typedef struct peer {

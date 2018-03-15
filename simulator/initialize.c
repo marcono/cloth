@@ -23,7 +23,7 @@
 long eventIndex;
 Heap* events;
 uint64_t simulatorTime;
-HashTable *payments;
+Array *payments;
 
 void initializeEvents(long nPayments, double paymentMean) {
   long i, senderID, receiverID;
@@ -64,7 +64,8 @@ void initializeEvents(long nPayments, double paymentMean) {
       break;
     }
     payment = createPayment(paymentIndex, senderID, receiverID, paymentAmount);
-    hashTablePut(payments, payment->ID, payment);
+    //hashTablePut(payments, payment->ID, payment);
+    arrayInsert(payments, payment);
 
     nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
     eventTime += nextEventInterval;
@@ -155,7 +156,8 @@ void createPaymentsFromCsv(unsigned int isPreproc) {
   while(fgets(row, 256, csvPayment) != NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld", &ID, &sender, &receiver, &amount, &time);
     payment = createPayment(ID, sender, receiver, amount);
-    hashTablePut(payments, payment->ID, payment);
+    //hashTablePut(payments, payment->ID, payment);
+    arrayInsert(payments, payment);
     event = createEvent(eventIndex, time, FINDROUTE, sender, payment->ID);
     events = heapInsert(events, event, compareEvent);
   }
@@ -167,7 +169,7 @@ void initializeSimulatorData(long nPayments, double paymentMean, unsigned int is
   eventIndex = 0;
   simulatorTime = 1;
 
-  payments = hashTableInitialize(nPayments);
+  payments = arrayInitialize(nPayments);
   events = heapInitialize(nPayments*10);
 
   if(isPreproc)
@@ -219,7 +221,7 @@ void initialize() {
 
   srand(time(NULL));
   for(i=0; i<nPeers; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
 
 
@@ -228,7 +230,7 @@ void initialize() {
       }while(counterpartyID==peer->ID);
 
 
-      counterparty = hashTableGet(peers, counterpartyID);
+      counterparty = arrayGet(peers, counterpartyID);
       if(arrayLen(counterparty->channel)>=nChannels) continue;
 
       channelInfo=createChannelInfo(peer->ID, counterparty->ID, 1.0);
@@ -247,11 +249,11 @@ void initialize() {
 
   long *currChannelID;
   for(i=0; i<nPeers; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     for(j=0; j<nChannels; j++) {
       currChannelID=arrayGet(peer->channel, j);
       if(currChannelID==NULL) continue;
-      channel = hashTableGet(channels, *currChannelID);
+      channel = arrayGet(channels, *currChannelID);
       printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
     } 
   }

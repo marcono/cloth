@@ -29,11 +29,11 @@
 
   printf("PRINT BALANCES\n");
   for(i=0; i<peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     peerChannels = peer->channel;
     for(j=0; j<arrayLen(peerChannels); j++) {
       channelID = arrayGet(peerChannels, j);
-      channel = hashTableGet(channels, *channelID);
+      channel = arrayGet(channels, *channelID);
       printf("Peer %ld, Channel %ld, Balance %lf\n", peer->ID, channel->channelInfoID, channel->balance);
     }
   }
@@ -48,22 +48,22 @@ void printPayments() {
   Channel* forward, *backward;
 
   for(i = 0; i < paymentIndex; i++) {
-    payment = hashTableGet(payments, i);
+    payment = arrayGet(payments, i);
     printf("PAYMENT %ld\n", payment->ID);
     if(payment->route==NULL) continue;
     routeHops = payment->route->routeHops;
     for(j=0; j<arrayLen(routeHops); j++){
       hop = arrayGet(routeHops, j);
-      peer = hashTableGet(peers, hop->pathHop->sender);
+      peer = arrayGet(peers, hop->pathHop->sender);
       if(isPresent(hop->pathHop->channel, peer->channel)) {
-        forward = hashTableGet(channels, hop->pathHop->channel);
-        backward = hashTableGet(channels, forward->otherChannelDirectionID);
+        forward = arrayGet(channels, hop->pathHop->channel);
+        backward = arrayGet(channels, forward->otherChannelDirectionID);
         printf("Sender %ld, Receiver %ld, Channel %ld, Balance forward %ld, Balance backward %ld\n",
                hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID, forward->balance, backward->balance);
 
       }
       else {
-        forward = hashTableGet(channels, hop->pathHop->channel);
+        forward = arrayGet(channels, hop->pathHop->channel);
         printf("Sender %ld, Receiver %ld, Channel %ld, Channel closed\n", hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID);
       }
     }
@@ -107,8 +107,8 @@ struct json_object* jsonNewChannel(ChannelInfo *channel) {
   jpeer2 = json_object_new_int64(channel->peer2);
   jcapacity = json_object_new_int64(channel->capacity);
   jlatency = json_object_new_int(channel->latency);
-  jdirection1 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection1));
-  jdirection2 = jsonNewChannelDirection(hashTableGet(channels, channel->channelDirection2));
+  jdirection1 = jsonNewChannelDirection(arrayGet(channels, channel->channelDirection1));
+  jdirection2 = jsonNewChannelDirection(arrayGet(channels, channel->channelDirection2));
 
   json_object_object_add(jchannel, "ID", jID);
   json_object_object_add(jchannel, "Peer1ID", jpeer1);
@@ -159,14 +159,14 @@ void jsonWriteInput() {
   jchannels = json_object_new_array();
 
   for(i=0; i<peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     jpeer = jsonNewPeer(peer);
     json_object_array_add(jpeers, jpeer);
   }
   json_object_object_add(jobj, "Peers",jpeers);
 
   for(i=0; i<channelInfoIndex; i++){
-    channel = hashTableGet(channelInfos, i);
+    channel = arrayGet(channelInfos, i);
     jchannel = jsonNewChannel(channel);
     json_object_array_add(jchannels, jchannel);
   }
@@ -193,7 +193,7 @@ void csvWriteInput() {
 
   fprintf(csvPeer, "ID,ChannelsSize,WithholdsR,ChannelIDs\n");
   for(i=0; i<peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     fprintf(csvPeer, "%ld,%ld,%d,", peer->ID, arrayLen(peer->channel), peer->withholdsR);
     for(j=0; j<arrayLen(peer->channel); j++) {
       channelID = arrayGet(peer->channel, j);
@@ -215,7 +215,7 @@ void csvWriteInput() {
 
   fprintf(csvChannelInfo, "ID,Peer1,Peer2,Direction1,Direction2,Capacity,Latency\n");
   for(i=0; i<channelInfoIndex; i++) {
-    channelInfo = hashTableGet(channelInfos, i);
+    channelInfo = arrayGet(channelInfos, i);
     fprintf(csvChannelInfo,"%ld,%ld,%ld,%ld,%ld,%ld,%d\n",channelInfo->ID, channelInfo->peer1, channelInfo->peer2, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->capacity, channelInfo->latency);
   }
 
@@ -230,7 +230,7 @@ void csvWriteInput() {
 
   fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
   for(i=0; i<channelIndex; i++) {
-    channel = hashTableGet(channels, i);
+    channel = arrayGet(channels, i);
     fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
   }
 
@@ -259,7 +259,7 @@ void csvWriteOutput() {
   fprintf(csvChannelInfoOutput, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency,IsClosed\n");
 
   for(i=0; i<channelInfoIndex; i++) {
-    channelInfo = hashTableGet(channelInfos, i);
+    channelInfo = arrayGet(channelInfos, i);
     fprintf(csvChannelInfoOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency, channelInfo->isClosed);
   }
 
@@ -273,7 +273,7 @@ void csvWriteOutput() {
   fprintf(csvChannelOutput, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock, isClosed\n");
 
   for(i=0; i<channelIndex; i++) {
-    channel = hashTableGet(channels, i);
+    channel = arrayGet(channels, i);
     fprintf(csvChannelOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock, channel->isClosed);
   }
 
@@ -287,7 +287,7 @@ void csvWriteOutput() {
   fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,IsSuccess,IsAPeerUncoop,Route,IgnoredPeers,IgnoredChannels\n");
 
   for(i=0; i<paymentIndex; i++)  {
-    payment = hashTableGet(payments, i);
+    payment = arrayGet(payments, i);
     fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->isSuccess, payment->isAPeerUncoop);
     route = payment->route;
 
@@ -358,7 +358,7 @@ void initializeThreads() {
 
   for(i=0; i<paymentIndex ;i++){
     paths[i] = NULL;
-    payment = hashTableGet(payments, i);
+    payment = arrayGet(payments, i);
     jobs = push(jobs, payment->ID);
   }
 
@@ -438,18 +438,18 @@ int main() {
   readPreInputAndInitialize();
 
   /*
-  payment = hashTableGet(payments, 7);
+  payment = arrayGet(payments, 7);
   if(payment==NULL) printf("NULL\n");
   printf("Payment %ld,%ld,%ld,%ld\n", payment->ID, payment->sender, payment->receiver, payment->amount);
 
-  peer = hashTableGet(peers, 0);
+  peer = arrayGet(peers, 0);
   printf("Peer %ld %d\n", peer->ID, peer->withholdsR);
 
-  channelInfo = hashTableGet(channelInfos, 10);
+  channelInfo = arrayGet(channelInfos, 10);
   printf("ChannelInfo %ld %ld %ld %ld %ld %ld %d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency);
 
 
-  channel = hashTableGet(channels, channelIndex-1);
+  channel = arrayGet(channels, channelIndex-1);
   printf("Channel %ld %ld %ld %ld %ld %d %d %d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
   */
 
@@ -962,7 +962,7 @@ int main() {
   //test is!Present in forwardFail
   connectPeers(1, 4);
 
-  channel = hashTableGet(channels, 6);
+  channel = arrayGet(channels, 6);
   channel->balance = 0.0;
 
   sender = 0;
@@ -1110,7 +1110,7 @@ int main() {
  
   connectPeers(1, 5);
   connectPeers(5, 3);
-  channel = hashTableGet(channels, 8);
+  channel = arrayGet(channels, 8);
   channel->policy.timelock = 5;
   
 
@@ -1198,27 +1198,27 @@ int main() {
 
    
   //test fail
-  channel = hashTableGet(channels, 6);
+  channel = arrayGet(channels, 6);
   channel->balance = 0.5;
   //end test fail
   
 
   
   //test ignoredChannels hop
-  channel = hashTableGet(channels, 6);
+  channel = arrayGet(channels, 6);
   channel->balance = 0.5;
   connectPeers(3,4);
-  channel = hashTableGet(channels, 8);
+  channel = arrayGet(channels, 8);
   channel->policy.timelock = 5;
   //end test ignoredChannels hop
   
 
   
   //test ignoredChannels sender
-  channel = hashTableGet(channels, 0);
+  channel = arrayGet(channels, 0);
   channel->balance = 0.5;
   connectPeers(0,1);
-  channel = hashTableGet(channels, 8);
+  channel = arrayGet(channels, 8);
   channel->policy.timelock = 5;
   //end test ignoredChannels sender
   
@@ -1452,7 +1452,7 @@ int main() {
 
   long *currChannelID;
   for(i=0; i<nPeers; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     //    printf("%ld ", arrayLen(peer->channel));
     for(j=0; j<arrayLen(peer->channel); j++) {
       currChannelID=arrayGet(peer->channel, j);
@@ -1460,7 +1460,7 @@ int main() {
         printf("null\n");
         continue;
       }
-      channel = hashTableGet(channels, *currChannelID);
+      channel = arrayGet(channels, *currChannelID);
       printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
       }
   }

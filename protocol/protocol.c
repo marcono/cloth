@@ -42,16 +42,16 @@
 // CONTROLLARE SE QUESTO POTREBBE ESSERE UN PROBLEMA PER GLI ALGORITMI DI ROUTING
 
 long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-HashTable* peers;
-HashTable* channels;
-HashTable* channelInfos;
+/* HashTable* peers; */
+/* HashTable* channels; */
+/* HashTable* channelInfos; */
 gsl_rng *r;
 const gsl_rng_type * T;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
-Peer** peersVect;
-Channel** channelsVect;
-ChannelInfo** channelInfosVect;
+Array* peers;
+Array* channels;
+Array* channelInfos;
 
 
 Peer* createPeer(long ID, long channelsSize) {
@@ -185,12 +185,13 @@ void connectPeers(long peerID1, long peerID2) {
   uint32_t latency;
   uint64_t balance; 
 
-  peer1 = hashTableGet(peers, peerID1);
-  peer2 = hashTableGet(peers, peerID2);
+  peer1 = arrayGet(peers, peerID1);
+  peer2 = arrayGet(peers, peerID2);
 
   latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency);
-  hashTablePut(channelInfos, channelInfo->ID, channelInfo);
+  //  hashTablePut(channelInfos, channelInfo->ID, channelInfo);
+  channelInfos = arrayInsert(channelInfos, channelInfo);
 
   balance = gsl_rng_uniform_int(r, 10) + 1;
   //  exponent = gsl_ran_poisson(r, 4.5);
@@ -201,7 +202,8 @@ void connectPeers(long peerID1, long peerID2) {
   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
   firstChannelDirection->balance = balance;
-  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
+  //  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
+  channels = arrayInsert(channels, firstChannelDirection);
   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
   channelInfo->channelDirection1 = firstChannelDirection->ID;
 
@@ -210,7 +212,8 @@ void connectPeers(long peerID1, long peerID2) {
   policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2);
   secondChannelDirection->balance = balance;
-  hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
+  //hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
+  channels = arrayInsert(channels, secondChannelDirection);
   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
   channelInfo->channelDirection2 = secondChannelDirection->ID;
 
@@ -226,7 +229,7 @@ void computePeersInitialFunds(double gini) {
   Peer* peer;
 
   for(i=0; i<peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     peer->initialFunds = MAXMSATOSHI/peerIndex;
     peer->remainingFunds = peer->initialFunds;
   }
@@ -257,11 +260,11 @@ double computeGini() {
   double gini;
 
   for(i=0;i<channelInfoIndex; i++) {
-    channeli = hashTableGet(channelInfos, i);
+    channeli = arrayGet(channelInfos, i);
     den += channeli->capacity;
     for(j=0; j<channelInfoIndex; j++){
       if(i==j) continue;
-      channelj = hashTableGet(channelInfos, j);
+      channelj = arrayGet(channelInfos, j);
       difference = channeli->capacity - channelj->capacity;
       num += llabs(difference);
     }
@@ -410,7 +413,8 @@ void createTopologyFromCsv(unsigned int isPreproc) {
   while(fgets(row, 256, csvPeer)!=NULL) {
     sscanf(row, "%ld,%d", &ID, &withholdsR);
     peer = createPeerPostProc(ID, withholdsR);
-    hashTablePut(peers,peer->ID, peer);
+    //hashTablePut(peers,peer->ID, peer);
+    peers = arrayInsert(peers, peer);
   }
 
   fclose(csvPeer);
@@ -425,10 +429,11 @@ void createTopologyFromCsv(unsigned int isPreproc) {
   while(fgets(row, 256, csvChannelInfo)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &ID, &direction1, &direction2, &peerID1, &peerID2, &capacity, &latency);
     channelInfo = createChannelInfoPostProc(ID, direction1, direction2, peerID1, peerID2, capacity, latency);
-    hashTablePut(channelInfos, channelInfo->ID, channelInfo);
-    peer1 = hashTableGet(peers, peerID1);
+    //    hashTablePut(channelInfos, channelInfo->ID, channelInfo);
+    channelInfos = arrayInsert(channelInfos, channelInfo);
+    peer1 = arrayGet(peers, peerID1);
     peer1->channel = arrayInsert(peer1->channel, &(channelInfo->channelDirection1));
-    peer2 = hashTableGet(peers, peerID2);
+    peer2 = arrayGet(peers, peerID2);
     peer2->channel = arrayInsert(peer2->channel, &(channelInfo->channelDirection2));
   }
 
@@ -444,7 +449,8 @@ void createTopologyFromCsv(unsigned int isPreproc) {
   while(fgets(row, 256, csvChannel)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.timelock);
     channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
-    hashTablePut(channels, channel->ID, channel);
+    //hashTablePut(channels, channel->ID, channel);
+    channels = arrayInsert(channels, channel);
   }
 
   fclose(csvChannel);
@@ -460,7 +466,8 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
   for(i=0; i<nPeers; i++){
     peer = createPeer(peerIndex, nChannels);
-    hashTablePut(peers, peer->ID, peer);
+    //hashTablePut(peers, peer->ID, peer);
+    peers = arrayInsert(peers, peer);
   }
 
 
@@ -471,20 +478,20 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
   nRWithholdingPeers = nPeers*RWithholding;
   for(i=0; i < nRWithholdingPeers ;i++) {
     RWithholdingPeerID = gsl_rng_uniform_int(r,peerIndex);
-    peer = hashTableGet(peers, RWithholdingPeerID);
+    peer = arrayGet(peers, RWithholdingPeerID);
     peer->withholdsR = 1;
   }
 
 
   for(i=0; i<peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
 
       do {
         counterpartyID = gsl_rng_uniform_int(r,peerIndex);
       }while(counterpartyID==peer->ID);
 
-      counterparty = hashTableGet(peers, counterpartyID);
+      counterparty = arrayGet(peers, counterpartyID);
       if(arrayLen(counterparty->channel)>=nChannels) continue;
 
       connectPeers(peer->ID, counterparty->ID);
@@ -515,9 +522,13 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
-  peers = hashTableInitialize(nPeers);
-  channels = hashTableInitialize(nChannels*nPeers*2);
-  channelInfos= hashTableInitialize(nChannels*nPeers);
+  /* peers = hashTableInitialize(nPeers); */
+  /* channels = hashTableInitialize(nChannels*nPeers*2); */
+  /* channelInfos= hashTableInitialize(nChannels*nPeers); */
+
+  peers = arrayInitialize(nPeers);
+  channels = arrayInitialize(nChannels*nPeers);
+  channelInfos = arrayInitialize(nChannels*nPeers);
 
 
   if(isPreproc)
@@ -526,19 +537,19 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  peersVect = malloc(sizeof(Peer*)*peerIndex);
-  channelsVect = malloc(sizeof(Channel*)*channelIndex);
-  channelInfosVect = malloc(sizeof(ChannelInfo*)*channelInfoIndex);
+  /* peersVect = malloc(sizeof(Peer*)*peerIndex); */
+  /* channelsVect = malloc(sizeof(Channel*)*channelIndex); */
+  /* channelInfosVect = malloc(sizeof(ChannelInfo*)*channelInfoIndex); */
 
-  long i;
-  for(i=0; i<peerIndex; i++)
-    peersVect[i] = hashTableGet(peers, i);
+  /* long i; */
+  /* for(i=0; i<peerIndex; i++) */
+  /*   peersVect[i] = arrayGet(peers, i); */
 
-  for(i=0; i<channelIndex; i++)
-    channelsVect[i] = hashTableGet(channels, i);
+  /* for(i=0; i<channelIndex; i++) */
+  /*   channelsVect[i] = arrayGet(channels, i); */
 
-  for(i=0; i<channelInfoIndex; i++)
-    channelInfosVect[i] = hashTableGet(channelInfos, i);
+  /* for(i=0; i<channelInfoIndex; i++) */
+  /*   channelInfosVect[i] = arrayGet(channelInfos, i); */
 
 }
 
@@ -567,9 +578,9 @@ void closeChannel(long channelInfoID) {
   ChannelInfo *channelInfo;
   Channel* direction1, *direction2;
 
-  channelInfo = hashTableGet(channelInfos, channelInfoID);
-  direction1 = hashTableGet(channels, channelInfo->channelDirection1);
-  direction2 = hashTableGet(channels, channelInfo->channelDirection2);
+  channelInfo = arrayGet(channelInfos, channelInfoID);
+  direction1 = arrayGet(channels, channelInfo->channelDirection1);
+  direction2 = arrayGet(channels, channelInfo->channelDirection2);
 
   channelInfo->isClosed = 1;
   direction1->isClosed = 1;
@@ -578,7 +589,7 @@ void closeChannel(long channelInfoID) {
   printf("ChannelInfo %ld, ChannelDirection1 %ld, ChannelDirection2 %ld are now closed\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2);
 
   for(i = 0; i < peerIndex; i++) {
-    peer = hashTableGet(peers, i);
+    peer = arrayGet(peers, i);
     arrayDelete(peer->channel, &(channelInfo->channelDirection1), isEqual);
     arrayDelete(peer->channel, &(channelInfo->channelDirection2), isEqual);
   }
@@ -628,7 +639,7 @@ void* dijkstraThread(void*arg) {
     if(paymentID==-1) return NULL;
 
     pthread_mutex_lock(&peersMutex);
-    payment = hashTableGet(payments, paymentID);
+    payment = arrayGet(payments, paymentID);
     pthread_mutex_unlock(&peersMutex);
 
     printf("START DIJKSTRA %ld\n", payment->ID);
@@ -660,7 +671,7 @@ unsigned int isAnyChannelClosed(Array* hops) {
 
   for(i=0;i<arrayLen(hops);i++) {
     hop = arrayGet(hops, i);
-    channel = hashTableGet(channels, hop->channel);
+    channel = arrayGet(channels, hop->channel);
     if(channel->isClosed)
       return 1;
   }
@@ -679,7 +690,7 @@ void findRoute(Event *event) {
 
   printf("FINDROUTE %ld\n", event->paymentID);
 
-  payment = hashTableGet(payments, event->paymentID);
+  payment = arrayGet(payments, event->paymentID);
   ++(payment->attempts);
 
   if(payment->startTime < 1)
@@ -786,8 +797,8 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
   Channel* currChannel, *prevChannel;
   uint64_t fee;
 
-  currChannel = hashTableGet(channels, currHop->pathHop->channel);
-  prevChannel = hashTableGet(channels, prevHop->pathHop->channel);
+  currChannel = arrayGet(channels, currHop->pathHop->channel);
+  prevChannel = arrayGet(channels, prevHop->pathHop->channel);
 
 
 
@@ -827,12 +838,12 @@ void sendPayment(Event* event) {
 
   printf("SEND PAYMENT %ld\n", event->paymentID);
 
-  payment = hashTableGet(payments, event->paymentID);
-  peer = hashTableGet(peers, event->peerID);
+  payment = arrayGet(payments, event->paymentID);
+  peer = arrayGet(peers, event->peerID);
   route = payment->route;
   firstRouteHop = arrayGet(route->routeHops, 0);
-  nextChannel = hashTableGet(channels, firstRouteHop->pathHop->channel);
-  channelInfo = hashTableGet(channelInfos, nextChannel->channelInfoID);
+  nextChannel = arrayGet(channels, firstRouteHop->pathHop->channel);
+  channelInfo = arrayGet(channelInfos, nextChannel->channelInfoID);
 
   if(!isPresent(nextChannel->ID, peer->channel)) {
     printf("Channel %ld has been closed\n", nextChannel->ID);
@@ -879,15 +890,15 @@ void forwardPayment(Event *event) {
 
   printf("FORWARD PAYMENT %ld\n", event->paymentID);
 
-  payment = hashTableGet(payments, event->paymentID);
-  peer = hashTableGet(peers, event->peerID);
+  payment = arrayGet(payments, event->paymentID);
+  peer = arrayGet(peers, event->peerID);
   route = payment->route;
   nextRouteHop=getRouteHop(peer->ID, route->routeHops, 1);
   previousRouteHop = getRouteHop(peer->ID, route->routeHops, 0);
-  prevChannel = hashTableGet(channels, previousRouteHop->pathHop->channel);
-  nextChannel = hashTableGet(channels, nextRouteHop->pathHop->channel);
-  prevChannelInfo = hashTableGet(channelInfos, prevChannel->channelInfoID);
-  nextChannelInfo = hashTableGet(channelInfos, nextChannel->channelInfoID);
+  prevChannel = arrayGet(channels, previousRouteHop->pathHop->channel);
+  nextChannel = arrayGet(channels, nextRouteHop->pathHop->channel);
+  prevChannelInfo = arrayGet(channelInfos, prevChannel->channelInfoID);
+  nextChannelInfo = arrayGet(channelInfos, nextChannel->channelInfoID);
 
   if(nextRouteHop == NULL || previousRouteHop == NULL) {
     printf("ERROR: no route hop\n");
@@ -978,14 +989,14 @@ void receivePayment(Event* event ) {
 
   printf("RECEIVE PAYMENT %ld\n", event->paymentID);
   peerID = event->peerID;
-  peer = hashTableGet(peers, peerID);
-  payment = hashTableGet(payments, event->paymentID);
+  peer = arrayGet(peers, peerID);
+  payment = arrayGet(payments, event->paymentID);
   route = payment->route;
 
   lastRouteHop = arrayGet(route->routeHops, arrayLen(route->routeHops) - 1);
-  forwardChannel = hashTableGet(channels, lastRouteHop->pathHop->channel);
-  backwardChannel = hashTableGet(channels, forwardChannel->otherChannelDirectionID);
-  channelInfo = hashTableGet(channelInfos, forwardChannel->channelInfoID);
+  forwardChannel = arrayGet(channels, lastRouteHop->pathHop->channel);
+  backwardChannel = arrayGet(channels, forwardChannel->otherChannelDirectionID);
+  channelInfo = arrayGet(channelInfos, forwardChannel->channelInfoID);
 
   backwardChannel->balance += lastRouteHop->amountToForward;
 
@@ -1046,14 +1057,14 @@ void forwardSuccess(Event* event) {
 
   printf("FORWARD SUCCESS  %ld\n", event->paymentID);
 
-  payment = hashTableGet(payments, event->paymentID);
+  payment = arrayGet(payments, event->paymentID);
   prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
   nextHop = getRouteHop(event->peerID, payment->route->routeHops, 1);
-  nextChannel = hashTableGet(channels, nextHop->pathHop->channel);
-  forwardChannel = hashTableGet(channels, prevHop->pathHop->channel);
-  backwardChannel = hashTableGet(channels, forwardChannel->otherChannelDirectionID);
-  prevChannelInfo = hashTableGet(channelInfos, forwardChannel->channelInfoID);
-  peer = hashTableGet(peers, event->peerID);
+  nextChannel = arrayGet(channels, nextHop->pathHop->channel);
+  forwardChannel = arrayGet(channels, prevHop->pathHop->channel);
+  backwardChannel = arrayGet(channels, forwardChannel->otherChannelDirectionID);
+  prevChannelInfo = arrayGet(channelInfos, forwardChannel->channelInfoID);
+  peer = arrayGet(peers, event->peerID);
  
 
   if(!isPresent(backwardChannel->ID, peer->channel)) {
@@ -1099,7 +1110,7 @@ void forwardSuccess(Event* event) {
 void receiveSuccess(Event* event){
   Payment *payment;
   printf("RECEIVE SUCCESS %ld\n", event->paymentID);
-  payment = hashTableGet(payments, event->paymentID);
+  payment = arrayGet(payments, event->paymentID);
   payment->endTime = simulatorTime;
   statsUpdatePayments(payment);
 }
@@ -1119,10 +1130,10 @@ void forwardFail(Event* event) {
 
   printf("FORWARD FAIL %ld\n", event->paymentID);
 
-  peer = hashTableGet(peers, event->peerID); 
-  payment = hashTableGet(payments, event->paymentID);
+  peer = arrayGet(peers, event->peerID); 
+  payment = arrayGet(payments, event->paymentID);
   nextHop = getRouteHop(event->peerID, payment->route->routeHops, 1);
-  nextChannel = hashTableGet(channels, nextHop->pathHop->channel);
+  nextChannel = arrayGet(channels, nextHop->pathHop->channel);
 
   if(isPresent(nextChannel->ID, peer->channel)) {
     nextChannel->balance += nextHop->amountToForward;
@@ -1131,8 +1142,8 @@ void forwardFail(Event* event) {
     printf("Channel %ld is not present\n", nextHop->pathHop->channel);
 
   prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
-  prevChannel = hashTableGet(channels, prevHop->pathHop->channel);
-  prevChannelInfo = hashTableGet(channelInfos, prevChannel->channelInfoID);
+  prevChannel = arrayGet(channels, prevHop->pathHop->channel);
+  prevChannelInfo = arrayGet(channelInfos, prevChannel->channelInfoID);
   prevPeerID = prevHop->pathHop->sender;
   eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
   nextEventTime = simulatorTime + prevChannelInfo->latency;
@@ -1151,10 +1162,10 @@ void receiveFail(Event* event) {
 
   printf("RECEIVE FAIL %ld\n", event->paymentID);
 
-  payment = hashTableGet(payments, event->paymentID);
+  payment = arrayGet(payments, event->paymentID);
   firstHop = arrayGet(payment->route->routeHops, 0);
-  nextChannel = hashTableGet(channels, firstHop->pathHop->channel);
-  peer = hashTableGet(peers, event->peerID);
+  nextChannel = arrayGet(channels, firstHop->pathHop->channel);
+  peer = arrayGet(peers, event->peerID);
 
   if(isPresent(nextChannel->ID, peer->channel))
     nextChannel->balance += firstHop->amountToForward;

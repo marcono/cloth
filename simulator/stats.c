@@ -63,7 +63,7 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
   for(i=0; i<arrayLen(batchPayments); i++) {
     paymentID = arrayGet(batchPayments, i);
 
-    payment = hashTableGet(payments, *paymentID);
+    payment = arrayGet(payments, *paymentID);
     if(payment->route == NULL || !payment->isSuccess) continue;
     if(cooperative && payment->isAPeerUncoop) continue;
     if(!cooperative && !(payment->isAPeerUncoop)) continue;
@@ -111,7 +111,7 @@ float statsComputeRouteLen(int* min, int* max) {
   for(i=0; i<arrayLen(batchPayments); i++) {
     paymentID = arrayGet(batchPayments, i);
 
-    payment = hashTableGet(payments, *paymentID);
+    payment = arrayGet(payments, *paymentID);
     if(payment->route == NULL) continue;
     nPayments++;
     currRouteLen = arrayLen(payment->route->routeHops);
