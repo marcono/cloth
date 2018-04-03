@@ -19,7 +19,7 @@
 #include "../simulator/stats.h"
 #include "../global.h"
 
-#define MAXMSATOSHI 1E13 //100  bitcoin
+#define MAXMSATOSHI 5E17 //5 millions  bitcoin
 #define MAXTIMELOCK 100
 #define MINTIMELOCK 10
 #define MAXFEEBASE 1000
@@ -254,8 +254,8 @@ void computePeersInitialFunds(double gini) {
 
 double computeGini() {
   long i, j;
-  uint64_t num=0, den=0;
-  int64_t difference;
+  __uint128_t num=0, den=0;
+  __uint128_t difference;
   ChannelInfo *channeli, *channelj;
   double gini;
 
@@ -265,8 +265,11 @@ double computeGini() {
     for(j=0; j<channelInfoIndex; j++){
       if(i==j) continue;
       channelj = arrayGet(channelInfos, j);
-      difference = channeli->capacity - channelj->capacity;
-      num += llabs(difference);
+      if(channeli->capacity > channelj->capacity)
+        difference = channeli->capacity - channelj->capacity;
+      else
+        difference = channelj->capacity - channeli->capacity;
+      num += difference;
     }
   }
 
@@ -277,14 +280,56 @@ double computeGini() {
   return gini;
 }
 
-void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, double gini) {
+void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding};
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2;
   gsl_ran_discrete_t* RwithholdingDiscrete;
   int *peerChannels;
   uint32_t latency;
   uint64_t balance, capacity;
   Policy policy1, policy2;
+  long thresh1, thresh2, counter=0;
+  uint64_t funds1, funds2, funds3;
+
+  switch(gini) {
+  case 1:
+    coeff1 = 0.3;
+    coeff2 = 0.3;
+    break;
+  case 2:
+    coeff1 = 0.15;
+    coeff2 = 0.2;
+    break;
+  case 3:
+    coeff1 = 0.1;
+    coeff2 = 0.05;
+    break;
+  case 4:
+    coeff1 = 0.01;
+    coeff2 = 0.05;
+    break;
+  case 5:
+    coeff1 = 1.0/(nPeers*nChannels);
+    coeff2 = 1;
+    break;
+  default:
+    printf("ERROR wrong preinput gini level\n");
+    return;
+  }
+
+  thresh1 = nPeers*nChannels*coeff1;
+  thresh2 = nPeers*nChannels*coeff2;
+
+if(gini != 5) {
+  funds1 = (MAXMSATOSHI/3)/thresh1;
+  funds2 = (MAXMSATOSHI/3)/thresh2;
+  funds3 = (MAXMSATOSHI/3)/(nPeers*nChannels - (thresh1 + thresh2));
+ }
+ else {
+funds1 = MAXMSATOSHI;
+funds2 = 1;
+funds3 = 1;
+}
 
   csvPeer = fopen("peer.csv", "w");
   if(csvPeer==NULL) {
@@ -352,9 +397,20 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       ++channelIDIndex;
 
       latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
-      balance = gsl_rng_uniform_int(r, 10) + 1;
-      balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4);
-      capacity = balance*2;
+      /* balance = gsl_rng_uniform_int(r, 10) + 1; */
+      /* balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); */
+      /* capacity = balance*2; */
+
+      counter++;
+      if(counter <= thresh1)
+        capacity = funds1;
+      else if (counter > thresh1 && counter <= thresh1 + thresh2)
+        capacity = funds2;
+      else
+        capacity = funds3;
+
+      balance = capacity/2;
+
       policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
       policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
       policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
@@ -371,6 +427,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     }
 
   }
+
 
   fclose(csvPeer);
   fclose(csvChannelInfo);
@@ -507,7 +564,7 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
 }
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini, unsigned int isPreproc) {
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
 
@@ -537,19 +594,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  /* peersVect = malloc(sizeof(Peer*)*peerIndex); */
-  /* channelsVect = malloc(sizeof(Channel*)*channelIndex); */
-  /* channelInfosVect = malloc(sizeof(ChannelInfo*)*channelInfoIndex); */
-
-  /* long i; */
-  /* for(i=0; i<peerIndex; i++) */
-  /*   peersVect[i] = arrayGet(peers, i); */
-
-  /* for(i=0; i<channelIndex; i++) */
-  /*   channelsVect[i] = arrayGet(channels, i); */
-
-  /* for(i=0; i<channelInfoIndex; i++) */
-  /*   channelInfosVect[i] = arrayGet(channelInfos, i); */
+  printf("GINI: %lf\n", computeGini());
 
 }
 
@@ -642,12 +687,12 @@ void* dijkstraThread(void*arg) {
     payment = arrayGet(payments, paymentID);
     pthread_mutex_unlock(&peersMutex);
 
-    printf("START DIJKSTRA %ld\n", payment->ID);
+    printf("DIJKSTRA %ld\n", payment->ID);
 
     hops = dijkstraP(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                      payment->ignoredChannels, *index);
 
-    printf("END DIJKSTRA %ld\n", payment->ID);
+    //    printf("END DIJKSTRA %ld\n", payment->ID);
 
     //    pthread_mutex_lock(&pathsMutex);
     paths[payment->ID] = hops;

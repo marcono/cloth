@@ -6,5 +6,5 @@
   "PUncooperativeBeforeLock":0.0001,
   "PUncooperativeAfterLock":0.0001,
   "PercentageRWithholding":0.01,
-  "Gini":0.5
+  "Gini":4
 }

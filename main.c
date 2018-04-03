@@ -376,9 +376,10 @@ void initializeThreads() {
 
 void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
-  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, gini;
+  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding;
   struct json_object* jpreinput, *jobj;
   unsigned int isPreproc=1;
+  int gini;
 
   jpreinput = json_object_from_file("preinput.json");
 
@@ -397,7 +398,7 @@ void readPreInputAndInitialize() {
   jobj = json_object_object_get(jpreinput, "PercentageRWithholding");
   RWithholding = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "Gini");
-  gini = json_object_get_double(jobj);
+  gini = json_object_get_int(jobj);
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
   initializeSimulatorData(nPayments, paymentMean, isPreproc);

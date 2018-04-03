@@ -90,7 +90,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, double gini, unsigned int isPreproc);
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, unsigned int isPreproc);
 
 Peer* createPeer(long ID, long channelsSize);
 
