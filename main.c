@@ -497,6 +497,8 @@ int main() {
 
   csvWriteOutput();
 
+  printf("DIJKSTRA CALLS: %ld\n", nDijkstra);
+
   return 0;
 }
 

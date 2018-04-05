@@ -50,7 +50,7 @@
   },
   "MinTimeUncoop":{
     "Mean":39600143.0,
-    "Variance":6.9529855801053445e-310,
+    "Variance":6.952980530286465e-310,
     "ConfidenceIntervalMin":39600143.0,
     "ConfidenceIntervalMax":39600143.0
   },

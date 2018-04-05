@@ -19,6 +19,7 @@ extern gsl_rng *r;
 extern const gsl_rng_type * T;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 FILE *csvPeer, *csvChannel, *csvChannelInfo;
+extern long nDijkstra;
 
 typedef struct policy {
   uint32_t feeBase;

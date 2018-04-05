@@ -53,6 +53,7 @@ Array* peers;
 Array* channels;
 Array* channelInfos;
 
+long nDijkstra;
 
 Peer* createPeer(long ID, long channelsSize) {
   Peer* peer;
@@ -320,16 +321,16 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-if(gini != 5) {
+  if(gini != 5) {
   funds1 = (MAXMSATOSHI/3)/thresh1;
   funds2 = (MAXMSATOSHI/3)/thresh2;
   funds3 = (MAXMSATOSHI/3)/(nPeers*nChannels - (thresh1 + thresh2));
- }
- else {
-funds1 = MAXMSATOSHI;
-funds2 = 1;
-funds3 = 1;
-}
+  }
+  else {
+  funds1 = MAXMSATOSHI;
+  funds2 = 1;
+  funds3 = 1;
+  }
 
   csvPeer = fopen("peer.csv", "w");
   if(csvPeer==NULL) {
@@ -579,6 +580,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
+  nDijkstra = 0;
   /* peers = hashTableInitialize(nPeers); */
   /* channels = hashTableInitialize(nChannels*nPeers*2); */
   /* channelInfos= hashTableInitialize(nChannels*nPeers); */
@@ -774,12 +776,14 @@ void findRoute(Event *event) {
       if(isAnyChannelClosed(pathHops)) {
         pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                             payment->ignoredChannels);
+        nDijkstra++;
       }
   }
-  else
+  else {
     pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
                         payment->ignoredChannels);
-
+    nDijkstra++;
+  }
 
   if(pathHops!=NULL)
     if(isAnyChannelClosed(pathHops)) {
