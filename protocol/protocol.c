@@ -434,8 +434,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   fclose(csvChannelInfo);
   fclose(csvChannel);
 
-  //printf("change topology and press enter\n");
-  //scanf("%*c");
+  printf("Change topology and press enter\n");
+  scanf("%*c%*c");
 
 }
 
@@ -559,9 +559,6 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
   }
 
-
-
-  //  printf("GINI: %lf\n",  computeGini());
 
 }
 
