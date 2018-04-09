@@ -1,10 +1,10 @@
 {
   "PaymentMean":0.01,
-  "NPayments":3000,
+  "NPayments":3000000,
   "NPeers":1000,
   "NChannels":5,
-  "PUncooperativeBeforeLock":0.0001,
-  "PUncooperativeAfterLock":0.0001,
+  "PUncooperativeBeforeLock":0.0,
+  "PUncooperativeAfterLock":0.0,
   "PercentageRWithholding":0.01,
-  "Gini":3
+  "Gini":2
 }

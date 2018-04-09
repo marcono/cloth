@@ -882,7 +882,7 @@ void sendPayment(Event* event) {
   EventType eventType;
   Peer* peer;
 
-  printf("SEND PAYMENT %ld\n", event->paymentID);
+  //  printf("SEND PAYMENT %ld\n", event->paymentID);
 
   payment = arrayGet(payments, event->paymentID);
   peer = arrayGet(peers, event->peerID);
@@ -934,7 +934,7 @@ void forwardPayment(Event *event) {
   int isPolicyRespected;
   Peer* peer;
 
-  printf("FORWARD PAYMENT %ld\n", event->paymentID);
+  //  printf("FORWARD PAYMENT %ld\n", event->paymentID);
 
   payment = arrayGet(payments, event->paymentID);
   peer = arrayGet(peers, event->peerID);
@@ -1033,7 +1033,7 @@ void receivePayment(Event* event ) {
   uint64_t nextEventTime;
   Peer* peer;
 
-  printf("RECEIVE PAYMENT %ld\n", event->paymentID);
+  //  printf("RECEIVE PAYMENT %ld\n", event->paymentID);
   peerID = event->peerID;
   peer = arrayGet(peers, peerID);
   payment = arrayGet(payments, event->paymentID);
@@ -1101,7 +1101,7 @@ void forwardSuccess(Event* event) {
   Peer* peer;
   uint64_t nextEventTime;
 
-  printf("FORWARD SUCCESS  %ld\n", event->paymentID);
+  //  printf("FORWARD SUCCESS  %ld\n", event->paymentID);
 
   payment = arrayGet(payments, event->paymentID);
   prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
@@ -1174,7 +1174,7 @@ void forwardFail(Event* event) {
   Peer* peer;
   uint64_t nextEventTime;
 
-  printf("FORWARD FAIL %ld\n", event->paymentID);
+  //  printf("FORWARD FAIL %ld\n", event->paymentID);
 
   peer = arrayGet(peers, event->peerID); 
   payment = arrayGet(payments, event->paymentID);
