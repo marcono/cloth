@@ -290,7 +290,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   uint64_t balance, capacity;
   Policy policy1, policy2;
   long thresh1, thresh2, counter=0;
-  uint64_t funds1, funds2, funds3;
+  uint64_t funds1, funds2, funds3, maxfunds;
 
   switch(gini) {
   case 1:
@@ -321,13 +321,16 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
+  maxfunds = 1e9*nPeers*nChannels; //0.01 btc per channel
+
+
   if(gini != 5) {
-  funds1 = (MAXMSATOSHI/3)/thresh1;
-  funds2 = (MAXMSATOSHI/3)/thresh2;
-  funds3 = (MAXMSATOSHI/3)/(nPeers*nChannels - (thresh1 + thresh2));
+  funds1 = (maxfunds/3)/thresh1;
+  funds2 = (maxfunds/3)/thresh2;
+  funds3 = (maxfunds/3)/(nPeers*nChannels - (thresh1 + thresh2));
   }
   else {
-  funds1 = MAXMSATOSHI;
+  funds1 = maxfunds;
   funds2 = 1;
   funds3 = 1;
   }
@@ -434,8 +437,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   fclose(csvChannelInfo);
   fclose(csvChannel);
 
-  printf("Change topology and press enter\n");
-  scanf("%*c%*c");
+  /* printf("Change topology and press enter\n"); */
+  /* scanf("%*c%*c"); */
 
 }
 
@@ -593,7 +596,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  printf("GINI: %lf\n", computeGini());
+  //printf("GINI: %lf\n", computeGini());
 
 }
 

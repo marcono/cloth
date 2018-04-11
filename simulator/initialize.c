@@ -80,7 +80,7 @@ void initializeEventsPreproc(long nPayments, double paymentMean) {
   uint64_t  paymentAmount=0, eventTime=0 ;
   uint32_t nextEventInterval;
   unsigned int paymentClass;
-  double paymentClassP[]= {0.65, 0.2, 0.1, 0.05}, randomDouble;
+  double paymentClassP[]= {0.7, 0.2, 0.1, 0.0}, randomDouble;
   gsl_ran_discrete_t* discrete;
   long paymentIDIndex=0;
 
