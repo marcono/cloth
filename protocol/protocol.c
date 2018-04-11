@@ -283,7 +283,7 @@ double computeGini() {
 
 void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=10;
   gsl_ran_discrete_t* RwithholdingDiscrete;
   int *peerChannels;
   uint32_t latency;
@@ -383,13 +383,20 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   channelInfoIDIndex = channelIDIndex= 0;
   for(i=0; i<peerIDIndex; i++) {
     peer1 = i;
-    for(j=0; j<nChannels && (peerChannels[peer1] < nChannels); j++){
+    for(j=0; (peerChannels[peer1] < nChannels); j++){
 
       do {
-        peer2 = gsl_rng_uniform_int(r,peerIDIndex);
+        //        if(j==0) {
+          peer2 = mean + gsl_ran_gaussian(r, sigma);
+          //printf("peer2: %ld\n", peer2);
+          //}
+          //else
+          //peer2 = gsl_rng_uniform_int(r,peerIDIndex);
       }while(peer2==peer1);
 
-      if(peerChannels[peer2]>=nChannels) continue;
+      if(peer2<0 || peer2>=peerIDIndex) continue;
+
+      //if(peerChannels[peer2]>=nChannels) continue;
 
       ++peerChannels[peer1];
       ++peerChannels[peer2];
@@ -431,6 +438,12 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     }
 
   }
+
+  long count = 0;
+  for(i=0; i<peerIDIndex; i++) 
+    if(peerChannels[i]>5) printf("%ld\n", i);
+
+//  printf("mean channels: %ld\n", count);
 
 
   fclose(csvPeer);
@@ -568,6 +581,8 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
+  /* double sigma=200, mean = nPeers/2; */
+  /* long i, outofrange=0, counts[1000]={0}, z; */
 
   //  initializeFindRoute();
 
@@ -588,6 +603,20 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   peers = arrayInitialize(nPeers);
   channels = arrayInitialize(nChannels*nPeers);
   channelInfos = arrayInitialize(nChannels*nPeers);
+
+  /* for(i=0; i<5000; i++) { */
+  /*   z = mean + gsl_ran_gaussian(r, sigma); */
+  /*   if(z<0 || z>=nPeers) ++outofrange; */
+  /*   else ++counts[z]; */
+  /*   //printf("%lf\n", z); */
+  /* } */
+
+  /* printf("outofrange: %ld\n", outofrange); */
+  /* for(i=0; i<1000; i++) */
+  /*   printf("%ld\n", counts[i]); */
+  /* printf("\n"); */
+
+  /* exit(-1); */
 
 
   if(isPreproc)

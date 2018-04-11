@@ -7,10 +7,14 @@ with open('../channelInfo.csv', 'rb') as csv_channel:
 
      channels = []
 
+     count=0
      for channel_line in channel_iter:
-         if channel_line[3] == '65' or channel_line[4] == '65':
+         if channel_line[3] == '500' or channel_line[4] == '500':
              channels.append(channel_line[1])
              channels.append(channel_line[2])
+             count += 1
+
+     print count
 
 
 with open('../payment_output.csv', 'rb') as csv_payment:
