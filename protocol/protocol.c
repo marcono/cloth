@@ -283,7 +283,7 @@ double computeGini() {
 
 void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=10;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=1000000;
   gsl_ran_discrete_t* RwithholdingDiscrete;
   int *peerChannels;
   uint32_t latency;
@@ -439,11 +439,16 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
   }
 
-  long count = 0;
-  for(i=0; i<peerIDIndex; i++) 
-    if(peerChannels[i]>5) printf("%ld\n", i);
+  double num = 0, den = 0;
+  for(i=0; i<peerIDIndex; i++) {
+    if(peerChannels[i]>5) printf("%ld, %d\n", i, peerChannels[i]);
+    else {
+      den++;
+      num += peerChannels[i];
+    }
+  }
 
-//  printf("mean channels: %ld\n", count);
+  printf("mean channels: %lf\n", num/den);
 
 
   fclose(csvPeer);
