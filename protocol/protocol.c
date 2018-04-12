@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
 #include "../utils/hashTable.h"
@@ -283,7 +283,7 @@ double computeGini() {
 
 void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=1000000;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=-1;
   gsl_ran_discrete_t* RwithholdingDiscrete;
   int *peerChannels;
   uint32_t latency;
@@ -383,20 +383,27 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   channelInfoIDIndex = channelIDIndex= 0;
   for(i=0; i<peerIDIndex; i++) {
     peer1 = i;
-    for(j=0; (peerChannels[peer1] < nChannels); j++){
+    for(j=0; j<nChannels &&  (peerChannels[peer1] < nChannels); j++){
 
       do {
-        //        if(j==0) {
+       if(j==0 && sigma!=-1) {
           peer2 = mean + gsl_ran_gaussian(r, sigma);
           //printf("peer2: %ld\n", peer2);
-          //}
-          //else
-          //peer2 = gsl_rng_uniform_int(r,peerIDIndex);
+          }
+          else
+            peer2 = gsl_rng_uniform_int(r,peerIDIndex);
       }while(peer2==peer1);
 
       if(peer2<0 || peer2>=peerIDIndex) continue;
 
-      //if(peerChannels[peer2]>=nChannels) continue;
+      if(sigma!=-1) {
+        if(j!=0 && peerChannels[peer2]>=nChannels) continue;
+      }
+      else {
+        if(peerChannels[peer2]>=nChannels) continue;
+      }
+
+
 
       ++peerChannels[peer1];
       ++peerChannels[peer2];
@@ -439,17 +446,20 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
   }
 
-  double num = 0, den = 0;
-  for(i=0; i<peerIDIndex; i++) {
-    if(peerChannels[i]>5) printf("%ld, %d\n", i, peerChannels[i]);
-    else {
-      den++;
-      num += peerChannels[i];
-    }
-  }
+/*   double num = 0, den = 0; */
+/*   for(i=0; i<peerIDIndex; i++) { */
+/*     //    if(peerChannels[i]>5) printf("%ld, %d\n", i, peerChannels[i]); */
+/*     // else { */
+/*     if(peerChannels[i]>5) */
+/*       printf("%ld, %d\n", i, peerChannels[i]); */
+/*     den++; */
+/*     num += peerChannels[i]; */
+/*       //} */
+/*   } */
 
-  printf("mean channels: %lf\n", num/den);
+/*   printf("mean channels: %lf\n", num/den); */
 
+/* exit(-1); */
 
   fclose(csvPeer);
   fclose(csvChannelInfo);

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 #include "../utils/hashTable.h"
 #include "../utils/array.h"
 #include "../protocol/protocol.h"

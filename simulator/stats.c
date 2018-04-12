@@ -3,7 +3,7 @@
 #include <gsl/gsl_cdf.h>
 #include <math.h>
 #include "../utils/array.h"
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 #include "stats.h"
 #include "../protocol/protocol.h"
 #include "../simulator/initialize.h"

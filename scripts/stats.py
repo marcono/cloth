@@ -9,7 +9,7 @@ with open('../channelInfo.csv', 'rb') as csv_channel:
 
      count=0
      for channel_line in channel_iter:
-         if channel_line[3] == '500' or channel_line[4] == '500':
+         if channel_line[3] == '500000' or channel_line[4] == '500000':
              channels.append(channel_line[1])
              channels.append(channel_line[2])
              count += 1

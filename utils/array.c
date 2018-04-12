@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "array.h"
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 
 Array* resizeArray(Array* a) {
   Array* new;

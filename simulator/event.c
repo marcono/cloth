@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 #include "event.h"
 
 Event* createEvent(long ID, uint64_t time, EventType type, long peerID, long paymentID) {

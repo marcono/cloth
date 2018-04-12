@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
-#include "../gc-7.2/include/gc.h"
+//#include "../gc-7.2/include/gc.h"
 #include "../simulator/initialize.h"
 #include "../protocol/protocol.h"
 #include "../utils/heap.h"

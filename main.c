@@ -13,7 +13,7 @@
 #include "./simulator/initialize.h"
 #include "./utils/heap.h"
 #include "./utils/hashTable.h"
-#include "./gc-7.2/include/gc.h"
+//#include "./gc-7.2/include/gc.h"
 #include "./utils/array.h"
 #include "./protocol/findRoute.h"
 #include "./protocol/protocol.h"
