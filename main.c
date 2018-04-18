@@ -382,6 +382,7 @@ void readPreInputAndInitialize() {
   char answer;
   clock_t  begin, end;
   double timeSpent=0.0;
+  struct timespec start, finish;
 
 
   jpreinput = json_object_from_file("preinput.json");
@@ -425,11 +426,14 @@ void readPreInputAndInitialize() {
 
 
   begin = clock();
+  clock_gettime(CLOCK_MONOTONIC, &start);
   initializeThreads();
   end = clock();
+  clock_gettime(CLOCK_MONOTONIC, &finish);
   timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by dijkstra executions: %lf\n", timeSpent);
-
+  printf("Time consumed by dijkstra executions (normal): %lf\n", timeSpent);
+  timeSpent = finish.tv_sec - start.tv_sec;
+  printf("Time consumed by dijkstra executions (threads): %lf\n", timeSpent);
 
   //  floydWarshall();
 
