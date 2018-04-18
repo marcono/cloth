@@ -370,7 +370,6 @@ void initializeThreads() {
   for(i=0; i<PARALLEL; i++)
     pthread_join(tid[i], NULL);
 
-  printf("finished\n");
 
 }
 
@@ -381,6 +380,9 @@ void readPreInputAndInitialize() {
   unsigned int isPreproc=1;
   int gini;
   char answer;
+  clock_t  begin, end;
+  double timeSpent=0.0;
+
 
   jpreinput = json_object_from_file("preinput.json");
 
@@ -408,6 +410,8 @@ void readPreInputAndInitialize() {
   /* else */
   /*   isPreproc=0; */
 
+  begin = clock();
+
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
 
@@ -415,7 +419,17 @@ void readPreInputAndInitialize() {
 
   initializeDijkstra();
 
+  end = clock();
+  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by initialization: %lf\n", timeSpent);
+
+
+  begin = clock();
   initializeThreads();
+  end = clock();
+  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by dijkstra executions: %lf\n", timeSpent);
+
 
   //  floydWarshall();
 
@@ -431,6 +445,8 @@ int main() {
   //ChannelInfo* channelInfo;
   //Channel* channel;
   //Payment* payment;
+  clock_t  begin, end;
+  double timeSpent=0.0;
 
   readPreInputAndInitialize();
 
@@ -453,6 +469,7 @@ int main() {
   //  csvWriteInput();
   //jsonWriteInput();
 
+  begin = clock();
   while(heapLen(events) != 0 ) {
     event = heapPop(events, compareEvent);
     simulatorTime = event->time;
@@ -486,6 +503,11 @@ int main() {
     }
   }
 
+  end = clock();
+  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by simulator events: %lf\n", timeSpent);
+
+
 
   //printPayments();
 
@@ -494,6 +516,8 @@ int main() {
   csvWriteOutput();
 
   printf("DIJKSTRA CALLS: %ld\n", nDijkstra);
+
+
 
   return 0;
 }
