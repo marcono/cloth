@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_math.h>
+#include "gsl_rng.h"
+#include "gsl_randist.h"
+#include "gsl/gsl_math.h"
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -281,9 +281,9 @@ double computeGini() {
   return gini;
 }
 
-void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini) {
+void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2, sigma=-1;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2 ;
   gsl_ran_discrete_t* RwithholdingDiscrete;
   int *peerChannels;
   uint32_t latency;
@@ -331,8 +331,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   }
   else {
   funds1 = maxfunds;
-  funds2 = 1;
-  funds3 = 1;
+  funds2 = 1000;
+  funds3 = 1000;
   }
 
   csvPeer = fopen("peer.csv", "w");
@@ -593,7 +593,7 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
 }
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, unsigned int isPreproc) {
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
   /* double sigma=200, mean = nPeers/2; */
@@ -635,7 +635,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
 
   if(isPreproc)
-    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini);
+    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini, sigma);
 
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);

@@ -6,8 +6,8 @@
 #include <stdint.h>
 //#include <gsl/gsl_rng.h>
 //#include <gsl/gsl_randist.h>
-#include <json-c/json.h>
-#include <gsl/gsl_rng.h>
+#include "json.h"
+#include "gsl_rng.h"
 
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
@@ -378,7 +378,7 @@ void readPreInputAndInitialize() {
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding;
   struct json_object* jpreinput, *jobj;
   unsigned int isPreproc=1;
-  int gini;
+  int gini, sigma;
   char answer;
   clock_t  begin, end;
   double timeSpent=0.0;
@@ -403,6 +403,9 @@ void readPreInputAndInitialize() {
   RWithholding = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "Gini");
   gini = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "Sigma");
+  sigma = json_object_get_int(jobj);
+
 
   /* printf("Create random topology from preinput.json? [y/n]\n"); */
   /* scanf("%c", &answer); */
@@ -413,7 +416,7 @@ void readPreInputAndInitialize() {
 
   begin = clock();
 
-  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, isPreproc);
+  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigma, isPreproc);
   initializeSimulatorData(nPayments, paymentMean, isPreproc);
 
   statsInitialize();

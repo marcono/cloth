@@ -5,8 +5,8 @@
 #include "findRoute.h"
 #include "../utils/hashTable.h"
 #include "../simulator/event.h"
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+#include "gsl_rng.h"
+#include "gsl_randist.h"
 #include <stdint.h>
 #include <pthread.h>
 
@@ -91,7 +91,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, unsigned int isPreproc);
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, unsigned int isPreproc);
 
 Peer* createPeer(long ID, long channelsSize);
 

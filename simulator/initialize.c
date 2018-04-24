@@ -8,9 +8,9 @@
 #include "../protocol/protocol.h"
 #include "initialize.h"
 #include "event.h"
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_math.h>
+#include "gsl_rng.h"
+#include "gsl_randist.h"
+#include "gsl_math.h"
 #include <stdint.h>
 
 #define MAXMICRO 1E3
@@ -108,13 +108,13 @@ void initializeEventsPreproc(long nPayments, double paymentMean) {
     randomDouble = gsl_rng_uniform(r);
     switch(paymentClass) {
     case 0:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 1);
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 1); //10-1000 msat
       break;
     case 1:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 3);
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 3); //1000-100,000 msat
        break;
     case 2:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 6);
+      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 6); //0.00001 btc - 0.001 btc
       break;
     case 3:
       paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);

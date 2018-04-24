@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <json-c/json.h>
-#include <gsl/gsl_cdf.h>
+#include "json.h"
+#include "gsl_cdf.h"
 #include <math.h>
 #include "../utils/array.h"
 //#include "../gc-7.2/include/gc.h"

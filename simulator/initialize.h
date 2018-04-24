@@ -2,7 +2,7 @@
 #define INITIALIZE_H
 #include "../utils/array.h"
 #include "../utils/heap.h"
-#include <gsl/gsl_rng.h>
+#include "gsl_rng.h"
 #include <stdint.h>
 
 //TODO: mettere time in un altro file (globalSimulator.h per esempio)
