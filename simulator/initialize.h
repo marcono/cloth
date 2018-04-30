@@ -10,7 +10,7 @@ extern uint64_t simulatorTime; //milliseconds
 extern Array* payments;
 FILE* csvPayment;
 
-void initializeSimulatorData();
+void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, unsigned int isPreproc);
 
 void initialize();
 

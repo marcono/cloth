@@ -284,11 +284,11 @@ void csvWriteOutput() {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,IsSuccess,IsAPeerUncoop,Route,IgnoredPeers,IgnoredChannels\n");
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,IsSuccess,IsAPeerUncoop,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
 
   for(i=0; i<paymentIndex; i++)  {
     payment = arrayGet(payments, i);
-    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->isSuccess, payment->isAPeerUncoop);
+    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->isSuccess, payment->isAPeerUncoop, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
@@ -375,7 +375,7 @@ void initializeThreads() {
 
 void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
-  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding;
+  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
   unsigned int isPreproc=1;
   int gini, sigma;
@@ -405,6 +405,9 @@ void readPreInputAndInitialize() {
   gini = json_object_get_int(jobj);
   jobj = json_object_object_get(jpreinput, "Sigma");
   sigma = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "PercentageSameDest");
+  sameDest = json_object_get_double(jobj);
+
 
 
   /* printf("Create random topology from preinput.json? [y/n]\n"); */
@@ -416,8 +419,9 @@ void readPreInputAndInitialize() {
 
   begin = clock();
 
+  
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigma, isPreproc);
-  initializeSimulatorData(nPayments, paymentMean, isPreproc);
+  initializeSimulatorData(nPayments, paymentMean, sameDest, isPreproc);
 
   statsInitialize();
 

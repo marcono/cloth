@@ -22,12 +22,12 @@
 #define MAXMSATOSHI 5E17 //5 millions  bitcoin
 #define MAXTIMELOCK 100
 #define MINTIMELOCK 10
-#define MAXFEEBASE 1000
-#define MINFEEBASE 100
+#define MAXFEEBASE 5000
+#define MINFEEBASE 1000
 #define MAXFEEPROP 10
 #define MINFEEPROP 1
-#define MAXLATENCY 10
-#define MINLATENCY 1
+#define MAXLATENCY 100
+#define MINLATENCY 10
 #define MINBALANCE 1E2
 #define MAXBALANCE 1E11
 #define FAULTYLATENCY 60000 //1 minute waiting for a peer not responding
@@ -199,7 +199,7 @@ void connectPeers(long peerID1, long peerID2) {
   balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11]
 
   policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
+  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
   firstChannelDirection->balance = balance;
@@ -310,7 +310,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     coeff2 = 0.05;
     break;
   case 5:
-    coeff1 = 1.0/(nPeers*nChannels);
+    coeff1 = 10.0/(nPeers*nChannels);
     coeff2 = 1;
     break;
   default:
@@ -321,7 +321,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = 1e9*nPeers*nChannels; //0.01 btc per channel
+  maxfunds = 1e8*nPeers*nChannels; //0.01 btc per channel
 
 
   if(gini != 5) {
@@ -331,8 +331,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   }
   else {
   funds1 = maxfunds;
-  funds2 = 1000;
-  funds3 = 1000;
+  funds2 = 10000;
+  funds3 = 10000;
   }
 
   csvPeer = fopen("peer.csv", "w");
@@ -430,10 +430,10 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       balance = capacity/2;
 
       policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
+      policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
       policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
+      policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
 
       fprintf(csvChannelInfo, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
@@ -465,8 +465,6 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   fclose(csvChannelInfo);
   fclose(csvChannel);
 
-  /* printf("Change topology and press enter\n"); */
-  /* scanf("%*c%*c"); */
 
 }
 
