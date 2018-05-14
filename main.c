@@ -377,7 +377,7 @@ void readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreproc=1;
+  unsigned int isPreprocTopology=1, isPreprocPayments=1;
   int gini, sigma;
   char answer;
   clock_t  begin, end;
@@ -420,8 +420,8 @@ void readPreInputAndInitialize() {
   begin = clock();
 
   
-  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigma, isPreproc);
-  initializeSimulatorData(nPayments, paymentMean, sameDest, isPreproc);
+  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigma, isPreprocTopology);
+  initializeSimulatorData(nPayments, paymentMean, sameDest, isPreprocPayments);
 
   statsInitialize();
 

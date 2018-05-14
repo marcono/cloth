@@ -321,7 +321,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = 1e8*nPeers*nChannels; //0.01 btc per channel
+  maxfunds = 3e8*nPeers*nChannels; //0.01 btc per channel
 
 
   if(gini != 5) {
@@ -331,8 +331,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   }
   else {
   funds1 = maxfunds;
-  funds2 = 10000;
-  funds3 = 10000;
+  funds2 = 100000;
+  funds3 = 100000;
   }
 
   csvPeer = fopen("peer.csv", "w");
@@ -470,7 +470,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
 
 void createTopologyFromCsv(unsigned int isPreproc) {
-  char row[256], channelFile[64], infoFile[64];
+  char row[256], channelFile[64], infoFile[64], peerFile[64];
   Peer* peer, *peer1, *peer2;
   long ID, direction1, direction2, peerID1, peerID2, channelInfoID, otherDirection, counterparty;
   Policy policy;
@@ -483,14 +483,16 @@ void createTopologyFromCsv(unsigned int isPreproc) {
   if(isPreproc) {
     strcpy(channelFile, "channel.csv");
     strcpy(infoFile, "channelInfo.csv");
+    strcpy(peerFile, "peer.csv");
   }
   else {
-    strcpy(channelFile, "channel_output.csv");
-    strcpy(infoFile, "channelInfo_output.csv");
+    strcpy(channelFile, "channelLN.csv");
+    strcpy(infoFile, "channelInfoLN.csv");
+    strcpy(peerFile, "peerLN.csv");
     }
 
 
-  csvPeer = fopen("peer.csv", "r");
+  csvPeer = fopen(peerFile, "r");
   if(csvPeer==NULL) {
     printf("ERROR cannot open file peer.csv\n");
     return;
@@ -638,7 +640,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  //printf("GINI: %lf\n", computeGini());
+  printf("GINI: %lf\n", computeGini());
 
 }
 
@@ -1007,7 +1009,6 @@ void forwardPayment(Event *event) {
   }
 
   
-
   if(!isCooperativeBeforeLock()){
     printf("Peer %ld is not cooperative before lock\n", event->peerID);
     payment->isAPeerUncoop = 1;
@@ -1021,8 +1022,6 @@ void forwardPayment(Event *event) {
   }
 
 
-  
-
   if(!isCooperativeAfterLock()) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, prevChannel->ID);
     payment->isAPeerUncoop = 1;
@@ -1031,11 +1030,14 @@ void forwardPayment(Event *event) {
 
     statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
 
-    prevPeerID = previousRouteHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime =  simulatorTime + previousRouteHop->timelock*10*60000; //10 minutes (expressed in milliseconds) per block
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+    payment->isSuccess = 0;
+    statsUpdatePayments(payment);
+
+    /* prevPeerID = previousRouteHop->pathHop->sender; */
+    /* eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
+    /* nextEventTime =  simulatorTime + previousRouteHop->timelock*10*60000; //10 minutes (expressed in milliseconds) per block */
+    /* nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID ); */
+    /* events = heapInsert(events, nextEvent, compareEvent); */
     return;
   }
 
@@ -1176,11 +1178,15 @@ void forwardSuccess(Event* event) {
     closeChannel(nextChannel->channelInfoID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
 
-    prevPeerID = prevHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevHop->timelock*10*60000;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+    payment->isSuccess = 0;
+    statsUpdatePayments(payment);
+
+
+    /* prevPeerID = prevHop->pathHop->sender; */
+    /* eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
+    /* nextEventTime = simulatorTime + prevHop->timelock*10*60000; */
+    /* nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID ); */
+    /* events = heapInsert(events, nextEvent, compareEvent); */
 
     return;
   }

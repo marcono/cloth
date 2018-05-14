@@ -109,20 +109,39 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
     paymentClass = gsl_ran_discrete(r, discreteAmount);
     randomDouble = gsl_rng_uniform(r);
+    /* switch(paymentClass) { */
+    /* case 0: */
+    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 2); //10-1000 msat */
+    /*   break; */
+    /* case 1: */
+    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 4); //1000-100,000 msat */
+    /*    break; */
+    /* case 2: */
+    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 7); //0.00001 btc - 0.001 btc */
+    /*   break; */
+    /* case 3: */
+    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9); */
+    /*   break; */
+    /* } */
     switch(paymentClass) {
     case 0:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 2); //10-1000 msat
+      paymentAmount = gsl_rng_uniform_int(r, 1000 - 10) + 10; //10-1000 msat
       break;
     case 1:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 4); //1000-100,000 msat
-       break;
+      paymentAmount = gsl_rng_uniform_int(r, 100000 - 1000) + 1000;
+      //1000-100,000 msat
+      break;
     case 2:
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 6); //0.00001 btc - 0.001 btc
+      paymentAmount = gsl_rng_uniform_int(r, 1e8 - 100000) + 100000;
+      //0.00001 btc - 0.001 btc
       break;
     case 3:
+
       paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);
       break;
     }
+
+
     nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
     eventTime += nextEventInterval;
 
@@ -131,6 +150,8 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
   }
 
   fclose(csvPayment);
+
+  //  exit(-1);
 
   //printf("change payments and press enter\n");
   //scanf("%*c");
@@ -143,7 +164,6 @@ void createPaymentsFromCsv(unsigned int isPreproc) {
   char row[256], filePayment[64];
   long ID, sender, receiver;
   uint64_t amount, time;
-
   if(isPreproc)
     strcpy(filePayment, "payment.csv");
   else

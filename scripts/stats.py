@@ -1,5 +1,5 @@
 import csv
-with open('../channelInfo.csv', 'rb') as csv_channel:
+with open('../channelInfoLN.csv', 'rb') as csv_channel:
      channel_reader = csv.reader(csv_channel)
      channel_lines = list(channel_reader)
      channel_iter = iter(channel_lines)
@@ -9,7 +9,7 @@ with open('../channelInfo.csv', 'rb') as csv_channel:
 
      count=0
      for channel_line in channel_iter:
-         if channel_line[3] == '500000' or channel_line[4] == '500000':
+         if channel_line[3] == '445' or channel_line[4] == '445':
              channels.append(channel_line[1])
              channels.append(channel_line[2])
              count += 1
@@ -29,7 +29,7 @@ with open('../payment_output.csv', 'rb') as csv_payment:
             continue
         route = pay_line[7].split('-')
         for hop in route:
-            if channels.count(hop) > 0:
+            if hop in channels:
                 count += 1
                 break
 
