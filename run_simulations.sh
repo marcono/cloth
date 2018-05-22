@@ -18,40 +18,40 @@ fi
 
 
 
-# nchannels=(2 8 11)
+nchannels=(2 8 11)
 
-# for i in "${nchannels[@]}"
-# do
+for i in "${nchannels[@]}"
+do
 
-#     if [ ! -d results/nchannels_$i ]; then
-#         mkdir results/nchannels_$i
-#     fi
+    if [ ! -d results/nchannels_$i ]; then
+        mkdir results/nchannels_$i
+    fi
 
-#     if [ -z "$(ls -A results/nchannels_$i)" ]; then
+    if [ -z "$(ls -A results/nchannels_$i)" ]; then
 
-#         echo "
-# {
-#   \"PaymentMean\":0.01,
-#   \"NPayments\":30000,
-#   \"NPeers\":100000,
-#   \"NChannels\":$i,
-#   \"PUncooperativeBeforeLock\":0.0001,
-#   \"PUncooperativeAfterLock\":0.0001,
-#   \"PercentageRWithholding\":0.0,
-#   \"Gini\":1,
-#   \"Sigma\":-1,
-#   \"PercentageSameDest\":0.0
-# }
-# " > preinput.json
+        echo "
+{
+  \"PaymentMean\":0.01,
+  \"NPayments\":30000,
+  \"NPeers\":100000,
+  \"NChannels\":$i,
+  \"PUncooperativeBeforeLock\":0.0001,
+  \"PUncooperativeAfterLock\":0.0001,
+  \"PercentageRWithholding\":0.0,
+  \"Gini\":1,
+  \"Sigma\":-1,
+  \"PercentageSameDest\":0.0
+}
+" > preinput.json
 
-#         make run > log
+        make run > log
 
-#         cp preinput.json output.json peer.csv channel.csv channelInfo.csv payment.csv channel_output.csv channelInfo_output.csv payment_output.csv log results/nchannels_$i
+        cp preinput.json output.json peer.csv channel.csv channelInfo.csv payment.csv channel_output.csv channelInfo_output.csv payment_output.csv log results/nchannels_$i
 
-#         python2.72.7 scripts/json_to_csv.py $ppath/results/nchannels_$i/output.json $ppath/results/nchannels.csv nchannels $i
+        python2.7 scripts/json_to_csv.py $ppath/results/nchannels_$i/output.json $ppath/results/nchannels.csv nchannels $i
 
-#     fi
-# done
+    fi
+done
 
 
 sigma=(0 1 10 -1)

@@ -321,7 +321,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = 3e8*nPeers*nChannels; //0.01 btc per channel
+  maxfunds = 3e8*nPeers*5; //0.01 btc per channel
 
 
   if(gini != 5) {
