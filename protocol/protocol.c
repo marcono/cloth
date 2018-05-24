@@ -283,11 +283,11 @@ double computeGini() {
 
 void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, coeff1, coeff2, mean=nPeers/2 ;
-  gsl_ran_discrete_t* RwithholdingDiscrete;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, coeff1, coeff2, mean=nPeers/2 ;
+  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete;
   int *peerChannels;
   uint32_t latency;
-  uint64_t balance, capacity;
+  uint64_t balance1, balance2, capacity;
   Policy policy1, policy2;
   long thresh1, thresh2, counter=0;
   uint64_t funds1, funds2, funds3, maxfunds;
@@ -321,7 +321,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = 3e8*nPeers*5; //0.01 btc per channel
+  maxfunds = 3e8*nPeers*nChannels; //0.01 btc per channel
 
 
   if(gini != 5) {
@@ -358,6 +358,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
 
   RwithholdingDiscrete = gsl_ran_discrete_preproc(2, RwithholdingP);
+  balanceDiscrete = gsl_ran_discrete_preproc(2, balanceP);
+
 
   peerIDIndex=0;
   for(i=0; i<nPeers; i++){
@@ -427,7 +429,23 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       else
         capacity = funds3;
 
-      balance = capacity/2;
+
+      double balance_mean=5, balance_sigma=2.0, fraction;
+      int gauss;
+
+      gauss=gsl_ran_gaussian(r, balance_sigma);
+
+      if(gsl_ran_discrete(r, balanceDiscrete))
+        gauss = 2+gauss;
+      else
+        gauss = 7+gauss;
+
+      if(gauss>10) gauss=10;
+      if(gauss<0) gauss = 0;
+
+      fraction = gauss/10.0;
+      balance1 = fraction*capacity; //2;//(gsl_rng_uniform_int(r, 10)+1);
+      balance2 = capacity - balance1;
 
       policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
       policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
@@ -438,13 +456,14 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
       fprintf(csvChannelInfo, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction1, info, direction2, peer2, balance, policy1.feeBase, policy1.feeProportional, policy1.timelock);
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction1, info, direction2, peer2, balance1, policy1.feeBase, policy1.feeProportional, policy1.timelock);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction2, info, direction1, peer1, balance, policy2.feeBase, policy2.feeProportional, policy2.timelock);
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction2, info, direction1, peer1, balance2, policy2.feeBase, policy2.feeProportional, policy2.timelock);
 
     }
 
   }
+
 
 /*   double num = 0, den = 0; */
 /*   for(i=0; i<peerIDIndex; i++) { */
