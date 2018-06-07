@@ -284,11 +284,11 @@ void csvWriteOutput() {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,IsSuccess,IsAPeerUncoop,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
 
   for(i=0; i<paymentIndex; i++)  {
     payment = arrayGet(payments, i);
-    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->isSuccess, payment->isAPeerUncoop, payment->attempts);
+    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->endTime, payment->isSuccess, payment->uncoopAfter, payment->uncoopBefore, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
@@ -373,16 +373,17 @@ void initializeThreads() {
 
 }
 
-void readPreInputAndInitialize() {
-  long nPayments, nPeers, nChannels;
+uint64_t readPreInputAndInitialize() {
+  long nPayments, nPeers, nChannels, capacityPerChannel;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
   unsigned int isPreprocTopology=1, isPreprocPayments=1;
-  int gini, sigma;
+  int gini, sigmaTopology, sigmaAmount;
   char answer;
   clock_t  begin, end;
   double timeSpent=0.0;
   struct timespec start, finish;
+  uint64_t endTime;
 
 
   jpreinput = json_object_from_file("preinput.json");
@@ -403,12 +404,19 @@ void readPreInputAndInitialize() {
   RWithholding = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "Gini");
   gini = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "Sigma");
-  sigma = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "SigmaTopology");
+  sigmaTopology = json_object_get_int(jobj);
   jobj = json_object_object_get(jpreinput, "PercentageSameDest");
   sameDest = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "SigmaAmount");
+  sigmaAmount = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "Capacity");
+  capacityPerChannel = json_object_get_int64(jobj);
 
 
+  endTime = nPayments*paymentMean*1000;
+
+  //printf("%ld\n", endTime);
 
   /* printf("Create random topology from preinput.json? [y/n]\n"); */
   /* scanf("%c", &answer); */
@@ -419,9 +427,8 @@ void readPreInputAndInitialize() {
 
   begin = clock();
 
-  
-  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigma, isPreprocTopology);
-  initializeSimulatorData(nPayments, paymentMean, sameDest, isPreprocPayments);
+  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigmaTopology, capacityPerChannel, isPreprocTopology);
+  initializeSimulatorData(nPayments, paymentMean, sameDest, sigmaAmount, isPreprocPayments);
 
   statsInitialize();
 
@@ -444,10 +451,9 @@ void readPreInputAndInitialize() {
 
   //  floydWarshall();
 
+  return endTime;
+
 }
-
-
-
 
 
 int main() {
@@ -458,8 +464,10 @@ int main() {
   //Payment* payment;
   clock_t  begin, end;
   double timeSpent=0.0;
+  uint64_t endTime;
 
-  readPreInputAndInitialize();
+  endTime = readPreInputAndInitialize();
+
 
   /*
   payment = arrayGet(payments, 7);
@@ -481,9 +489,14 @@ int main() {
   //jsonWriteInput();
 
   begin = clock();
-  while(heapLen(events) != 0 ) {
+  while(heapLen(events) != 0) {
     event = heapPop(events, compareEvent);
     simulatorTime = event->time;
+
+    if(simulatorTime >= endTime) {
+      break;
+    }
+
     switch(event->type){
     case FINDROUTE:
       findRoute(event);
@@ -518,17 +531,15 @@ int main() {
   timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulator events: %lf\n", timeSpent);
 
-
+  //  statsComputeBatchMeans(endTime);
 
   //printPayments();
 
-  jsonWriteOutput();
+  //jsonWriteOutput();
 
   csvWriteOutput();
 
   printf("DIJKSTRA CALLS: %ld\n", nDijkstra);
-
-
 
   return 0;
 }

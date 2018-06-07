@@ -32,8 +32,12 @@ void statsInitialize() {
   batchPayments = arrayInitialize(paymentIndex/NBATCH);
 
   for(i=0;i<NBATCH;i++) {
+    
     totalPayments[i] = succeededPayments[i] = failedPaymentsUncoop[i] = failedPaymentsNoPath[i] = failedPaymentsNoBalance[i] = lockedFundCost[i] = maxTimeCoop[i] = minTimeCoop[i] = maxTimeUncoop[i] = minTimeUncoop[i] = maxRouteLen[i] = minRouteLen[i] = 0;
     avgTimeCoop[i] = avgTimeUncoop[i] = avgRouteLen[i] = 0.0;
+    /* minRouteLen[i] = INT_MAX; */
+    /* minTimeCoop[i] = UINT64_MAX; */
+    /* maxRouteLen[i] = -1; */
   }
 
   currentBatch = 0;
@@ -65,8 +69,8 @@ double statsComputePaymentTime(int cooperative, uint64_t* min, uint64_t* max) {
 
     payment = arrayGet(payments, *paymentID);
     if(payment->route == NULL || !payment->isSuccess) continue;
-    if(cooperative && payment->isAPeerUncoop) continue;
-    if(!cooperative && !(payment->isAPeerUncoop)) continue;
+    if(cooperative && payment->uncoopAfter) continue;
+    if(!cooperative && !(payment->uncoopAfter)) continue;
     nPayments++;
     currPaymentTime = payment->endTime - payment->startTime;
     if(currPaymentTime>*max)
@@ -153,37 +157,40 @@ void statsUpdateLockedFundCost(Array* routeHops, long channelID) {
 
 
 
-void statsComputeBatch() {
-  avgTimeCoop[currentBatch] = statsComputePaymentTime(1, &minTimeCoop[currentBatch], &maxTimeCoop[currentBatch]);
-  avgTimeUncoop[currentBatch] = statsComputePaymentTime(0, &minTimeUncoop[currentBatch], &maxTimeUncoop[currentBatch]);
-  avgRouteLen[currentBatch] = statsComputeRouteLen(&minRouteLen[currentBatch], &maxRouteLen[currentBatch]);
+/* void statsComputeBatch() { */
+/*   avgTimeCoop[currentBatch] = statsComputePaymentTime(1, &minTimeCoop[currentBatch], &maxTimeCoop[currentBatch]); */
+/*   avgTimeUncoop[currentBatch] = statsComputePaymentTime(0, &minTimeUncoop[currentBatch], &maxTimeUncoop[currentBatch]); */
+/*   avgRouteLen[currentBatch] = statsComputeRouteLen(&minRouteLen[currentBatch], &maxRouteLen[currentBatch]); */
 
-  arrayDeleteAll(batchPayments);
+/*   arrayDeleteAll(batchPayments); */
 
-  ++currentBatch;
+/*   ++currentBatch; */
 
-}
+/* } */
 
-void statsUpdatePayments(Payment* payment) {
-  long batchSize = paymentIndex/NBATCH;
+/* void statsUpdatePayments(Payment* payment) { */
+/*   long batchSize = paymentIndex/NBATCH; */
 
-  batchPayments = arrayInsert(batchPayments, &(payment->ID));
+/*   batchPayments = arrayInsert(batchPayments, &(payment->ID)); */
 
-  totalPayments[currentBatch]++;
-  if(payment->isSuccess) {
-    succeededPayments[currentBatch]++;
-  }
-  else {
-    if(payment->route==NULL)
-      failedPaymentsNoPath[currentBatch]++;
-    else if(payment->isAPeerUncoop)
-      failedPaymentsUncoop[currentBatch]++;
-    else
-      failedPaymentsNoBalance[currentBatch]++;
-  }
+/*   totalPayments[currentBatch]++; */
+/*   if(payment->isSuccess) { */
+/*     succeededPayments[currentBatch]++; */
+/*   } */
+/*   else { */
+/*     if(payment->route==NULL) */
+/*       failedPaymentsNoPath[currentBatch]++; */
+/*     else if(payment->uncoopAfter) */
+/*       failedPaymentsUncoop[currentBatch]++; */
+/*     else */
+/*       failedPaymentsNoBalance[currentBatch]++; */
+/*   } */
 
-  if(totalPayments[currentBatch] == batchSize) statsComputeBatch();
-}
+/*   if(totalPayments[currentBatch] == batchSize) { */
+/*     printf("BATCH: %ld, %ld\n", currentBatch, payment->endTime); */
+/*     statsComputeBatch(); */
+/*   } */
+/* } */
 
 
 Stats statsComputeMeans() {
@@ -338,7 +345,70 @@ Stats statsComputeConfidenceMax(Stats means, Stats variances) {
   return confidenceMax;
 }
 
+/* int getBatch(uint64_t simEndTime, uint64_t paymentEndTime, uint64_t deltaBatch) { */
+/*   int i; */
+/*   uint64_t time; */
 
+/*   if(paymentEndTime<TRANSIENT || paymentEndTime > simEndTime) return -1; */
+
+/*   i=0; */
+/*   for(time = TRANSIENT; time < simEndTime; time += deltaBatch) { */
+/*     if(pEndTime>=time && pEndTime<time+deltaBatch) break; */
+/*     i++; */
+/*   } */
+
+/*   return i; */
+/* } */
+
+/* void statsComputeBatchMeans(uint64_t endTime) { */
+/*   uint64_t deltaBatch; */
+/*   long i; */
+/*   int batch; */
+/*   Payment *payment; */
+
+/*   deltaBatch = (endTime - TRANSIENT)/30; */
+
+/*   for(i=0; i<arrayLen(payments); i++){ */
+/*     payment = arrayGet(payments, i); */
+
+/*     batch = getBatch(payment->endTime, deltaBatch); */
+/*     if(batch==-1) continue; */
+
+/*     if(payment->isSuccess) { */
+/*       succeededPayments[batch]++; */
+
+/*       paymentDuration = (payment->endTime - payment->startTime) */
+/*       avgTimeCoop[batch]+=duration; */
+/*       if(duration<minTimeCoop[batch]) */
+/*         minTimeCoop[batch]=duration; */
+/*       if(duration>maxTimeCoop[batch]) */
+/*         maxTimeCoop[batch] = duration; */
+
+/*       routeLen = arrayLen(payment->route->routeHops); */
+/*       avgRouteLen[batch] += routeLen; */
+/*       if(routeLen<minRouteLen[batch]) */
+/*         minRouteLen[batch] = routeLen; */
+/*       if(routeLen>maxRouteLen[batch]) */
+/*         maxRouteLen[batch] = routeLen; */
+      
+
+/*     } */
+/*     else { */
+/*       if(payment->route==NULL) */
+/*         failedPaymentsNoPath[batch]++; */
+/*       else if(payment->uncoopAfter) */
+/*         failedPaymentsUncoop[batch]++; */
+/*       else */
+/*         failedPaymentsNoBalance[batch]++; */
+/*     } */
+
+
+
+
+/*   } */
+
+
+/* } */
 
 
 /*

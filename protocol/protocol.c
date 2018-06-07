@@ -30,7 +30,7 @@
 #define MINLATENCY 10
 #define MINBALANCE 1E2
 #define MAXBALANCE 1E11
-#define FAULTYLATENCY 60000 //1 minute waiting for a peer not responding
+#define FAULTYLATENCY 3000 //3 seconds waiting for a peer not responding (tcp default retransmission time)
 #define INF UINT16_MAX
 #define HOPSLIMIT 20
 
@@ -115,10 +115,11 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->ignoredChannels = arrayInitialize(10);
   p->ignoredPeers = arrayInitialize(10);
   p->isSuccess = 0;
-  p->isAPeerUncoop = 0;
+  p->uncoopAfter = 0;
+  p->uncoopBefore=0;
   p->startTime = 0;
   p->endTime = 0;
-  p->attempts = -1;
+  p->attempts = 0;
 
   paymentIndex++;
 
@@ -281,59 +282,69 @@ double computeGini() {
   return gini;
 }
 
-void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma) {
+void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma, long capacityPerChannel) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, coeff1, coeff2, mean=nPeers/2 ;
-  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, giniP[2], coeff1, coeff2, mean=nPeers/2 ;
+  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete, *giniDiscrete;
   int *peerChannels;
   uint32_t latency;
   uint64_t balance1, balance2, capacity;
   Policy policy1, policy2;
   long thresh1, thresh2, counter=0;
-  uint64_t funds1, funds2, funds3, maxfunds;
+  uint64_t funds[2], maxfunds, fundsPart;
 
   switch(gini) {
   case 1:
-    coeff1 = 0.3;
-    coeff2 = 0.3;
+    coeff1 = 1.0/3;
+    coeff2 = 1.0/3;
     break;
   case 2:
-    coeff1 = 0.15;
-    coeff2 = 0.2;
+    coeff1 = 1.0/6;
+    coeff2 = 1.0/3;
     break;
   case 3:
-    coeff1 = 0.1;
-    coeff2 = 0.05;
+    coeff1 = 1.0/8;
+    coeff2 = 1.0/6;
     break;
   case 4:
-    coeff1 = 0.01;
-    coeff2 = 0.05;
+    coeff1 = 1.0/16;
+    coeff2 = 1.0/12;
     break;
   case 5:
-    coeff1 = 10.0/(nPeers*nChannels);
-    coeff2 = 1;
+    /* coeff1 = 10.0/(nPeers*nChannels); */
+    /* coeff2 = 1; */
+    coeff1 = 1.0/30;
+    coeff2 = 1.0/40;
     break;
   default:
     printf("ERROR wrong preinput gini level\n");
     return;
   }
 
+  giniP[0] = coeff1;
+  giniP[1] = coeff2;
+  giniP[2] = 1 - (coeff1+coeff2);
+
+  giniDiscrete = gsl_ran_discrete_preproc(3, giniP);
+
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = 3e8*nPeers*nChannels; //0.01 btc per channel
+  maxfunds = capacityPerChannel*nPeers*5; //0.01 btc per channel
+  fundsPart = (capacityPerChannel/3)*nPeers*5;
 
+//  printf("%ld, %ld\n", thresh1, thresh2);
 
-  if(gini != 5) {
-  funds1 = (maxfunds/3)/thresh1;
-  funds2 = (maxfunds/3)/thresh2;
-  funds3 = (maxfunds/3)/(nPeers*nChannels - (thresh1 + thresh2));
-  }
-  else {
-  funds1 = maxfunds;
-  funds2 = 100000;
-  funds3 = 100000;
-  }
+  /* if(gini != 5) { */
+  funds[0] = (fundsPart)/thresh1;
+  funds[1] = (fundsPart)/(thresh2);
+  funds[2] = (fundsPart)/ (nPeers*nChannels - (thresh1 + thresh2));
+  /* } */
+  /* else { */
+  /* funds[0] = maxfunds; */
+  /* funds[1] = 100000; */
+  /* funds[2] = 100000; */
+  /* } */
 
   csvPeer = fopen("peer.csv", "w");
   if(csvPeer==NULL) {
@@ -421,13 +432,15 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       /* balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); */
       /* capacity = balance*2; */
 
-      counter++;
-      if(counter <= thresh1)
-        capacity = funds1;
-      else if (counter > thresh1 && counter <= thresh1 + thresh2)
-        capacity = funds2;
-      else
-        capacity = funds3;
+      /* counter++; */
+      /* if(counter <= thresh1) */
+      /*   capacity = funds1; */
+      /* else if (counter > thresh1 && counter <= thresh1 + thresh2) */
+      /*   capacity = funds2; */
+      /* else */
+      /*   capacity = funds3; */
+
+      capacity = funds[gsl_ran_discrete(r, giniDiscrete)];
 
 
       double balance_mean=5, balance_sigma=2.0, fraction;
@@ -612,7 +625,7 @@ void initializeTopology(long nPeers, long nChannels, double RWithholding, double
 
 }
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, unsigned int isPreproc) {
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, long capacityPerChannel, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
   double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
   /* double sigma=200, mean = nPeers/2; */
@@ -654,12 +667,15 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
 
   if(isPreproc)
-    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini, sigma);
+    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini, sigma, capacityPerChannel);
 
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
   printf("GINI: %lf\n", computeGini());
+  //exit(-1);
+
+
 
 }
 
@@ -833,7 +849,7 @@ void findRoute(Event *event) {
 
   
   //dijkstra parallel NEW version
-  if(payment->attempts==0) {
+  if(payment->attempts==1) {
     pathHops = paths[payment->ID];
     if(pathHops!=NULL)
       if(isAnyChannelClosed(pathHops)) {
@@ -860,7 +876,7 @@ void findRoute(Event *event) {
   if (pathHops == NULL) {
     printf("No available path\n");
     payment->endTime = simulatorTime;
-    statsUpdatePayments(payment);
+    //statsUpdatePayments(payment);
     return;
   }
 
@@ -868,7 +884,7 @@ void findRoute(Event *event) {
   if(route==NULL) {
     printf("No available route\n");
     payment->endTime = simulatorTime;
-    statsUpdatePayments(payment);
+    //statsUpdatePayments(payment);
     return;
   }
 
@@ -1030,7 +1046,7 @@ void forwardPayment(Event *event) {
   
   if(!isCooperativeBeforeLock()){
     printf("Peer %ld is not cooperative before lock\n", event->peerID);
-    payment->isAPeerUncoop = 1;
+    payment->uncoopBefore = 1;
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = previousRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -1043,14 +1059,15 @@ void forwardPayment(Event *event) {
 
   if(!isCooperativeAfterLock()) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, prevChannel->ID);
-    payment->isAPeerUncoop = 1;
+    payment->uncoopAfter = 1;
     closeChannel(prevChannel->channelInfoID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(prevChannel->ID));
 
-    statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
+    //statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
 
     payment->isSuccess = 0;
-    statsUpdatePayments(payment);
+    payment->endTime = simulatorTime;
+    //statsUpdatePayments(payment);
 
     /* prevPeerID = previousRouteHop->pathHop->sender; */
     /* eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
@@ -1114,7 +1131,7 @@ void receivePayment(Event* event ) {
 
   if(!isCooperativeBeforeLock()){
     printf("Peer %ld is not cooperative before lock\n", event->peerID);
-    payment->isAPeerUncoop = 1;
+    payment->uncoopBefore = 1;
     payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
     prevPeerID = lastRouteHop->pathHop->sender;
     eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -1128,7 +1145,7 @@ void receivePayment(Event* event ) {
 
   if(peer->withholdsR) {
     printf("Peer %ld withholds R on channel %ld\n", event->peerID, backwardChannel->ID);
-    payment->isAPeerUncoop = 1;
+    payment->uncoopAfter = 1;
     closeChannel(backwardChannel->channelInfoID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(forwardChannel->ID));
 
@@ -1193,12 +1210,13 @@ void forwardSuccess(Event* event) {
 
   if(!isCooperativeAfterLock()) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, nextChannel->ID);
-    payment->isAPeerUncoop = 1;
+    payment->uncoopAfter = 1;
     closeChannel(nextChannel->channelInfoID);
     payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
 
     payment->isSuccess = 0;
-    statsUpdatePayments(payment);
+    payment->endTime = simulatorTime;
+    //statsUpdatePayments(payment);
 
 
     /* prevPeerID = prevHop->pathHop->sender; */
@@ -1228,7 +1246,7 @@ void receiveSuccess(Event* event){
   printf("RECEIVE SUCCESS %ld\n", event->paymentID);
   payment = arrayGet(payments, event->paymentID);
   payment->endTime = simulatorTime;
-  statsUpdatePayments(payment);
+  //statsUpdatePayments(payment);
 }
 
 
@@ -1290,7 +1308,7 @@ void receiveFail(Event* event) {
 
   if(payment->isSuccess == 1 ) {
     payment->endTime = simulatorTime;
-    statsUpdatePayments(payment);
+    //statsUpdatePayments(payment);
     return; //it means that money actually arrived to the destination but a peer was not cooperative when forwarding the success
   } 
 

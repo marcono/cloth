@@ -1,6 +1,8 @@
 import csv
 
-with open('../channelInfoLN.csv', 'rb') as csv_info, open('../peerLN.csv', 'rb') as csv_peer :
+hub_id = 613
+
+with open('../channelInfo.csv', 'rb') as csv_info, open('../peer.csv', 'rb') as csv_peer :
      info_reader = csv.reader(csv_info)
      info_lines = list(info_reader)
      info_iter = iter(info_lines)
@@ -30,7 +32,9 @@ with open('../channelInfoLN.csv', 'rb') as csv_info, open('../peerLN.csv', 'rb')
          if v >= 100:
               nhubs+=1
 
-     print float(count)/(len(peer_lines)-1)
+     print nhubs
+
+#      print float(count)/(len(peer_lines)-1)
 
      info_iter = iter(info_lines)
      next(info_iter)
@@ -39,7 +43,7 @@ with open('../channelInfoLN.csv', 'rb') as csv_info, open('../peerLN.csv', 'rb')
 
      count=0
      for info_line in info_iter:
-         if info_line[3] == '423' or info_line[4] == '423':
+         if int(info_line[3]) == hub_id  or int(info_line[4]) == hub_id:
              infos.append(info_line[1])
              infos.append(info_line[2])
              count += 1

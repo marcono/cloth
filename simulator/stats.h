@@ -3,6 +3,7 @@
 #include "../protocol/protocol.h"
 #include "../utils/array.h"
 #include <stdint.h>
+#define TRANSIENT 60000
 
 long* totalPayments;
 long* succeededPayments;
@@ -49,5 +50,7 @@ void statsUpdatePayments(Payment* payment);
 void statsUpdateLockedFundCost(Array* routeHops, long channelID);
 
 void jsonWriteOutput();
+
+void statsComputeBatchMeans(uint64_t endTime);
 
 #endif

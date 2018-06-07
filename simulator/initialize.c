@@ -75,7 +75,7 @@ void initializeEvents(long nPayments, double paymentMean) {
 
 }
 
-void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest) {
+void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest, int sigmaAmount) {
   long i, senderID, receiverID;
   uint64_t  paymentAmount=0, eventTime=0 ;
   uint32_t nextEventInterval;
@@ -83,6 +83,7 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
   double paymentClassP[]= {0.7, 0.2, 0.1, 0.0}, sameDestP[] = {1-sameDest, sameDest}, randomDouble;
   gsl_ran_discrete_t* discreteAmount, *discreteDest;
   long paymentIDIndex=0;
+  int base, exp;
 
   csvPayment = fopen("payment.csv", "w");
   if(csvPayment==NULL) {
@@ -107,40 +108,47 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
     } while(senderID==receiverID);
 
 
-    paymentClass = gsl_ran_discrete(r, discreteAmount);
-    randomDouble = gsl_rng_uniform(r);
+    /* paymentClass = gsl_ran_discrete(r, discreteAmount); */
+    /* randomDouble = gsl_rng_uniform(r); */
+    /* /\* switch(paymentClass) { *\/ */
+    /* /\* case 0: *\/ */
+    /* /\*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 2); //10-1000 msat *\/ */
+    /* /\*   break; *\/ */
+    /* /\* case 1: *\/ */
+    /* /\*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 4); //1000-100,000 msat *\/ */
+    /* /\*    break; *\/ */
+    /* /\* case 2: *\/ */
+    /* /\*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 7); //0.00001 btc - 0.001 btc *\/ */
+    /* /\*   break; *\/ */
+    /* /\* case 3: *\/ */
+    /* /\*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9); *\/ */
+    /* /\*   break; *\/ */
+    /* /\* } *\/ */
     /* switch(paymentClass) { */
     /* case 0: */
-    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 2); //10-1000 msat */
+    /*   paymentAmount = gsl_rng_uniform_int(r, 1000 - 10) + 10; //10-1000 msat */
     /*   break; */
     /* case 1: */
-    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 4); //1000-100,000 msat */
-    /*    break; */
+    /*   paymentAmount = gsl_rng_uniform_int(r, 100000 - 1000) + 1000; */
+    /*   //1000-100,000 msat */
+    /*   break; */
     /* case 2: */
-    /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 7); //0.00001 btc - 0.001 btc */
+    /*   paymentAmount = gsl_rng_uniform_int(r, 1e8 - 100000) + 100000; */
+    /*   //0.00001 btc - 0.001 btc */
     /*   break; */
     /* case 3: */
+
     /*   paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9); */
     /*   break; */
     /* } */
-    switch(paymentClass) {
-    case 0:
-      paymentAmount = gsl_rng_uniform_int(r, 1000 - 10) + 10; //10-1000 msat
-      break;
-    case 1:
-      paymentAmount = gsl_rng_uniform_int(r, 100000 - 1000) + 1000;
-      //1000-100,000 msat
-      break;
-    case 2:
-      paymentAmount = gsl_rng_uniform_int(r, 1e8 - 100000) + 100000;
-      //0.00001 btc - 0.001 btc
-      break;
-    case 3:
 
-      paymentAmount = randomDouble*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);
-      break;
-    }
+    do{
+      exp = 2 + gsl_ran_gaussian_tail(r, 0, sigmaAmount);
+    } while(exp>8);
 
+    base = gsl_rng_uniform_int(r, 8)+1;
+
+    paymentAmount = base*gsl_pow_int(10,exp);
 
     nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
     eventTime += nextEventInterval;
@@ -149,9 +157,11 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
   }
 
+
+
   fclose(csvPayment);
 
-  //  exit(-1);
+  //exit(-1);
 
   //printf("change payments and press enter\n");
   //scanf("%*c");
@@ -188,7 +198,7 @@ void createPaymentsFromCsv(unsigned int isPreproc) {
   fclose(csvPayment);
 }
 
-void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, unsigned int isPreproc ) {
+void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, int sigmaAmount, unsigned int isPreproc ) {
   eventIndex = 0;
   simulatorTime = 1;
 
@@ -196,7 +206,7 @@ void initializeSimulatorData(long nPayments, double paymentMean, double sameDest
   events = heapInitialize(nPayments*10);
 
   if(isPreproc)
-    initializeEventsPreproc(nPayments, paymentMean, sameDest);
+    initializeEventsPreproc(nPayments, paymentMean, sameDest, sigmaAmount);
 
   /* printf("Change topology and press enter\n"); */
   /* scanf("%*c%*c"); */

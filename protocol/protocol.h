@@ -65,7 +65,8 @@ typedef struct payment{
   Array* ignoredPeers;
   Array* ignoredChannels;
   int isSuccess;
-  int isAPeerUncoop;
+  int uncoopAfter;
+  int uncoopBefore;
   uint64_t startTime;
   uint64_t endTime;
   int attempts;
@@ -91,7 +92,7 @@ typedef struct channel{
 } Channel;
 */
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, unsigned int isPreproc);
+void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, long capacityPerChannel, unsigned int isPreproc);
 
 Peer* createPeer(long ID, long channelsSize);
 
