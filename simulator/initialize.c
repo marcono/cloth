@@ -84,6 +84,7 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
   gsl_ran_discrete_t* discreteAmount, *discreteDest;
   long paymentIDIndex=0;
   int base, exp;
+  int npay[8]={0};
 
   csvPayment = fopen("payment.csv", "w");
   if(csvPayment==NULL) {
@@ -142,9 +143,12 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
     /*   break; */
     /* } */
 
+
     do{
-      exp = 2 + gsl_ran_gaussian_tail(r, 0, sigmaAmount);
-    } while(exp>8);
+      exp = gsl_ran_gaussian_tail(r, 0, sigmaAmount);
+    } while(exp>7);
+
+    ++npay[exp];
 
     base = gsl_rng_uniform_int(r, 8)+1;
 
@@ -157,7 +161,10 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
   }
 
+  for(i=0; i<8; i++)
+    printf("%d, %d\n", i, npay[i]);
 
+  //  exit(-1);
 
   fclose(csvPayment);
 
