@@ -313,8 +313,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   case 5:
     /* coeff1 = 10.0/(nPeers*nChannels); */
     /* coeff2 = 1; */
-    coeff1 = 1.0/30;
-    coeff2 = 1.0/40;
+    coeff1 = 1.0/1000;
+    coeff2 = 1.0/1000;
     break;
   default:
     printf("ERROR wrong preinput gini level\n");

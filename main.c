@@ -378,7 +378,7 @@ uint64_t readPreInputAndInitialize() {
   long nPayments, nPeers, nChannels, capacityPerChannel;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreprocTopology=0, isPreprocPayments=1;
+  unsigned int isPreprocTopology=1, isPreprocPayments=1;
   int gini, sigmaTopology, sigmaAmount;
   char answer;
   clock_t  begin, end;
@@ -532,7 +532,7 @@ int main() {
   end = clock();
   timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulator events: %lf\n", timeSpent);
- 
+
   //  statsComputeBatchMeans(endTime);
 
   //printPayments();

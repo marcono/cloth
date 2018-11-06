@@ -3,8 +3,8 @@ from sortedcontainers import SortedDict
 
 times = SortedDict()
 
-path = '../../simulations/'
-sim_number = '0-LN'
+path = '../../DGX1/simulations/'
+sim_number = '58'
 pay_file_name = '/payment_output.csv'
 stats_file_name = '/times.csv'
 pay_file_path = path   + sim_number + pay_file_name
@@ -23,10 +23,12 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_ou
      for pay in pay_iter:
          if int(pay[6]) == 1:
              diff = int(pay[5]) - int(pay[4])
+             if diff < 0:
+                  continue
              times[int(pay[5])] = diff
 
      for key, value in times.items():
           writer.writerow([key, value])
 
-     print 'finished'
+     print sim_number
 

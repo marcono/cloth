@@ -161,10 +161,10 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
   }
 
-  for(i=0; i<8; i++)
-    printf("%d, %d\n", i, npay[i]);
+  /* for(i=0; i<8; i++) */
+  /*   printf("%d, %d\n", i, npay[i]); */
 
-  //  exit(-1);
+  /* exit(-1); */
 
   fclose(csvPayment);
 

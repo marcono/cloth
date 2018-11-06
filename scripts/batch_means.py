@@ -3,8 +3,23 @@ import csv
 import sys
 from scipy.stats import t
 from math import sqrt
+from collections import OrderedDict
 
+
+path = '../../simulations/'
+sim_number = '20-LN'
+pay_file_name = '/payment_output.csv'
+stats_file_name = '/stats.json'
+pay_file_path = path  + sim_number + pay_file_name
+stats_file_path = path + sim_number + stats_file_name
+
+end = 950000
+transient = 620
 n_batches = 30
+delta = (end-transient)/30
+
+
+stats = ['Total', 'Succeeded', 'FailedNoBalance', 'FailedOffline', 'FailedNoPath', 'Unknown', 'AvgTime', 'MinTime', 'MaxTime', 'AvgAttempts', 'MinAttempts', 'MaxAttempts',  'AvgRoute', 'MinRoute', 'MaxRoute']
 
 batches = [{"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":sys.maxint,  "MaxAttempts":-1, "AvgTime":0, "MinTime":sys.maxint, "MaxTime":-1, "AvgRoute":0, "MinRoute":sys.maxint, "MaxRoute":-1 } for i in range (0, n_batches)]
 
@@ -16,23 +31,16 @@ confidence_min = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance
 
 confidence_max = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
 
+total_mean_time = 0
+total_mean_route = 0
+total_succeeded = 0
+
 alfa_confidence = 0.95
 percentile = t.isf(alfa_confidence/2, n_batches-1)
 
-path = '../../simulations/'
-sim_number = '01-LN'
-pay_file_name = '/payment_output.csv'
-stats_file_name = '/stats.csv'
-pay_file_path = path   + sim_number + pay_file_name
-stats_file_path = path + sim_number + stats_file_name
-
-end = 1e6
-transient = 700
-delta = (end-transient)/30
-
 print 'delta_batch: ', delta
 
-with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_stats :
+with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_file :
      pay_reader = csv.DictReader(csv_pay)
 
      ##GET STATS FROM FILE
@@ -57,8 +65,10 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_st
 
          if pay['IsSuccess']=='1':
              batches[b]['Succeeded'] += 1
+             total_succeeded += 1
 
              duration = pay_end_time - int(pay['Time']);
+             total_mean_time += duration
              batches[b]['AvgTime'] += duration
              if duration > batches[b]['MaxTime']:
                   batches[b]['MaxTime'] = duration
@@ -66,6 +76,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_st
                   batches[b]['MinTime'] = duration
 
              routelen = len(pay['Route'].split('-'))
+             total_mean_route += routelen
              batches[b]['AvgRoute'] += routelen
              if routelen > batches[b]['MaxRoute']:
                   batches[b]['MaxRoute'] = routelen
@@ -82,13 +93,24 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_st
              else:
                  batches[b]['FailedNoBalance'] += 1
 
+     total_mean_time = float(total_mean_time)/total_succeeded
+     total_mean_route = float(total_mean_route)/total_succeeded
+     print total_mean_time, total_mean_route
 
      ## COMPUTE PER-BATCH STATS
 
      for i in range (0, n_batches):
-          batches[i]['AvgTime'] = float(batches[i]['AvgTime'])/batches[i]['Succeeded']
+          if batches[i]['Succeeded'] == 0:
+               batches[i]['AvgTime'] = total_mean_time
+               batches[i]['AvgRoute'] = total_mean_route
+          else:
+               batches[i]['AvgTime'] = float(batches[i]['AvgTime'])/batches[i]['Succeeded']
+               batches[i]['AvgRoute'] = float(batches[i]['AvgRoute'])/batches[i]['Succeeded']
+
+          if batches[i]['Total'] == 0:
+               print i
+
           batches[i]['AvgAttempts'] = float(batches[i]['AvgAttempts'])/batches[i]['Total']
-          batches[i]['AvgRoute'] = float(batches[i]['AvgRoute'])/batches[i]['Succeeded']
           batches[i]['Succeeded'] = float(batches[i]['Succeeded'])/batches[i]['Total']
           batches[i]['FailedNoPath'] = float(batches[i]['FailedNoPath'])/batches[i]['Total']
           batches[i]['FailedNoBalance'] = float(batches[i]['FailedNoBalance'])/batches[i]['Total']
@@ -174,20 +196,20 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_st
     ## COMPUTE BATCH CONFIDENCE MIN
 
      confidence_min['Total'] = means['Total'] - percentile*sqrt( (variances['Total']**2)/n_batches ) 
-     confidence_min['FailedNoBalance'] = means['FailedNoBalance'] - percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches ) 
-     confidence_min['FailedOffline'] = means['FailedOffline'] - percentile*sqrt( (variances['FailedOffline']**2)/n_batches ) 
-     confidence_min['FailedNoPath'] = means['FailedNoPath'] - percentile*sqrt( (variances['FailedNoPath']**2)/n_batches ) 
-     confidence_min['Unknown'] = means['Unknown'] - percentile*sqrt( (variances['Unknown']**2)/n_batches ) 
-     confidence_min['AvgAttempts'] = means['AvgAttempts'] - percentile*sqrt( (variances['AvgAttempts']**2)/n_batches ) 
-     confidence_min['MinAttempts'] = means['MinAttempts'] - percentile*sqrt( (variances['MinAttempts']**2)/n_batches ) 
-     confidence_min['MaxAttempts'] = means['MaxAttempts'] - percentile*sqrt( (variances['MaxAttempts']**2)/n_batches ) 
-     confidence_min['AvgTime'] = means['AvgTime'] - percentile*sqrt( (variances['AvgTime']**2)/n_batches ) 
-     confidence_min['MinTime'] = means['MinTime'] - percentile*sqrt( (variances['MinTime']**2)/n_batches ) 
-     confidence_min['MaxTime'] = means['MaxTime'] - percentile*sqrt( (variances['MaxTime']**2)/n_batches ) 
-     confidence_min['AvgRoute'] = means['AvgRoute'] - percentile*sqrt( (variances['AvgRoute']**2)/n_batches ) 
-     confidence_min['MinRoute'] = means['MinRoute'] - percentile*sqrt( (variances['MinRoute']**2)/n_batches ) 
-     confidence_min['MaxRoute'] = means['MaxRoute'] - percentile*sqrt( (variances['MaxRoute']**2)/n_batches ) 
-     confidence_min['Succeeded'] = means['Succeeded'] - percentile*sqrt( (variances['Succeeded']**2)/n_batches ) 
+     confidence_min['FailedNoBalance'] = means['FailedNoBalance'] - percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches )
+     confidence_min['FailedOffline'] = means['FailedOffline'] - percentile*sqrt( (variances['FailedOffline']**2)/n_batches )
+     confidence_min['FailedNoPath'] = means['FailedNoPath'] - percentile*sqrt( (variances['FailedNoPath']**2)/n_batches )
+     confidence_min['Unknown'] = means['Unknown'] - percentile*sqrt( (variances['Unknown']**2)/n_batches )
+     confidence_min['AvgAttempts'] = means['AvgAttempts'] - percentile*sqrt( (variances['AvgAttempts']**2)/n_batches )
+     confidence_min['MinAttempts'] = means['MinAttempts'] - percentile*sqrt( (variances['MinAttempts']**2)/n_batches )
+     confidence_min['MaxAttempts'] = means['MaxAttempts'] - percentile*sqrt( (variances['MaxAttempts']**2)/n_batches )
+     confidence_min['AvgTime'] = means['AvgTime'] - percentile*sqrt( (variances['AvgTime']**2)/n_batches )
+     confidence_min['MinTime'] = means['MinTime'] - percentile*sqrt( (variances['MinTime']**2)/n_batches )
+     confidence_min['MaxTime'] = means['MaxTime'] - percentile*sqrt( (variances['MaxTime']**2)/n_batches )
+     confidence_min['AvgRoute'] = means['AvgRoute'] - percentile*sqrt( (variances['AvgRoute']**2)/n_batches )
+     confidence_min['MinRoute'] = means['MinRoute'] - percentile*sqrt( (variances['MinRoute']**2)/n_batches )
+     confidence_min['MaxRoute'] = means['MaxRoute'] - percentile*sqrt( (variances['MaxRoute']**2)/n_batches )
+     confidence_min['Succeeded'] = means['Succeeded'] - percentile*sqrt( (variances['Succeeded']**2)/n_batches )
 
 
      ## COMPUTE BATCH CONFIDENCE MAX
@@ -209,16 +231,43 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_st
      confidence_max['Succeeded'] = means['Succeeded'] + percentile*sqrt( (variances['Succeeded']**2)/n_batches )
 
 
-     ## WRITE STATS ON FILE
+     ## WRITE STATS ON
 
-     csvwriter = csv.writer(csv_stats);
+     #output = {stat:{"Mean": means[stat], "Variance": variances[stat], "ConfidenceMin": confidence_min[stat], "ConfidenceMax": confidence_max[stat]} for stat in stats}
 
-     row = []
+     dict_stats = {}
 
-     for stat in ['Total', 'FailedNoBalance']:
-          row.append(stat+'Mean');
-          row.append(stat+'Variance');
-## TODO: write json for stats
-     print row
+     for stat in stats:
+          dict_stats[stat] = OrderedDict([
+               ('Mean', means[stat]),
+               ('Variance', variances[stat]),
+               ('ConfidenceMin', confidence_min[stat]),
+               ('ConfidenceMax', confidence_max[stat])
+          ])
 
+     temp_output = []
+     for stat in stats:
+          temp_output.append((stat, dict_stats[stat]))
 
+     output = OrderedDict(temp_output)
+
+     # output = OrderedDict([
+     #      (stats[0], dict_stats[stats[0]]),
+     #      (stats[1], dict_stats[stats[1]]),
+     #      (stats[2], dict_stats[stats[2]]),
+     #      (stats[3], dict_stats[stats[3]]),
+     #      (stats[4], dict_stats[stats[4]]),
+     #      (stats[5], dict_stats[stats[5]]),
+     #      (stats[6], dict_stats[stats[6]]),
+     #      (stats[7], dict_stats[stats[7]]),
+     #      (stats[8], dict_stats[stats[8]]),
+     #      (stats[9], dict_stats[stats[9]]),
+     #      (stats[10], dict_stats[stats[10]]),
+     #      (stats[11], dict_stats[stats[11]]),
+     #      (stats[12], dict_stats[stats[12]]),
+     #      (stats[13], dict_stats[stats[13]]),
+     #      (stats[14], dict_stats[stats[14]]),
+
+     # ])
+
+     json.dump(output, stats_file, indent=4)
