@@ -1,8 +1,11 @@
 import json
 import csv
 from random import randint
+import sys
 
-with open('../networkgraphv_14-06-2018.json', 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer:
+input_args = list(sys.argv)
+
+with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer:
     data = json.load(input)
     peer_writer = csv.writer(csv_peer)
 

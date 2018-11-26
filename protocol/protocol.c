@@ -330,8 +330,8 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
   thresh1 = nPeers*nChannels*coeff1;
   thresh2 = nPeers*nChannels*coeff2;
 
-  maxfunds = capacityPerChannel*nPeers*5; //0.01 btc per channel
-  fundsPart = (capacityPerChannel/3)*nPeers*5;
+  // NOTE: *5 instead of *nChannels if you want to test Gini
+  fundsPart = (capacityPerChannel/3)*nPeers*nChannels;
 
 //  printf("%ld, %ld\n", thresh1, thresh2);
 
@@ -643,27 +643,10 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
 
   nDijkstra = 0;
-  /* peers = hashTableInitialize(nPeers); */
-  /* channels = hashTableInitialize(nChannels*nPeers*2); */
-  /* channelInfos= hashTableInitialize(nChannels*nPeers); */
 
   peers = arrayInitialize(nPeers);
   channels = arrayInitialize(nChannels*nPeers);
   channelInfos = arrayInitialize(nChannels*nPeers);
-
-  /* for(i=0; i<5000; i++) { */
-  /*   z = mean + gsl_ran_gaussian(r, sigma); */
-  /*   if(z<0 || z>=nPeers) ++outofrange; */
-  /*   else ++counts[z]; */
-  /*   //printf("%lf\n", z); */
-  /* } */
-
-  /* printf("outofrange: %ld\n", outofrange); */
-  /* for(i=0; i<1000; i++) */
-  /*   printf("%ld\n", counts[i]); */
-  /* printf("\n"); */
-
-  /* exit(-1); */
 
 
   if(isPreproc)
@@ -672,8 +655,7 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
   createTopologyFromCsv(isPreproc);
   //initializeTopology(nPeers, nChannels, RWithholding, gini);
 
-  printf("GINI: %lf\n", computeGini());
-  //exit(-1);
+  //printf("GINI: %lf\n", computeGini());
 
 
 
