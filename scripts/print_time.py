@@ -1,14 +1,15 @@
 import csv
+import sys
 from sortedcontainers import SortedDict
 
+input_args = list(sys.argv)
 times = SortedDict()
 
-path = '../../DGX1/simulations/'
-sim_number = '58'
+path = input_args[1]
 pay_file_name = '/payment_output.csv'
 stats_file_name = '/times.csv'
-pay_file_path = path   + sim_number + pay_file_name
-stats_file_path = path + sim_number + stats_file_name
+pay_file_path = path  + pay_file_name
+stats_file_path = path + stats_file_name
 
 
 with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_output :
@@ -30,5 +31,5 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as csv_ou
      for key, value in times.items():
           writer.writerow([key, value])
 
-     print sim_number
+     print input_args[1]
 

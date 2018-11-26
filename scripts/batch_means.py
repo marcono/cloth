@@ -5,16 +5,16 @@ from scipy.stats import t
 from math import sqrt
 from collections import OrderedDict
 
+input_args = list(sys.argv)
 
-path = '../../simulations/'
-sim_number = '20-LN'
-pay_file_name = '/payment_output.csv'
-stats_file_name = '/stats.json'
-pay_file_path = path  + sim_number + pay_file_name
-stats_file_path = path + sim_number + stats_file_name
+path = input_args[1]
+pay_file_name = 'payment_output.csv'
+stats_file_name = 'stats.json'
+pay_file_path = path + pay_file_name
+stats_file_path = path + stats_file_name
 
-end = 950000
-transient = 620
+end = int(input_args[2])
+transient = int(input_args[3])
 n_batches = 30
 delta = (end-transient)/30
 
