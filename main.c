@@ -285,11 +285,11 @@ void csvWriteOutput() {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
 
   for(i=0; i<paymentIndex; i++)  {
     payment = arrayGet(payments, i);
-    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->endTime, payment->isSuccess, payment->uncoopAfter, payment->uncoopBefore, payment->attempts);
+    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->endTime, payment->isSuccess, payment->uncoopAfter, payment->uncoopBefore, payment->isTimeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)

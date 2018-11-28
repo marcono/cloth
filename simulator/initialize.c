@@ -146,13 +146,15 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
     do{
       exp = gsl_ran_gaussian_tail(r, 0, sigmaAmount);
-    } while(exp>7);
+    } while(exp>8);
 
     ++npay[exp];
 
     base = gsl_rng_uniform_int(r, 8)+1;
 
     paymentAmount = base*gsl_pow_int(10,exp);
+
+    
 
     nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
     eventTime += nextEventInterval;

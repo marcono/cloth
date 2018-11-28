@@ -117,6 +117,7 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->isSuccess = 0;
   p->uncoopAfter = 0;
   p->uncoopBefore=0;
+  p->isTimeout = 0;
   p->startTime = 0;
   p->endTime = 0;
   p->attempts = 0;
@@ -829,6 +830,11 @@ void findRoute(Event *event) {
   /* condPaths[payment->ID] = 0; */
   /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
 
+  if(simulatorTime > payment->startTime + 60000) {
+    payment->endTime = simulatorTime;
+    payment->isTimeout = 1;
+    return;
+  }
   
   //dijkstra parallel NEW version
   if(payment->attempts==1) {

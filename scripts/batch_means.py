@@ -19,17 +19,17 @@ n_batches = 30
 delta = (end-transient)/30
 
 
-stats = ['Total', 'Succeeded', 'FailedNoBalance', 'FailedOffline', 'FailedNoPath', 'Unknown', 'AvgTime', 'MinTime', 'MaxTime', 'AvgAttempts', 'MinAttempts', 'MaxAttempts',  'AvgRoute', 'MinRoute', 'MaxRoute']
+stats = ['Total', 'Succeeded', 'FailedNoBalance', 'FailedOffline', 'FailedNoPath', 'FailedTimeout', 'Unknown', 'AvgTime', 'MinTime', 'MaxTime', 'AvgAttempts', 'MinAttempts', 'MaxAttempts',  'AvgRoute', 'MinRoute', 'MaxRoute']
 
-batches = [{"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":sys.maxint,  "MaxAttempts":-1, "AvgTime":0, "MinTime":sys.maxint, "MaxTime":-1, "AvgRoute":0, "MinRoute":sys.maxint, "MaxRoute":-1 } for i in range (0, n_batches)]
+batches = [{"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "FailedTimeout":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":sys.maxint,  "MaxAttempts":-1, "AvgTime":0, "MinTime":sys.maxint, "MaxTime":-1, "AvgRoute":0, "MinRoute":sys.maxint, "MaxRoute":-1 } for i in range (0, n_batches)]
 
-means = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
+means = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "FailedTimeout":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
 
-variances = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
+variances = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "FailedTimeout":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
 
-confidence_min = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
+confidence_min = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "FailedTimeout":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
 
-confidence_max = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
+confidence_max = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance":0, "FailedOffline":0, "FailedTimeout":0, "Unknown":0, "AvgAttempts":0, "MinAttempts":0,  "MaxAttempts":0, "AvgTime":0, "MinTime":0, "MaxTime":0, "AvgRoute":0, "MinRoute":0, "MaxRoute":0 }
 
 total_mean_time = 0
 total_mean_route = 0
@@ -54,18 +54,19 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
 
          b = int((pay_end_time-transient)/delta)
 
-         attempts = int(pay['Attempts'])
-         batches[b]['AvgAttempts'] += attempts
-         if attempts > batches[b]['MaxAttempts']:
-              batches[b]['MaxAttempts'] = attempts
-         if attempts < batches[b]['MinAttempts']:
-              batches[b]['MinAttempts'] = attempts
 
          batches[b]['Total'] += 1
 
          if pay['IsSuccess']=='1':
              batches[b]['Succeeded'] += 1
              total_succeeded += 1
+
+             attempts = int(pay['Attempts'])
+             batches[b]['AvgAttempts'] += attempts
+             if attempts > batches[b]['MaxAttempts']:
+                  batches[b]['MaxAttempts'] = attempts
+             if attempts < batches[b]['MinAttempts']:
+                  batches[b]['MinAttempts'] = attempts
 
              duration = pay_end_time - int(pay['Time']);
              total_mean_time += duration
@@ -84,7 +85,9 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
                   batches[b]['MinRoute'] = routelen
 
          else:
-             if pay['Route'] == '-1':
+             if pay['IsTimeout'] == '1':
+                  batches[b]['FailedTimeout'] += 1
+             elif pay['Route'] == '-1':
                  batches[b]['FailedNoPath'] +=1
              elif pay['UncoopAfter'] == '1':
                  batches[b]['Unknown'] += 1
@@ -115,6 +118,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
           batches[i]['FailedNoPath'] = float(batches[i]['FailedNoPath'])/batches[i]['Total']
           batches[i]['FailedNoBalance'] = float(batches[i]['FailedNoBalance'])/batches[i]['Total']
           batches[i]['FailedOffline'] = float(batches[i]['FailedOffline'])/batches[i]['Total']
+          batches[i]['FailedTimeout'] = float(batches[i]['FailedTimeout'])/batches[i]['Total']
           batches[i]['Unknown'] = float(batches[i]['Unknown'])/batches[i]['Total']
           #print batches[i]
 
@@ -126,6 +130,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
           means['FailedNoBalance'] += batches[i]['FailedNoBalance']
           means['FailedOffline'] += batches[i]['FailedOffline']
           means['FailedNoPath'] += batches[i]['FailedNoPath']
+          means['FailedTimeout'] += batches[i]['FailedTimeout']
           means['Unknown'] += batches[i]['Unknown']
           means['AvgAttempts'] += batches[i]['AvgAttempts']
           means['MinAttempts'] += batches[i]['MinAttempts']
@@ -143,6 +148,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      means['FailedNoBalance'] = float(means['FailedNoBalance'])/n_batches
      means['FailedOffline'] = float(means['FailedOffline'])/n_batches
      means['FailedNoPath'] = float(means['FailedNoPath'])/n_batches
+     means['FailedTimeout'] = float(means['FailedTimeout'])/n_batches
      means['Unknown'] = float(means['Unknown'])/n_batches
      means['AvgAttempts'] = float(means['AvgAttempts'])/n_batches
      means['MinAttempts'] = float(means['MinAttempts'])/n_batches
@@ -164,6 +170,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
           variances['FailedNoBalance'] += (batches[i]['FailedNoBalance']-means['FailedNoBalance'])**2
           variances['FailedOffline'] += (batches[i]['FailedOffline'] - means['FailedOffline'])**2
           variances['FailedNoPath'] += (batches[i]['FailedNoPath'] - means['FailedNoPath'])**2
+          variances['FailedTimeout'] += (batches[i]['FailedTimeout'] - means['FailedTimeout'])**2
           variances['Unknown'] += (batches[i]['Unknown'] - means['Unknown'])**2
           variances['AvgAttempts'] += (batches[i]['AvgAttempts'] - means['AvgAttempts'])**2
           variances['MinAttempts'] += (batches[i]['MinAttempts'] - means['MinAttempts'])**2
@@ -180,6 +187,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      variances['FailedNoBalance'] = float(variances['FailedNoBalance'])/(n_batches-1)
      variances['FailedOffline'] = float(variances['FailedOffline'])/(n_batches-1)
      variances['FailedNoPath'] = float(variances['FailedNoPath'])/(n_batches-1)
+     variances['FailedTimeout'] = float(variances['FailedTimeout'])/(n_batches-1)
      variances['Unknown'] = float(variances['Unknown'])/(n_batches-1)
      variances['AvgAttempts'] = float(variances['AvgAttempts'])/(n_batches-1)
      variances['MinAttempts'] = float(variances['MinAttempts'])/(n_batches-1)
@@ -199,6 +207,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      confidence_min['FailedNoBalance'] = means['FailedNoBalance'] - percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches )
      confidence_min['FailedOffline'] = means['FailedOffline'] - percentile*sqrt( (variances['FailedOffline']**2)/n_batches )
      confidence_min['FailedNoPath'] = means['FailedNoPath'] - percentile*sqrt( (variances['FailedNoPath']**2)/n_batches )
+     confidence_min['FailedTimeout'] = means['FailedTimeout'] - percentile*sqrt( (variances['FailedTimeout']**2)/n_batches )
      confidence_min['Unknown'] = means['Unknown'] - percentile*sqrt( (variances['Unknown']**2)/n_batches )
      confidence_min['AvgAttempts'] = means['AvgAttempts'] - percentile*sqrt( (variances['AvgAttempts']**2)/n_batches )
      confidence_min['MinAttempts'] = means['MinAttempts'] - percentile*sqrt( (variances['MinAttempts']**2)/n_batches )
@@ -218,6 +227,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      confidence_max['FailedNoBalance'] = means['FailedNoBalance'] + percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches )
      confidence_max['FailedOffline'] = means['FailedOffline'] + percentile*sqrt( (variances['FailedOffline']**2)/n_batches )
      confidence_max['FailedNoPath'] = means['FailedNoPath'] + percentile*sqrt( (variances['FailedNoPath']**2)/n_batches )
+     confidence_max['FailedTimeout'] = means['FailedTimeout'] + percentile*sqrt( (variances['FailedTimeout']**2)/n_batches )
      confidence_max['Unknown'] = means['Unknown'] + percentile*sqrt( (variances['Unknown']**2)/n_batches )
      confidence_max['AvgAttempts'] = means['AvgAttempts'] + percentile*sqrt( (variances['AvgAttempts']**2)/n_batches )
      confidence_max['MinAttempts'] = means['MinAttempts'] + percentile*sqrt( (variances['MinAttempts']**2)/n_batches )

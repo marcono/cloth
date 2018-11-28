@@ -67,6 +67,7 @@ typedef struct payment{
   int isSuccess;
   int uncoopAfter;
   int uncoopBefore;
+  int isTimeout;
   uint64_t startTime;
   uint64_t endTime;
   int attempts;
