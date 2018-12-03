@@ -32,7 +32,7 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
     info_writer.writerow(['ID', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])
 
     channel_writer = csv.writer(csv_channel)
-    channel_writer.writerow(['ID', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'Timelock'])
+    channel_writer.writerow(['ID', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'MinHTLC', 'Timelock'])
 
 
     info_id = 0
@@ -47,26 +47,30 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
         info_writer.writerow([info_id, channel_id, channel_id+1, peer1, peer2, capacity, latency])
 
         if edge["node1_policy"] is None:
-            timelock = 14
+            timelock = 144
             fee_base = 1000
-            fee_prop = 10
+            fee_prop = 1
+            min_htlc = 1000
         else:
             timelock = edge["node1_policy"]["time_lock_delta"]
             fee_base = edge["node1_policy"]["fee_base_msat"]
             fee_prop = edge["node1_policy"]["fee_rate_milli_msat"]
+            min_htlc = edge["node1_policy"]["min_htlc"]
 
-        channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, capacity/2, fee_base, fee_prop, timelock])
+        channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, capacity/2, fee_base, fee_prop, min_htlc, timelock])
 
         if edge["node2_policy"] is None:
-            timelock = 14
+            timelock = 144
             fee_base = 1000
-            fee_prop = 10
+            fee_prop = 1
+            min_htlc = 1000
         else:
             timelock = edge["node2_policy"]["time_lock_delta"]
             fee_base = edge["node2_policy"]["fee_base_msat"]
             fee_prop = edge["node2_policy"]["fee_rate_milli_msat"]
+            min_htlc = edge["node2_policy"]["min_htlc"]
 
-        channel_writer.writerow([channel_id+1, info_id, channel_id, peer1, capacity/2, fee_base, fee_prop, timelock])
+        channel_writer.writerow([channel_id+1, info_id, channel_id, peer1, capacity/2, fee_base, fee_prop, min_htlc, timelock])
 
         info_id+=1
         channel_id+=2

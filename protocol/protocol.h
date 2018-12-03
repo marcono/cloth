@@ -24,6 +24,7 @@ extern long nDijkstra;
 typedef struct policy {
   uint32_t feeBase;
   uint32_t feeProportional;
+  uint32_t minHTLC;
   uint16_t timelock;
 } Policy;
 

@@ -390,7 +390,7 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
 
       capacity = channelInfo->capacity;
 
-      if(tmpDist < distance[p][nextPeerID].distance && amount<=capacity) {
+      if(tmpDist < distance[p][nextPeerID].distance && amount<=capacity && amount >= channel->policy.minHTLC) {
         distance[p][nextPeerID].peer = nextPeerID;
         distance[p][nextPeerID].distance = tmpDist;
 

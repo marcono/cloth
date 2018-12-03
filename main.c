@@ -271,11 +271,11 @@ void csvWriteOutput() {
     printf("ERROR cannot open channel_output.csv\n");
     return;
   }
-  fprintf(csvChannelOutput, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock, isClosed\n");
+  fprintf(csvChannelOutput, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,MinHTLC,Timelock,isClosed\n");
 
   for(i=0; i<channelIndex; i++) {
     channel = arrayGet(channels, i);
-    fprintf(csvChannelOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock, channel->isClosed);
+    fprintf(csvChannelOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.minHTLC, channel->policy.timelock, channel->isClosed);
   }
 
   fclose(csvChannelOutput);
@@ -430,6 +430,7 @@ uint64_t readPreInputAndInitialize() {
 
   initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigmaTopology, capacityPerChannel, isPreprocTopology);
   initializeSimulatorData(nPayments, paymentMean, sameDest, sigmaAmount, isPreprocPayments);
+
 
   statsInitialize();
 

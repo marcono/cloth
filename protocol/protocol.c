@@ -180,52 +180,52 @@ Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection,
 
 
 
-void connectPeers(long peerID1, long peerID2) {
-  Peer* peer1, *peer2;
-  Policy policy1, policy2;
-  Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection
-  ChannelInfo *channelInfo;
-  uint32_t latency;
-  uint64_t balance; 
+/* void connectPeers(long peerID1, long peerID2) { */
+/*   Peer* peer1, *peer2; */
+/*   Policy policy1, policy2; */
+/*   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection */
+/*   ChannelInfo *channelInfo; */
+/*   uint32_t latency; */
+/*   uint64_t balance;  */
 
-  peer1 = arrayGet(peers, peerID1);
-  peer2 = arrayGet(peers, peerID2);
+/*   peer1 = arrayGet(peers, peerID1); */
+/*   peer2 = arrayGet(peers, peerID2); */
 
-  latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
-  channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency);
-  //  hashTablePut(channelInfos, channelInfo->ID, channelInfo);
-  channelInfos = arrayInsert(channelInfos, channelInfo);
+/*   latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY; */
+/*   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency); */
+/*   //  hashTablePut(channelInfos, channelInfo->ID, channelInfo); */
+/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
 
-  balance = gsl_rng_uniform_int(r, 10) + 1;
-  //  exponent = gsl_ran_poisson(r, 4.5);
-  balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11]
+/*   balance = gsl_rng_uniform_int(r, 10) + 1; */
+/*   //  exponent = gsl_ran_poisson(r, 4.5); */
+/*   balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11] */
 
-  policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-  policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
-  policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-  firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1);
-  firstChannelDirection->balance = balance;
-  //  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection);
-  channels = arrayInsert(channels, firstChannelDirection);
-  peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID));
-  channelInfo->channelDirection1 = firstChannelDirection->ID;
+/*   policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
+/*   policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP); */
+/*   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
+/*   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1); */
+/*   firstChannelDirection->balance = balance; */
+/*   //  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection); */
+/*   channels = arrayInsert(channels, firstChannelDirection); */
+/*   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID)); */
+/*   channelInfo->channelDirection1 = firstChannelDirection->ID; */
 
-  policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-  policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000;
-  policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-  secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2);
-  secondChannelDirection->balance = balance;
-  //hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection);
-  channels = arrayInsert(channels, secondChannelDirection);
-  peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID));
-  channelInfo->channelDirection2 = secondChannelDirection->ID;
+/*   policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
+/*   policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000; */
+/*   policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
+/*   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2); */
+/*   secondChannelDirection->balance = balance; */
+/*   //hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection); */
+/*   channels = arrayInsert(channels, secondChannelDirection); */
+/*   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID)); */
+/*   channelInfo->channelDirection2 = secondChannelDirection->ID; */
 
-  firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID;
-  secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID;
+/*   firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID; */
+/*   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID; */
 
-  channelInfo->capacity = firstChannelDirection->balance + secondChannelDirection->balance;
+/*   channelInfo->capacity = firstChannelDirection->balance + secondChannelDirection->balance; */
 
-}
+/* } */
 
 void computePeersInitialFunds(double gini) {
   long i;
@@ -285,11 +285,11 @@ double computeGini() {
 
 void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma, long capacityPerChannel) {
   long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, giniP[2], coeff1, coeff2, mean=nPeers/2 ;
-  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete, *giniDiscrete;
+  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, giniP[3], minHTLCP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=nPeers/2 ;
+  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete, *giniDiscrete, *minHTLCDiscrete;
   int *peerChannels;
   uint32_t latency;
-  uint64_t balance1, balance2, capacity;
+  uint64_t balance1, balance2, capacity, minHTLC;
   Policy policy1, policy2;
   long thresh1, thresh2, counter=0;
   uint64_t funds[2], maxfunds, fundsPart;
@@ -366,7 +366,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     printf("ERROR cannot open file channel.csv\n");
     return;
   }
-  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
+  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,MinHTLC,Timelock\n");
 
 
   RwithholdingDiscrete = gsl_ran_discrete_preproc(2, RwithholdingP);
@@ -461,18 +461,26 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       balance1 = fraction*capacity; //2;//(gsl_rng_uniform_int(r, 10)+1);
       balance2 = capacity - balance1;
 
+
+      minHTLCDiscrete = gsl_ran_discrete_preproc(4, minHTLCP);
+
+
       policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
       policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+      policy1.minHTLC = gsl_pow_int(10, gsl_ran_discrete(r, minHTLCDiscrete));
+      policy1.minHTLC = policy1.minHTLC == 1 ? 0 : policy1.minHTLC;
       policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
       policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+      policy2.minHTLC = gsl_pow_int(10, gsl_ran_discrete(r, minHTLCDiscrete));
+      policy2.minHTLC = policy2.minHTLC == 1 ? 0 : policy2.minHTLC;
 
       fprintf(csvChannelInfo, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction1, info, direction2, peer2, balance1, policy1.feeBase, policy1.feeProportional, policy1.timelock);
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, peer2, balance1, policy1.feeBase, policy1.feeProportional, policy1.minHTLC, policy1.timelock);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", direction2, info, direction1, peer1, balance2, policy2.feeBase, policy2.feeProportional, policy2.timelock);
+      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, peer1, balance2, policy2.feeBase, policy2.feeProportional, policy2.minHTLC, policy2.timelock);
 
     }
 
@@ -569,7 +577,7 @@ void createTopologyFromCsv(unsigned int isPreproc) {
 
   fgets(row, 256, csvChannel);
   while(fgets(row, 256, csvChannel)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.timelock);
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.minHTLC, &policy.timelock);
     channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
     //hashTablePut(channels, channel->ID, channel);
     channels = arrayInsert(channels, channel);
@@ -580,51 +588,51 @@ void createTopologyFromCsv(unsigned int isPreproc) {
 }
 
 
-void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) {
-  long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID;
-  Peer* peer, *counterparty;
+/* void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) { */
+/*   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID; */
+/*   Peer* peer, *counterparty; */
 
-  printf("inittopology\n");
+/*   printf("inittopology\n"); */
 
-  for(i=0; i<nPeers; i++){
-    peer = createPeer(peerIndex, nChannels);
-    //hashTablePut(peers, peer->ID, peer);
-    peers = arrayInsert(peers, peer);
-  }
-
-
-  //  computePeersInitialFunds(gini);
+/*   for(i=0; i<nPeers; i++){ */
+/*     peer = createPeer(peerIndex, nChannels); */
+/*     //hashTablePut(peers, peer->ID, peer); */
+/*     peers = arrayInsert(peers, peer); */
+/*   } */
 
 
-
-  nRWithholdingPeers = nPeers*RWithholding;
-  for(i=0; i < nRWithholdingPeers ;i++) {
-    RWithholdingPeerID = gsl_rng_uniform_int(r,peerIndex);
-    peer = arrayGet(peers, RWithholdingPeerID);
-    peer->withholdsR = 1;
-  }
-
-
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){
-
-      do {
-        counterpartyID = gsl_rng_uniform_int(r,peerIndex);
-      }while(counterpartyID==peer->ID);
-
-      counterparty = arrayGet(peers, counterpartyID);
-      if(arrayLen(counterparty->channel)>=nChannels) continue;
-
-      connectPeers(peer->ID, counterparty->ID);
-    }
+/*   //  computePeersInitialFunds(gini); */
 
 
 
-  }
+/*   nRWithholdingPeers = nPeers*RWithholding; */
+/*   for(i=0; i < nRWithholdingPeers ;i++) { */
+/*     RWithholdingPeerID = gsl_rng_uniform_int(r,peerIndex); */
+/*     peer = arrayGet(peers, RWithholdingPeerID); */
+/*     peer->withholdsR = 1; */
+/*   } */
 
 
-}
+/*   for(i=0; i<peerIndex; i++) { */
+/*     peer = arrayGet(peers, i); */
+/*     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){ */
+
+/*       do { */
+/*         counterpartyID = gsl_rng_uniform_int(r,peerIndex); */
+/*       }while(counterpartyID==peer->ID); */
+
+/*       counterparty = arrayGet(peers, counterpartyID); */
+/*       if(arrayLen(counterparty->channel)>=nChannels) continue; */
+
+/*       connectPeers(peer->ID, counterparty->ID); */
+/*     } */
+
+
+
+/*   } */
+
+
+/* } */
 
 void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, long capacityPerChannel, unsigned int isPreproc) {
   double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
