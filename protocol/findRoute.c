@@ -486,8 +486,6 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   uint64_t capacity;
   Array* hops=NULL;
   PathHop* hop=NULL;
-  /* clock_t begin1, end1, begin, end; */
-  /* double timeSpentTotal, timeSpentHash=0.0; */
 
   printf("DIJKSTRA\n");
 
@@ -504,32 +502,20 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   distance[0][source].peer = source;
   distance[0][source].distance = 0;
 
-  //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
   distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][source], compareDistance);
 
-  //  begin = clock();
   while(heapLen(distanceHeap[0])!=0) {
     d = heapPop(distanceHeap[0], compareDistance);
     bestPeerID = d->peer;
     if(bestPeerID==target) break;
 
-    //begin1 = clock();
-    //    bestPeer = hashTableGet(peers, bestPeerID);
-    //    bestPeer = peersVect[bestPeerID];
     bestPeer = arrayGet(peers, bestPeerID);
-    //end1 = clock();
-    //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
     for(j=0; j<arrayLen(bestPeer->channel); j++) {
       channelID = arrayGet(bestPeer->channel, j);
       if(channelID==NULL) continue;
 
-      //begin1 = clock();
-      //channel = hashTableGet(channels, *channelID);
-      //channel = channelsVect[*channelID];
       channel = arrayGet(channels, *channelID);
-      //end1 = clock();
-      //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       nextPeerID = channel->counterparty;
 
@@ -538,12 +524,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
       tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock;
 
-      //begin1 = clock();
-      //channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
-      //channelInfo = channelInfosVect[channel->channelInfoID];
       channelInfo = arrayGet(channelInfos, channel->channelInfoID);
-      //end1 = clock();
-      //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
 
       capacity = channelInfo->capacity;
 
@@ -559,14 +540,9 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
       }
 
     }
-  //end = clock();
-  //timeSpentTotal = (double) (end-begin)/CLOCKS_PER_SEC;
-  //  printf("total, hash: %lf %lf\n", timeSpentTotal, timeSpentHash);
 
 
   if(previousPeer[0][target].peer == -1) {
-    //    printf ("no path available!\n");
-    //    strcpy(error, "noPath");
     return NULL;
   }
 
@@ -574,12 +550,10 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
   hops=arrayInitialize(HOPSLIMIT);
   prev=target;
   while(prev!=source) {
-    //    printf("%ld ", previousPeer[0][prev].peer);
     hop = malloc(sizeof(PathHop));
     hop->channel = previousPeer[0][prev].channel;
     hop->sender = previousPeer[0][prev].peer;
 
-    //channel = hashTableGet(channels, hop->channel);
    channel = arrayGet(channels, hop->channel);
 
     hop->receiver = channel->counterparty;
@@ -589,7 +563,6 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
 
   if(arrayLen(hops)>HOPSLIMIT) {
-    //    strcpy(error, "limitExceeded");
     return NULL;
   }
 
@@ -597,6 +570,111 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
   return hops;
 }
+
+
+
+Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
+  Distance *d=NULL;
+  long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;
+  Peer* bestPeer=NULL;
+  Channel* channel=NULL;
+  ChannelInfo* channelInfo=NULL;
+  uint32_t tmpDist;
+  uint64_t capacity;
+  Array* hops=NULL;
+  PathHop* hop=NULL;
+
+  printf("DIJKSTRA\n");
+
+  while(heapLen(distanceHeap[0])!=0) 
+    heapPop(distanceHeap[0], compareDistance);
+
+  for(i=0; i<peerIndex; i++){
+    distance[0][i].peer = i;
+    distance[0][i].distance = INF;
+    distance[0][i].fee = 0;
+    distance[0][i].amtToReceive = 0;
+    nextPeer[0][i].channel = -1;
+    nextPeer[0][i].peer = -1;
+  }
+
+  distance[0][target].peer = target;
+  distance[0][target].amtToReceive = amount;
+  distance[0][target].fee = 0;
+  distance[0][target].distance = 0;
+
+
+  distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][target], compareDistance);
+
+  //TODO: continue from here
+
+  while(heapLen(distanceHeap[0])!=0) {
+    d = heapPop(distanceHeap[0], compareDistance);
+    bestPeerID = d->peer;
+    if(bestPeerID==target) break;
+
+    bestPeer = arrayGet(peers, bestPeerID);
+
+    for(j=0; j<arrayLen(bestPeer->channel); j++) {
+      channelID = arrayGet(bestPeer->channel, j);
+      if(channelID==NULL) continue;
+
+      channel = arrayGet(channels, *channelID);
+
+      nextPeerID = channel->counterparty;
+
+      if(isPresent(nextPeerID, ignoredPeers)) continue;
+      if(isPresent(*channelID, ignoredChannels)) continue;
+
+      tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock;
+
+      channelInfo = arrayGet(channelInfos, channel->channelInfoID);
+
+      capacity = channelInfo->capacity;
+
+      if(tmpDist < distance[0][nextPeerID].distance && amount<=capacity) {
+        distance[0][nextPeerID].peer = nextPeerID;
+        distance[0][nextPeerID].distance = tmpDist;
+
+        nextPeer[0][nextPeerID].channel = *channelID;
+        nextPeer[0][nextPeerID].peer = bestPeerID;
+
+        distanceHeap[0] = heapInsert(distanceHeap[0], &distance[0][nextPeerID], compareDistance);
+      }
+      }
+
+    }
+
+
+  if(nextPeer[0][target].peer == -1) {
+    return NULL;
+  }
+
+
+  hops=arrayInitialize(HOPSLIMIT);
+  prev=target;
+  while(prev!=source) {
+    hop = malloc(sizeof(PathHop));
+    hop->channel = nextPeer[0][prev].channel;
+    hop->sender = nextPeer[0][prev].peer;
+
+   channel = arrayGet(channels, hop->channel);
+
+    hop->receiver = channel->counterparty;
+    hops=arrayInsert(hops, hop );
+    prev = nextPeer[0][prev].peer;
+  }
+
+
+  if(arrayLen(hops)>HOPSLIMIT) {
+    return NULL;
+  }
+
+  arrayReverse(hops);
+
+  return hops;
+}
+
 
 int isSamePath(Array*rootPath, Array*path) {
   long i;
