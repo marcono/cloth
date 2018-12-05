@@ -28,12 +28,19 @@ typedef struct policy {
   uint16_t timelock;
 } Policy;
 
+typedef struct ignored{
+  long ID;
+  uint64_t time;
+} Ignored;
+
 typedef struct peer {
   long ID;
   int withholdsR;
   uint64_t initialFunds;
   uint64_t remainingFunds;
   Array* channel;
+  Array* ignoredPeers;
+  Array* ignoredChannels;
 } Peer;
 
 typedef struct channelInfo {
@@ -63,8 +70,6 @@ typedef struct payment{
   long receiver;
   uint64_t amount; //millisatoshis
   Route* route;
-  Array* ignoredPeers;
-  Array* ignoredChannels;
   int isSuccess;
   int uncoopAfter;
   int uncoopBefore;
