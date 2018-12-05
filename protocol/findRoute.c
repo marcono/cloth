@@ -10,7 +10,7 @@
 #include "../utils/array.h"
 #include "findRoute.h"
 #include "../global.h"
-#define INF UINT16_MAX
+#define INF UINT64_MAX
 #define HOPSLIMIT 20
 
 //FIXME: non globale ma passato per riferimento a dijkstra
@@ -271,7 +271,8 @@ Array* getPath(long source, long destination) {
 */
 
 Distance **distance;
-DijkstraHop ** previousPeer;
+DijkstraHop ** nextPeer;
+//DijkstraHop ** previousPeer;
 Heap** distanceHeap;
 //Array** hops;
 
@@ -279,13 +280,15 @@ void initializeDijkstra() {
   int i;
 
   distance = malloc(sizeof(Distance*)*PARALLEL);
-  previousPeer = malloc(sizeof(DijkstraHop*)*PARALLEL);
+  nextPeer = malloc(sizeof(DijkstraHop*)*PARALLEL);
+  //previousPeer = malloc(sizeof(DijkstraHop*)*PARALLEL);
   distanceHeap = malloc(sizeof(Heap*)*PARALLEL);
   //  hops = malloc(sizeof(Array*)*4);
 
   for(i=0; i<PARALLEL; i++) {
     distance[i] = malloc(sizeof(Distance)*peerIndex);
-    previousPeer[i] = malloc(sizeof(DijkstraHop)*peerIndex);
+     nextPeer[i] = malloc(sizeof(DijkstraHop)*peerIndex);
+    //previousPeer[i] = malloc(sizeof(DijkstraHop)*peerIndex);
     distanceHeap[i] = heapInitialize(channelIndex);
     //    hops[i] = arrayInitialize(HOPSLIMIT);
     /* for(j=0; j<HOPSLIMIT; j++) { */
@@ -296,269 +299,315 @@ void initializeDijkstra() {
 
 }
 
+// OLD DIJKSTRA VERSIONS (before lnd-0.5-beta)
+
+/* Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels, long p) { */
+/*   Distance *d=NULL; */
+/*   long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev; */
+/*   Peer* bestPeer=NULL; */
+/*   Channel* channel=NULL; */
+/*   ChannelInfo* channelInfo=NULL; */
+/*   uint32_t tmpDist; */
+/*   uint64_t capacity; */
+/*   PathHop* hop=NULL; */
+/*   Array* hops=NULL; */
+
+/*   while(heapLen(distanceHeap[p])!=0) { */
+/*     heapPop(distanceHeap[p], compareDistance); */
+/*   } */
+
+
+/*   for(i=0; i<peerIndex; i++){ */
+/*     distance[p][i].peer = i; */
+/*     distance[p][i].distance = INF; */
+/*     previousPeer[p][i].channel = -1; */
+/*     previousPeer[p][i].peer = -1; */
+/*   } */
+
+/*   distance[p][source].peer = source; */
+/*   distance[p][source].distance = 0; */
+
+/*   distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][source], compareDistance); */
+
+/*   i=0; */
+/*   while(heapLen(distanceHeap[p])!=0) { */
+/*     i++; */
+/*     d = heapPop(distanceHeap[p], compareDistance); */
+
+/*     bestPeerID = d->peer; */
+/*     if(bestPeerID==target) break; */
+
+/*     bestPeer = arrayGet(peers, bestPeerID); */
+
+/*     for(j=0; j<arrayLen(bestPeer->channel); j++) { */
+/*       channelID = arrayGet(bestPeer->channel, j); */
+/*       if(channelID==NULL) continue; */
+
+/*       channel = arrayGet(channels, *channelID); */
+
+/*       nextPeerID = channel->counterparty; */
+
+/*       if(isPresent(nextPeerID, ignoredPeers)) continue; */
+/*       if(isPresent(*channelID, ignoredChannels)) continue; */
+
+/*       tmpDist = distance[p][bestPeerID].distance + channel->policy.timelock; */
+
+/*       channelInfo = arrayGet(channelInfos, channel->channelInfoID); */
+
+/*       capacity = channelInfo->capacity; */
+
+/*       if(tmpDist < distance[p][nextPeerID].distance && amount<=capacity && amount >= channel->policy.minHTLC) { */
+/*         distance[p][nextPeerID].peer = nextPeerID; */
+/*         distance[p][nextPeerID].distance = tmpDist; */
+
+/*         previousPeer[p][nextPeerID].channel = *channelID; */
+/*         previousPeer[p][nextPeerID].peer = bestPeerID; */
+
+/*         distanceHeap[p] = heapInsert(distanceHeap[p], &distance[p][nextPeerID], compareDistance); */
+/*       } */
+/*       } */
+
+/*     } */
+
+
+
+/*   if(previousPeer[p][target].peer == -1) { */
+/*     return NULL; */
+/*   } */
+
+
+/*   i=0; */
+/*   hops=arrayInitialize(HOPSLIMIT); */
+/*   prev=target; */
+/*   while(prev!=source) { */
+/*     channel = arrayGet(channels, previousPeer[p][prev].channel); */
+
+/*     hop = malloc(sizeof(PathHop)); */
+
+/*     hop->channel = previousPeer[p][prev].channel; */
+/*     hop->sender = previousPeer[p][prev].peer; */
+/*     hop->receiver = channel->counterparty; */
+
+/*     hops=arrayInsert(hops, hop ); */
+
+/*     prev = previousPeer[p][prev].peer; */
+
+/*   } */
+
+
+/*   if(arrayLen(hops)>HOPSLIMIT) { */
+/*     return NULL; */
+/*   } */
+
+/*   arrayReverse(hops); */
+
+
+/*   return hops; */
+/* } */
+
+
+/* Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) { */
+/*   Distance *d=NULL; */
+/*   long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev; */
+/*   Peer* bestPeer=NULL; */
+/*   Channel* channel=NULL; */
+/*   ChannelInfo* channelInfo=NULL; */
+/*   uint32_t tmpDist; */
+/*   uint64_t capacity; */
+/*   Array* hops=NULL; */
+/*   PathHop* hop=NULL; */
+
+/*   printf("DIJKSTRA\n"); */
+
+/*   while(heapLen(distanceHeap[0])!=0) */
+/*     heapPop(distanceHeap[0], compareDistance); */
+
+/*   for(i=0; i<peerIndex; i++){ */
+/*     distance[0][i].peer = i; */
+/*     distance[0][i].distance = INF; */
+/*     previousPeer[0][i].channel = -1; */
+/*     previousPeer[0][i].peer = -1; */
+/*   } */
+
+/*   distance[0][source].peer = source; */
+/*   distance[0][source].distance = 0; */
+
+/*   distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][source], compareDistance); */
+
+/*   while(heapLen(distanceHeap[0])!=0) { */
+/*     d = heapPop(distanceHeap[0], compareDistance); */
+/*     bestPeerID = d->peer; */
+/*     if(bestPeerID==target) break; */
+
+/*     bestPeer = arrayGet(peers, bestPeerID); */
+
+/*     for(j=0; j<arrayLen(bestPeer->channel); j++) { */
+/*       channelID = arrayGet(bestPeer->channel, j); */
+/*       if(channelID==NULL) continue; */
+
+/*       channel = arrayGet(channels, *channelID); */
+
+/*       nextPeerID = channel->counterparty; */
+
+/*       if(isPresent(nextPeerID, ignoredPeers)) continue; */
+/*       if(isPresent(*channelID, ignoredChannels)) continue; */
+
+/*       tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock; */
+
+/*       channelInfo = arrayGet(channelInfos, channel->channelInfoID); */
+
+/*       capacity = channelInfo->capacity; */
+
+/*       if(tmpDist < distance[0][nextPeerID].distance && amount<=capacity) { */
+/*         distance[0][nextPeerID].peer = nextPeerID; */
+/*         distance[0][nextPeerID].distance = tmpDist; */
+
+/*         previousPeer[0][nextPeerID].channel = *channelID; */
+/*         previousPeer[0][nextPeerID].peer = bestPeerID; */
+
+/*         distanceHeap[0] = heapInsert(distanceHeap[0], &distance[0][nextPeerID], compareDistance); */
+/*       } */
+/*       } */
+
+/*     } */
+
+
+/*   if(previousPeer[0][target].peer == -1) { */
+/*     return NULL; */
+/*   } */
+
+
+/*   hops=arrayInitialize(HOPSLIMIT); */
+/*   prev=target; */
+/*   while(prev!=source) { */
+/*     hop = malloc(sizeof(PathHop)); */
+/*     hop->channel = previousPeer[0][prev].channel; */
+/*     hop->sender = previousPeer[0][prev].peer; */
+
+/*    channel = arrayGet(channels, hop->channel); */
+
+/*     hop->receiver = channel->counterparty; */
+/*     hops=arrayInsert(hops, hop ); */
+/*     prev = previousPeer[0][prev].peer; */
+/*   } */
+
+
+/*   if(arrayLen(hops)>HOPSLIMIT) { */
+/*     return NULL; */
+/*   } */
+
+/*   arrayReverse(hops); */
+
+/*   return hops; */
+/* } */
+
+
 Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels, long p) {
-  Distance *d=NULL;
-  long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;
+  Distance *d=NULL, toNodeDist;
+  long i, bestPeerID, j,channelID, *otherChannelID=NULL, prevPeerID, curr;
   Peer* bestPeer=NULL;
-  Channel* channel=NULL;
+  Channel* channel=NULL, *otherChannel=NULL;
   ChannelInfo* channelInfo=NULL;
-  uint32_t tmpDist;
-  uint64_t capacity;
-  PathHop* hop=NULL;
+  uint64_t capacity, amtToSend, fee, tmpDist, weight, newAmtToReceive;
   Array* hops=NULL;
-  /* clock_t  begin, end, begin1, end1; */
-  /* double timeSpentTotal=0.0, timeSpentHash=0.0; */
+  PathHop* hop=NULL;
 
-  //  printf("DIJKSTRA\n");
 
-  /* pthread_mutex_lock(&peersMutex); */
-  /* distance = malloc(sizeof(Distance)*peerIndex); */
-
-  /* previousPeer[p] = malloc(sizeof(DijkstraHop)*peerIndex); */
-
-  /* distanceHeap[p] = heapInitialize(peerIndex/10); */
-  /* pthread_mutex_unlock(&peersMutex); */
-
-  while(heapLen(distanceHeap[p])!=0) {
+  while(heapLen(distanceHeap[p])!=0)
     heapPop(distanceHeap[p], compareDistance);
-    //    printf("popping\n");
-  }
-
-  //  hops[p]->index = HOPSLIMIT;
 
   for(i=0; i<peerIndex; i++){
     distance[p][i].peer = i;
     distance[p][i].distance = INF;
-    previousPeer[p][i].channel = -1;
-    previousPeer[p][i].peer = -1;
+    distance[p][i].fee = 0;
+    distance[p][i].amtToReceive = 0;
+    nextPeer[p][i].channel = -1;
+    nextPeer[p][i].peer = -1;
   }
 
-  distance[p][source].peer = source;
-  distance[p][source].distance = 0;
+  distance[p][target].peer = target;
+  distance[p][target].amtToReceive = amount;
+  distance[p][target].fee = 0;
+  distance[p][target].distance = 0;
 
-  //TODO: e' safe passare l'inidrizzo dell'i-esimo elemento dell'array?
-  //  pthread_mutex_lock(&peersMutex);
-  distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][source], compareDistance);
-  //pthread_mutex_unlock(&peersMutex);
 
-  i=0;
-  //  begin = clock();
+  distanceHeap[p] =  heapInsert(distanceHeap[p], &distance[p][target], compareDistance);
+
+
   while(heapLen(distanceHeap[p])!=0) {
-    i++;
     d = heapPop(distanceHeap[p], compareDistance);
-
     bestPeerID = d->peer;
-    if(bestPeerID==target) break;
-
-    //    begin1 = clock();
-    //    pthread_mutex_lock(&peersMutex);
-    //bestPeer = hashTableGet(peers, bestPeerID);
-    //bestPeer = peersVect[bestPeerID];
-    bestPeer = arrayGet(peers, bestPeerID);
-    //pthread_mutex_unlock(&peersMutex);
-    //    end1 = clock();
-    //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
-
-    for(j=0; j<arrayLen(bestPeer->channel); j++) {
-      channelID = arrayGet(bestPeer->channel, j);
-      if(channelID==NULL) continue;
-
-      //begin1 = clock();
-      //pthread_mutex_lock(&peersMutex);
-      //  channel = hashTableGet(channels, *channelID);
-      //channel = channelsVect[*channelID];
-      channel = arrayGet(channels, *channelID);
-      //pthread_mutex_unlock(&peersMutex);
-      //end1 = clock();
-      //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
-
-      nextPeerID = channel->counterparty;
-
-      if(isPresent(nextPeerID, ignoredPeers)) continue;
-      if(isPresent(*channelID, ignoredChannels)) continue;
-
-      tmpDist = distance[p][bestPeerID].distance + channel->policy.timelock;
-
-      //begin1 = clock();
-      //      pthread_mutex_lock(&peersMutex);
-      //channelInfo = hashTableGet(channelInfos, channel->channelInfoID);
-      //channelInfo = channelInfosVect[channel->channelInfoID];
-      channelInfo = arrayGet(channelInfos, channel->channelInfoID);
-      //pthread_mutex_unlock(&peersMutex);
-      //end1 = clock();
-      //timeSpentHash += (double) (end1 - begin1)/CLOCKS_PER_SEC;
-
-      capacity = channelInfo->capacity;
-
-      if(tmpDist < distance[p][nextPeerID].distance && amount<=capacity && amount >= channel->policy.minHTLC) {
-        distance[p][nextPeerID].peer = nextPeerID;
-        distance[p][nextPeerID].distance = tmpDist;
-
-        previousPeer[p][nextPeerID].channel = *channelID;
-        previousPeer[p][nextPeerID].peer = bestPeerID;
-
-        //    pthread_mutex_lock(&peersMutex);
-        distanceHeap[p] = heapInsert(distanceHeap[p], &distance[p][nextPeerID], compareDistance);
-        //pthread_mutex_unlock(&peersMutex);
-      }
-      }
-
-    }
-  //end = clock();
-  //timeSpentTotal = (double) (end-begin)/CLOCKS_PER_SEC;
-  //printf("total, hash: %lf %lf\n", timeSpentTotal, timeSpentHash);
-
-
-
-  if(previousPeer[p][target].peer == -1) {
-    //    printf ("no path available!\n");
-    //    strcpy(error, "noPath");
-    return NULL;
-  }
-
-
-  i=0;
-  //pthread_mutex_lock(&peersMutex);
-  hops=arrayInitialize(HOPSLIMIT);
-  //pthread_mutex_unlock(&peersMutex);
-  prev=target;
-  while(prev!=source) {
-   /*  pthread_mutex_lock(&peersMutex); */
-   /*  hop = arrayGet(hops[p], i); */
-   /*  if(hop==NULL) printf("index here: %ld\n", hops[p]->index); */
-   /*  hop->channel = previousPeer[p][prev].channel; */
-   /*  hop->sender = previousPeer[p][prev].peer; */
-
-   /* channel = hashTableGet(channels, hop->channel); */
-
-   /*  hop->receiver = channel->counterparty; */
-   /*  pthread_mutex_unlock(&peersMutex); */
-   /*  prev = previousPeer[p][prev].peer; */
-   /*  i++; */
-   /*  if(i>=HOPSLIMIT) return NULL; */
-    //    pthread_mutex_lock(&peersMutex);
-    //channel = hashTableGet(channels, previousPeer[p][prev].channel);
-    //channel = channelsVect[previousPeer[p][prev].channel];
-    channel = arrayGet(channels, previousPeer[p][prev].channel);
-    //pthread_mutex_unlock(&peersMutex);
-
-    //pthread_mutex_lock(&peersMutex);
-    hop = malloc(sizeof(PathHop));
-    //pthread_mutex_unlock(&peersMutex);
-
-    hop->channel = previousPeer[p][prev].channel;
-    hop->sender = previousPeer[p][prev].peer;
-    hop->receiver = channel->counterparty;
-
-    //pthread_mutex_lock(&peersMutex);
-    hops=arrayInsert(hops, hop );
-    //pthread_mutex_unlock(&peersMutex);
-
-    prev = previousPeer[p][prev].peer;
-
-  }
-
-  //  hops[p]->index = i;
-
-  if(arrayLen(hops)>HOPSLIMIT) {
-    return NULL;
-  }
-
-  arrayReverse(hops);
-
-  /* pthread_mutex_lock(&peersMutex); */
-  /* free(previousPeer[p]); */
-  /* free(distance); */
-  /* heapFree(distanceHeap[p]); */
-  /* pthread_mutex_unlock(&peersMutex); */
-
-  return hops;
-}
-
-
-Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance *d=NULL;
-  long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;
-  Peer* bestPeer=NULL;
-  Channel* channel=NULL;
-  ChannelInfo* channelInfo=NULL;
-  uint32_t tmpDist;
-  uint64_t capacity;
-  Array* hops=NULL;
-  PathHop* hop=NULL;
-
-  printf("DIJKSTRA\n");
-
-  while(heapLen(distanceHeap[0])!=0) 
-    heapPop(distanceHeap[0], compareDistance);
-
-  for(i=0; i<peerIndex; i++){
-    distance[0][i].peer = i;
-    distance[0][i].distance = INF;
-    previousPeer[0][i].channel = -1;
-    previousPeer[0][i].peer = -1;
-  }
-
-  distance[0][source].peer = source;
-  distance[0][source].distance = 0;
-
-  distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][source], compareDistance);
-
-  while(heapLen(distanceHeap[0])!=0) {
-    d = heapPop(distanceHeap[0], compareDistance);
-    bestPeerID = d->peer;
-    if(bestPeerID==target) break;
+    if(bestPeerID==source) break;
 
     bestPeer = arrayGet(peers, bestPeerID);
 
     for(j=0; j<arrayLen(bestPeer->channel); j++) {
-      channelID = arrayGet(bestPeer->channel, j);
-      if(channelID==NULL) continue;
+      // need to get other direction of the channel as search is performed from target to source
+      otherChannelID = arrayGet(bestPeer->channel, j);
+      if(otherChannelID==NULL) continue;
+      otherChannel = arrayGet(channels, *otherChannelID);
+      channel = arrayGet(channels, otherChannel->otherChannelDirectionID);
 
-      channel = arrayGet(channels, *channelID);
+      prevPeerID = otherChannel->counterparty;
+      channelID = channel->ID;
 
-      nextPeerID = channel->counterparty;
+      if(isPresent(prevPeerID, ignoredPeers)) continue;
+      if(isPresent(channelID, ignoredChannels)) continue;
 
-      if(isPresent(nextPeerID, ignoredPeers)) continue;
-      if(isPresent(*channelID, ignoredChannels)) continue;
+      toNodeDist = distance[p][bestPeerID];
+      amtToSend = toNodeDist.amtToReceive;
 
-      tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock;
+      if(prevPeerID==source)
+        capacity = channel->balance;
+      else{
+        channelInfo = arrayGet(channelInfos, channel->channelInfoID);
+        capacity = channelInfo->capacity;
+      }
 
-      channelInfo = arrayGet(channelInfos, channel->channelInfoID);
+      if(amtToSend > capacity || amtToSend < channel->policy.minHTLC) continue;
 
-      capacity = channelInfo->capacity;
+      if(prevPeerID==source)
+        fee = 0;
+      else
+        fee = computeFee(amtToSend, channel->policy);
 
-      if(tmpDist < distance[0][nextPeerID].distance && amount<=capacity) {
-        distance[0][nextPeerID].peer = nextPeerID;
-        distance[0][nextPeerID].distance = tmpDist;
+      newAmtToReceive = amtToSend + fee;
 
-        previousPeer[0][nextPeerID].channel = *channelID;
-        previousPeer[0][nextPeerID].peer = bestPeerID;
+      weight = fee + newAmtToReceive*channel->policy.timelock*15/1000000000;
 
-        distanceHeap[0] = heapInsert(distanceHeap[0], &distance[0][nextPeerID], compareDistance);
+      tmpDist = weight + toNodeDist.distance;
+
+      if(tmpDist < distance[p][prevPeerID].distance) {
+        distance[p][prevPeerID].peer = prevPeerID;
+        distance[p][prevPeerID].distance = tmpDist;
+        distance[p][prevPeerID].amtToReceive = newAmtToReceive;
+        distance[p][prevPeerID].fee = fee;
+
+        nextPeer[p][prevPeerID].channel = channelID;
+        nextPeer[p][prevPeerID].peer = bestPeerID;
+
+        distanceHeap[p] = heapInsert(distanceHeap[p], &distance[p][prevPeerID], compareDistance);
       }
       }
 
     }
 
 
-  if(previousPeer[0][target].peer == -1) {
+  if(nextPeer[p][source].peer == -1) {
     return NULL;
   }
 
 
-  hops=arrayInitialize(HOPSLIMIT);
-  prev=target;
-  while(prev!=source) {
+  hops = arrayInitialize(HOPSLIMIT);
+  curr = source;
+  while(curr!=target) {
     hop = malloc(sizeof(PathHop));
-    hop->channel = previousPeer[0][prev].channel;
-    hop->sender = previousPeer[0][prev].peer;
+    hop->sender = curr;
+    hop->channel = nextPeer[p][curr].channel;
+    hop->receiver = nextPeer[p][curr].peer;
+    hops=arrayInsert(hops, hop);
 
-   channel = arrayGet(channels, hop->channel);
-
-    hop->receiver = channel->counterparty;
-    hops=arrayInsert(hops, hop );
-    prev = previousPeer[0][prev].peer;
+    curr = nextPeer[p][curr].peer;
   }
 
 
@@ -566,7 +615,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
     return NULL;
   }
 
-  arrayReverse(hops);
+  //arrayReverse(hops);
 
   return hops;
 }
@@ -574,19 +623,18 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels) {
-  Distance *d=NULL;
-  long i, bestPeerID, j,*channelID=NULL, nextPeerID, prev;
+  Distance *d=NULL, toNodeDist;
+  long i, bestPeerID, j,channelID, *otherChannelID=NULL, prevPeerID, curr;
   Peer* bestPeer=NULL;
-  Channel* channel=NULL;
+  Channel* channel=NULL, *otherChannel=NULL;
   ChannelInfo* channelInfo=NULL;
-  uint32_t tmpDist;
-  uint64_t capacity;
+  uint64_t capacity, amtToSend, fee, tmpDist, weight, newAmtToReceive;
   Array* hops=NULL;
   PathHop* hop=NULL;
 
   printf("DIJKSTRA\n");
 
-  while(heapLen(distanceHeap[0])!=0) 
+  while(heapLen(distanceHeap[0])!=0)
     heapPop(distanceHeap[0], compareDistance);
 
   for(i=0; i<peerIndex; i++){
@@ -606,63 +654,82 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
 
   distanceHeap[0] =  heapInsert(distanceHeap[0], &distance[0][target], compareDistance);
 
-  //TODO: continue from here
 
   while(heapLen(distanceHeap[0])!=0) {
     d = heapPop(distanceHeap[0], compareDistance);
     bestPeerID = d->peer;
-    if(bestPeerID==target) break;
+    if(bestPeerID==source) break;
 
     bestPeer = arrayGet(peers, bestPeerID);
 
     for(j=0; j<arrayLen(bestPeer->channel); j++) {
-      channelID = arrayGet(bestPeer->channel, j);
-      if(channelID==NULL) continue;
+      // need to get other direction of the channel as search is performed from target to source
+      otherChannelID = arrayGet(bestPeer->channel, j);
+      if(otherChannelID==NULL) continue;
+      otherChannel = arrayGet(channels, *otherChannelID);
+      channel = arrayGet(channels, otherChannel->otherChannelDirectionID);
 
-      channel = arrayGet(channels, *channelID);
+      prevPeerID = otherChannel->counterparty;
+      channelID = channel->ID;
 
-      nextPeerID = channel->counterparty;
+      if(isPresent(prevPeerID, ignoredPeers)) continue;
+      if(isPresent(channelID, ignoredChannels)) continue;
 
-      if(isPresent(nextPeerID, ignoredPeers)) continue;
-      if(isPresent(*channelID, ignoredChannels)) continue;
+      toNodeDist = distance[0][bestPeerID];
+      amtToSend = toNodeDist.amtToReceive;
 
-      tmpDist = distance[0][bestPeerID].distance + channel->policy.timelock;
+      if(prevPeerID==source)
+        capacity = channel->balance;
+      else{
+        channelInfo = arrayGet(channelInfos, channel->channelInfoID);
+        capacity = channelInfo->capacity;
+      }
 
-      channelInfo = arrayGet(channelInfos, channel->channelInfoID);
+      if(amtToSend > capacity || amtToSend < channel->policy.minHTLC) continue;
 
-      capacity = channelInfo->capacity;
+      if(prevPeerID==source)
+        fee = 0;
+      else
+        fee = computeFee(amtToSend, channel->policy);
 
-      if(tmpDist < distance[0][nextPeerID].distance && amount<=capacity) {
-        distance[0][nextPeerID].peer = nextPeerID;
-        distance[0][nextPeerID].distance = tmpDist;
+      newAmtToReceive = amtToSend + fee;
 
-        nextPeer[0][nextPeerID].channel = *channelID;
-        nextPeer[0][nextPeerID].peer = bestPeerID;
+      weight = fee + newAmtToReceive*channel->policy.timelock*15/1000000000;
 
-        distanceHeap[0] = heapInsert(distanceHeap[0], &distance[0][nextPeerID], compareDistance);
+      tmpDist = weight + toNodeDist.distance;
+
+
+      if(tmpDist < distance[0][prevPeerID].distance) {
+        distance[0][prevPeerID].peer = prevPeerID;
+        distance[0][prevPeerID].distance = tmpDist;
+        distance[0][prevPeerID].amtToReceive = newAmtToReceive;
+        distance[0][prevPeerID].fee = fee;
+
+        nextPeer[0][prevPeerID].channel = channelID;
+        nextPeer[0][prevPeerID].peer = bestPeerID;
+
+        distanceHeap[0] = heapInsert(distanceHeap[0], &distance[0][prevPeerID], compareDistance);
       }
       }
 
     }
 
 
-  if(nextPeer[0][target].peer == -1) {
+  if(nextPeer[0][source].peer == -1) {
     return NULL;
   }
 
 
-  hops=arrayInitialize(HOPSLIMIT);
-  prev=target;
-  while(prev!=source) {
+  hops = arrayInitialize(HOPSLIMIT);
+  curr = source;
+  while(curr!=target) {
     hop = malloc(sizeof(PathHop));
-    hop->channel = nextPeer[0][prev].channel;
-    hop->sender = nextPeer[0][prev].peer;
+    hop->sender = curr;
+    hop->channel = nextPeer[0][curr].channel;
+    hop->receiver = nextPeer[0][curr].peer;
+    hops=arrayInsert(hops, hop);
 
-   channel = arrayGet(channels, hop->channel);
-
-    hop->receiver = channel->counterparty;
-    hops=arrayInsert(hops, hop );
-    prev = nextPeer[0][prev].peer;
+    curr = nextPeer[0][curr].peer;
   }
 
 
@@ -670,7 +737,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
     return NULL;
   }
 
-  arrayReverse(hops);
+  //arrayReverse(hops);
 
   return hops;
 }

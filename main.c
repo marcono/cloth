@@ -1530,57 +1530,101 @@ int main() {
 }
 */
 
-/*
+
 //test dijkstra
-int main() {
-  Array *hops;
-  PathHop* hop;
-  Array *ignored;
-  long i, sender, receiver;
-  long fakeIgnored = -1;
-
-  ignored = arrayInitialize(1);
-  ignored = arrayInsert(ignored, &fakeIgnored);
-
-  initialize();
-  printf("\nDijkstra\n");
-
-  sender = 4;
-  receiver = 3;
-  hops=dijkstra(sender, receiver, 0.0, ignored, ignored );
-  printf("From node %ld to node %ld\n", sender, receiver);
-  for(i=0; i<arrayLen(hops); i++) {
-    hop = arrayGet(hops, i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
-  }
-  printf("\n\n");
-
-  sender = 0;
-  receiver = 1;
-  hops=dijkstra(sender, receiver, 0.0, ignored, ignored );
-  printf("From node %ld to node %ld\n", sender, receiver);
-  for(i=0; i<arrayLen(hops); i++) {
-    hop = arrayGet(hops, i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
-  }
-  printf("\n");
-
-  sender = 0;
-  receiver = 0;
-  printf("From node %ld to node %ld\n", sender, receiver);
-  hops=dijkstra(sender,receiver, 0.0, ignored, ignored );
-  if(hops != NULL) {
-    for(i=0; i<arrayLen(hops); i++) {
-      hop = arrayGet(hops, i);
-      printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
-    }
-  }
-  printf("\n");
+/* int main() { */
+/*   Array *hops; */
+/*   PathHop* hop; */
+/*   Array *ignored; */
+/*   long i, sender, receiver; */
+/*   long fakeIgnored = -1; */
+/*   Peer* peer[3]; */
+/*   ChannelInfo* channelInfo; */
+/*   Channel* channel; */
+/*   Policy policy; */
 
 
-  return 0;
-}
-*/
+/*   ignored = arrayInitialize(1); */
+/*   ignored = arrayInsert(ignored, &fakeIgnored); */
+
+/*   peers = arrayInitialize(5); */
+/*   channels = arrayInitialize(4); */
+/*   channelInfos = arrayInitialize(2); */
+
+/*   for(i=0; i<5; i++){ */
+/*     peer[i] = createPeerPostProc(i, 0); */
+/*     peers = arrayInsert(peers, peer[i]);  */
+/*   } */
+
+/*   channelInfo = createChannelInfoPostProc(0, 0, 1, 0, 1, 100, 0); */
+/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
+/*   channelInfo = createChannelInfoPostProc(1, 2, 3, 1, 2, 100, 0); */
+/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
+
+
+/*   policy.feeBase = 1; */
+/*   policy.feeProportional =1; */
+/*   policy.minHTLC = 0; */
+/*   policy.timelock = 1; */
+
+/*   channel = createChannelPostProc(0, 0, 1, 1, 50, policy); */
+/*   channels = arrayInsert(channels, channel); */
+/*   peer[0]->channel = arrayInsert(peer[0]->channel, &channel->ID); */
+
+/*   channel = createChannelPostProc(1, 0, 0, 0, 50, policy); */
+/*   channels = arrayInsert(channels, channel); */
+/*   peer[1]->channel = arrayInsert(peer[1]->channel, &channel->ID); */
+
+/*   channel = createChannelPostProc(2, 1, 3, 2, 50, policy); */
+/*   channels = arrayInsert(channels, channel); */
+/*   peer[1]->channel = arrayInsert(peer[1]->channel, &channel->ID); */
+
+/*   channel = createChannelPostProc(3, 1, 2, 1, 50, policy); */
+/*   channels = arrayInsert(channels, channel); */
+/*   peer[2]->channel = arrayInsert(peer[2]->channel, &channel->ID); */
+
+
+/*   initializeDijkstra(); */
+/*   printf("\nDijkstra\n"); */
+
+/*   sender = 2; */
+/*   receiver = 0; */
+/*   hops=dijkstra(sender, receiver, 10, ignored, ignored ); */
+/*   printf("From node %ld to node %ld\n", sender, receiver); */
+/*   if(hops!=NULL){ */
+/*     for(i=0; i<arrayLen(hops); i++) { */
+/*       hop = arrayGet(hops, i); */
+/*       printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
+/*     } */
+/*   } */
+/*   else  */
+/*     printf("nix\n"); */
+
+/*   /\* sender = 0; *\/ */
+/*   /\* receiver = 1; *\/ */
+/*   /\* hops=dijkstra(sender, receiver, 0.0, ignored, ignored ); *\/ */
+/*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
+/*   /\* for(i=0; i<arrayLen(hops); i++) { *\/ */
+/*   /\*   hop = arrayGet(hops, i); *\/ */
+/*   /\*   printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\* } *\/ */
+/*   /\* printf("\n"); *\/ */
+
+/*   /\* sender = 0; *\/ */
+/*   /\* receiver = 0; *\/ */
+/*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
+/*   /\* hops=dijkstra(sender,receiver, 0.0, ignored, ignored ); *\/ */
+/*   /\* if(hops != NULL) { *\/ */
+/*   /\*   for(i=0; i<arrayLen(hops); i++) { *\/ */
+/*   /\*     hop = arrayGet(hops, i); *\/ */
+/*   /\*     printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\*   } *\/ */
+/*   /\* } *\/ */
+/*   /\* printf("\n"); *\/ */
+
+
+/*   return 0; */
+/* } */
 
 /*
 int main() {

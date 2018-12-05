@@ -98,9 +98,15 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 
 Peer* createPeer(long ID, long channelsSize);
 
+Peer* createPeerPostProc(long ID, int withholdsR);
+
 ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency);
 
+ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
+
 Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
+
+Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection, long counterparty, uint64_t balance, Policy policy);
 
 Payment* createPayment(long ID, long sender, long receiver, uint64_t amount);
 

@@ -7,7 +7,7 @@
 
 typedef struct distance{
   long peer;
-  uint32_t distance;
+  uint64_t distance;
   uint64_t amtToReceive;
   uint64_t fee;
 } Distance;
@@ -43,7 +43,6 @@ typedef struct route {
 
 extern uint32_t** dist;
 extern PathHop** next;
-
 
 void initializeDijkstra();
 
