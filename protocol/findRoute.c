@@ -501,6 +501,18 @@ void initializeDijkstra() {
 /*   return hops; */
 /* } */
 
+int isIgnored(long ID, Array* ignored){
+  int i;
+  Ignored* curr;
+
+  for(i=0; i<arrayLen(ignored); i++) {
+    curr = arrayGet(ignored, i);
+    if(curr->ID==ID)
+      return 1;
+  }
+
+  return 0;
+}
 
 Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers, Array* ignoredChannels, long p) {
   Distance *d=NULL, toNodeDist;
@@ -551,8 +563,8 @@ Array* dijkstraP(long source, long target, uint64_t amount, Array* ignoredPeers,
       prevPeerID = otherChannel->counterparty;
       channelID = channel->ID;
 
-      if(isPresent(prevPeerID, ignoredPeers)) continue;
-      if(isPresent(channelID, ignoredChannels)) continue;
+      if(isIgnored(prevPeerID, ignoredPeers)) continue;
+      if(isIgnored(channelID, ignoredChannels)) continue;
 
       toNodeDist = distance[p][bestPeerID];
       amtToSend = toNodeDist.amtToReceive;
@@ -672,8 +684,8 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignoredPeers, 
       prevPeerID = otherChannel->counterparty;
       channelID = channel->ID;
 
-      if(isPresent(prevPeerID, ignoredPeers)) continue;
-      if(isPresent(channelID, ignoredChannels)) continue;
+      if(isIgnored(prevPeerID, ignoredPeers)) continue;
+      if(isIgnored(channelID, ignoredChannels)) continue;
 
       toNodeDist = distance[0][bestPeerID];
       amtToSend = toNodeDist.amtToReceive;

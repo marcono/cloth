@@ -135,7 +135,7 @@ Peer* createPeerPostProc(long ID, int withholdsR) {
   peer->remainingFunds = 0;
   peer->withholdsR = withholdsR;
   peer->ignoredChannels = arrayInitialize(10);
-  peer->ignoredPeers = arrayInitialize(10);
+  peer->ignoredPeers = arrayInitialize(1);
 
   peerIndex++;
 
@@ -684,10 +684,12 @@ int isPresent(long element, Array* longArray) {
 
   return 0;
 }
-,
+
+
 int isEqual(long* a, long* b) {
   return *a==*b;
 }
+
 
 void closeChannel(long channelInfoID) {
   long i;
@@ -744,6 +746,7 @@ void* dijkstraThread(void*arg) {
   Array* hops;
   long paymentID;
   int *index;
+  Peer* peer;
 
   index = (int*) arg;
 
@@ -757,12 +760,13 @@ void* dijkstraThread(void*arg) {
 
     pthread_mutex_lock(&peersMutex);
     payment = arrayGet(payments, paymentID);
+    peer = arrayGet(peers, payment->sender);
     pthread_mutex_unlock(&peersMutex);
 
     printf("DIJKSTRA %ld\n", payment->ID);
 
-    hops = dijkstraP(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                     payment->ignoredChannels, *index);
+    hops = dijkstraP(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
+                     peer->ignoredChannels, *index);
 
     //    printf("END DIJKSTRA %ld\n", payment->ID);
 
@@ -796,9 +800,37 @@ unsigned int isAnyChannelClosed(Array* hops) {
   return 0;
 }
 
+int isEqualIgnored(Ignored* a, Ignored* b){
+  return a->ID == b->ID;
+}
+
+void checkIgnored(long senderID){
+  Peer* sender;
+  Array* ignoredChannels;
+  Ignored* ignored;
+  int i;
+
+  sender = arrayGet(peers, senderID);
+  ignoredChannels = sender->ignoredChannels;
+
+  for(i=0; i<arrayLen(ignoredChannels); i++){
+    ignored = arrayGet(ignoredChannels, i);
+
+    //register time of newly added ignored channels
+    if(ignored->time==0)
+      ignored->time = simulatorTime;
+
+    //remove decayed ignored channels
+    if(simulatorTime > 5000 + ignored->time){
+      arrayDelete(ignoredChannels, ignored, isEqualIgnored);
+    }
+  }
+}
+
 
 void findRoute(Event *event) {
   Payment *payment;
+  Peer* peer;
   Array *pathHops;
   Route* route;
   int finalTimelock=9;
@@ -808,6 +840,8 @@ void findRoute(Event *event) {
   printf("FINDROUTE %ld\n", event->paymentID);
 
   payment = arrayGet(payments, event->paymentID);
+  peer = arrayGet(peers, payment->sender);
+
   ++(payment->attempts);
 
   if(payment->startTime < 1)
@@ -843,27 +877,29 @@ void findRoute(Event *event) {
     payment->isTimeout = 1;
     return;
   }
-  
+
+  checkIgnored(payment->sender);
+
   //dijkstra parallel NEW version
   if(payment->attempts==1) {
     pathHops = paths[payment->ID];
     if(pathHops!=NULL)
       if(isAnyChannelClosed(pathHops)) {
-        pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                            payment->ignoredChannels);
+        pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
+                            peer->ignoredChannels);
         nDijkstra++;
       }
   }
   else {
-    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                        payment->ignoredChannels);
+    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
+                        peer->ignoredChannels);
     nDijkstra++;
   }
 
   if(pathHops!=NULL)
     if(isAnyChannelClosed(pathHops)) {
-    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                                       payment->ignoredChannels);
+    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
+                                       peer->ignoredChannels);
     paths[payment->ID] = pathHops;
   }
   
@@ -955,7 +991,7 @@ void addIgnored(long peerID, long ignoredID){
   ignored->time = 0;
 
   peer = arrayGet(peers, peerID);
-  peer->ignoredChannels = arrayInsert(payment->ignoredChannels, ignored);
+  peer->ignoredChannels = arrayInsert(peer->ignoredChannels, ignored);
 }
 
 //TODO: uniformare tipi di variabili d'appoggio da usare nelle seguenti tre funzioni
@@ -1227,7 +1263,7 @@ void forwardSuccess(Event* event) {
     printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, nextChannel->ID);
     payment->uncoopAfter = 1;
     closeChannel(nextChannel->channelInfoID);
-    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
+    //payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
 
     payment->isSuccess = 0;
     payment->endTime = simulatorTime;
@@ -1325,12 +1361,11 @@ void receiveFail(Event* event) {
     payment->endTime = simulatorTime;
     //statsUpdatePayments(payment);
     return; //it means that money actually arrived to the destination but a peer was not cooperative when forwarding the success
-  } 
+  }
 
   nextEventTime = simulatorTime;
   nextEvent = createEvent(eventIndex, nextEventTime, FINDROUTE, payment->sender, payment->ID);
   events = heapInsert(events, nextEvent, compareEvent);
-
 }
 
 /*

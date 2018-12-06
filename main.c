@@ -243,11 +243,12 @@ void csvWriteInput() {
 */
 
 void csvWriteOutput() {
-  FILE* csvChannelInfoOutput, *csvChannelOutput, *csvPaymentOutput;
-  long i,j, *ignored;
+  FILE* csvChannelInfoOutput, *csvChannelOutput, *csvPaymentOutput, *csvPeerOutput;
+  long i,j, *id;
   ChannelInfo* channelInfo;
   Channel* channel;
   Payment* payment;
+  Peer* peer;
   Route* route;
   Array* hops;
   RouteHop* hop;
@@ -285,7 +286,7 @@ void csvWriteOutput() {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route,IgnoredPeers,IgnoredChannels\n");
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route\n");
 
   for(i=0; i<paymentIndex; i++)  {
     payment = arrayGet(payments, i);
@@ -304,37 +305,66 @@ void csvWriteOutput() {
           fprintf(csvPaymentOutput,"%ld-",hop->pathHop->channel);
       }
     }
-    fprintf(csvPaymentOutput,",");
-
-
-    if(arrayLen(payment->ignoredPeers)==0)
-      fprintf(csvPaymentOutput, "-1");
-    else {
-      for(j=0; j<arrayLen(payment->ignoredPeers); j++) {
-        ignored = arrayGet(payment->ignoredPeers, j);
-        if(j==arrayLen(payment->ignoredPeers)-1)
-          fprintf(csvPaymentOutput,"%ld",*ignored);
-        else
-          fprintf(csvPaymentOutput,"%ld-",*ignored);
-      }
-    }
-    fprintf(csvPaymentOutput,",");
-
-    if(arrayLen(payment->ignoredChannels)==0)
-      fprintf(csvPaymentOutput, "-1");
-    else {
-      for(j=0; j<arrayLen(payment->ignoredChannels); j++) {
-        ignored = arrayGet(payment->ignoredChannels, j);
-        if(j==arrayLen(payment->ignoredChannels)-1)
-          fprintf(csvPaymentOutput,"%ld",*ignored);
-        else
-          fprintf(csvPaymentOutput,"%ld-",*ignored);
-      }
-    }
     fprintf(csvPaymentOutput,"\n");
   }
 
   fclose(csvPaymentOutput);
+
+
+  csvPeerOutput = fopen("peer_output.csv", "w");
+  if(csvChannelInfoOutput  == NULL) {
+    printf("ERROR cannot open peer_output.csv\n");
+    return;
+  }
+  fprintf(csvPeerOutput, "ID,OpenChannels,IgnoredPeers,IgnoredChannels\n");
+
+  for(i=0; i<peerIndex; i++) {
+    peer = arrayGet(peers, i);
+
+    fprintf(csvPeerOutput, "%ld,", peer->ID);
+
+    if(arrayLen(peer->channel)==0)
+      fprintf(csvPeerOutput, "-1");
+    else {
+      for(j=0; j<arrayLen(peer->channel); j++) {
+        id = arrayGet(peer->channel, j);
+        if(j==arrayLen(peer->channel)-1)
+          fprintf(csvPeerOutput,"%ld",*id);
+        else
+          fprintf(csvPeerOutput,"%ld-",*id);
+      }
+    }
+    fprintf(csvPeerOutput,",");
+
+    if(arrayLen(peer->ignoredPeers)==0)
+      fprintf(csvPeerOutput, "-1");
+    else {
+      for(j=0; j<arrayLen(peer->ignoredPeers); j++) {
+        id = arrayGet(peer->ignoredPeers, j);
+        if(j==arrayLen(peer->ignoredPeers)-1)
+          fprintf(csvPeerOutput,"%ld",*id);
+        else
+          fprintf(csvPeerOutput,"%ld-",*id);
+      }
+    }
+    fprintf(csvPeerOutput,",");
+
+    if(arrayLen(peer->ignoredChannels)==0)
+      fprintf(csvPeerOutput, "-1");
+    else {
+      for(j=0; j<arrayLen(peer->ignoredChannels); j++) {
+        id = arrayGet(peer->ignoredChannels, j);
+        if(j==arrayLen(peer->ignoredChannels)-1)
+          fprintf(csvPeerOutput,"%ld",*id);
+        else
+          fprintf(csvPeerOutput,"%ld-",*id);
+      }
+    }
+    fprintf(csvPeerOutput,"\n");
+  
+  }
+
+  fclose(csvPeerOutput);
 
 }
 
