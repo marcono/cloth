@@ -577,7 +577,7 @@ void createTopologyFromCsv(unsigned int isPreproc) {
 
   fgets(row, 256, csvChannel);
   while(fgets(row, 256, csvChannel)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.minHTLC, &policy.timelock);
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.minHTLC, &policy.timelock);
     channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
     //hashTablePut(channels, channel->ID, channel);
     channels = arrayInsert(channels, channel);

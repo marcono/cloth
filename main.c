@@ -404,11 +404,11 @@ void initializeThreads() {
 
 }
 
-uint64_t readPreInputAndInitialize() {
+uint64_t readPreInputAndInitialize(int isPreprocTopology) {
   long nPayments, nPeers, nChannels, capacityPerChannel;
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreprocTopology=1, isPreprocPayments=1;
+  unsigned int isPreprocPayments=1;
   int gini, sigmaTopology, sigmaAmount;
   char answer;
   clock_t  begin, end;
@@ -488,7 +488,7 @@ uint64_t readPreInputAndInitialize() {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
   Event* event;
   //  Peer* peer;
   //ChannelInfo* channelInfo;
@@ -497,9 +497,16 @@ int main() {
   clock_t  begin, end;
   double timeSpent=0.0;
   uint64_t endTime;
+  int preproc;
 
+  if(argc!=2) {
+    printf("Command line error\n");
+    return -1;
+  }
 
-  endTime = readPreInputAndInitialize();
+  preproc = atoi(argv[1]);
+
+  endTime = readPreInputAndInitialize(preproc);
 
 
   /*

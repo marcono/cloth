@@ -1,12 +1,65 @@
-# PaymentNetworkSim
-Simulator of off-chain scaling solutions for the blockchain
+# CLoTH
+Simulator of HTLC payment networks
 
-## How to use
+## Pre-requisites
+Install pre-requisites
 
-Run the simulator by typing `make run`.
+```sh
+sudo apt install curl
+sudo apt install gcc
+sudo apt install make
+sudo apt install git
+sudo apt install autoconf automake libtool
+```
+## Install libraries
 
-The simulator asks whether you want to create random topology reading data from `preinput.json` . If so, you have to define the parameters in that file. Then the simulator creates the files `peer.csv`, `channel.csv`, `channelInfo.csv`, `payment.csv` and gives you the possibility to change the values in these files by displaying "Change topology and press enter". After pressing enter, the simulation will start using the data read from these files.
+Install the libraries used by the simulator ([json-c](https://github.com/json-c/json-c) and [gsl-2.4](https://mirror2.mirror.garr.it/mirrors/gnuftp/gsl/gsl-2.4.tar.gz) by running in the project directory
 
-Instead, if you decide not to create a random topology, the simulator reads payments, channels and peers from `channelInfo_output.csv`, `channel_output.csv`, `payment_output.csv`, `peer_output.csv`. These files are created after each simulation run, and contains the values of peers, channels and payments after the simulation.
+```sh
+./install.sh <path>
+```
+where `path` is the absolute path where to download and install the libraries.
 
-The performance measures computed during a simulation run are printed in the file `output.json`.
+## Build
+
+Build the simulator by typing in the project directory
+
+```sh
+make build
+```
+
+## Run
+
+Run the simulator by typing in the project directory
+
+```sh
+./run.sh <seed> <is-preprocess>
+```
+where `seed` is the seed of the random variables used in the simulator and `pre-process` is the flag (0 or 1) which specifies whether the simulator is run or not in pre-processing mode. 
+
+If the simulator is in pre-processing mode, it reads pre-input parameters from file `preinput.json`, it generates a topology and payments to be simulated using the above-mentioned parameters and stores them in files `peer.csv`, `channel.csv`, `channelInfo.csv`, `payment.csv`. Then, it runs the simulation.
+
+If the simulator is not in pre-processing mode, it reads the topology from `peerLN.csv`, `channelLN.csv`, `channelInfoLN.csv` (which contain the data on the current LN mainnet) and generates payments to be simulated using the parameters in `preinput.json`. Then, it runs the simulation.
+
+At the end, the simulator produces `peer_output.csv`, `channel_output.csv`, `channelInfo_output.csv`, `payment_output.csv` output files. To compute batch-means statistical analysis on the output, in the project directory do:
+
+```sh
+python2.7 scripts/batch_means.py <results-directory> <simulation-end-time> <transient>
+```
+
+where `results-directory` is the directory of `payment_output.csv`, `simulator-end-time` is the end time of the simulation and `transient` is the transient removed by the statistical analysis. The output of the statistical analysis is stored in `results-directory/stats.json`.
+
+End time and possible value of transients can be found running the script:
+
+```sh
+python2.7 scripts/find-transients.py <results-directory>
+```
+
+which stores the transients in `transients.txt`
+
+For further information on the simulator pipeline and for an explanation of pre-input and other parameters, refer to [1].
+
+## References
+
+[1] Conoscenti, M.; Vetrò, A.; De Martin, J.C.; Spini, F. The CLoTH Simulator for HTLC Payment Networks with Introductory Lightning Network Performance Results. Information 2018, 9, 223. [](https://www.mdpi.com/2078-2489/9/9/223)
+
