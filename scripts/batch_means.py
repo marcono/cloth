@@ -4,19 +4,23 @@ import sys
 from scipy.stats import t
 from math import sqrt
 from collections import OrderedDict
+import pandas as pd
 
 input_args = list(sys.argv)
 
 path = input_args[1]
 pay_file_name = 'payment_output.csv'
-stats_file_name = 'stats.json'
+stats_file_name = 'output.json'
 pay_file_path = path + pay_file_name
 stats_file_path = path + stats_file_name
 
-end = int(input_args[2])
-transient = int(input_args[3])
 n_batches = 30
-delta = (end-transient)/30
+# end = int(input_args[2])
+# transient = int(input_args[3])
+# n_batches = 30
+# delta = (end-transient)/30
+alfa_confidence = 0.95
+percentile = t.isf(alfa_confidence/2, n_batches-1)
 
 
 stats = ['Total', 'Succeeded', 'FailedNoBalance', 'FailedOffline', 'FailedNoPath', 'FailedTimeout', 'Unknown', 'AvgTime', 'MinTime', 'MaxTime', 'AvgAttempts', 'MinAttempts', 'MaxAttempts',  'AvgRoute', 'MinRoute', 'MaxRoute']
@@ -35,21 +39,39 @@ total_mean_time = 0
 total_mean_route = 0
 total_succeeded = 0
 
-alfa_confidence = 0.95
-percentile = t.isf(alfa_confidence/2, n_batches-1)
 
-print 'delta_batch: ', delta
+with open(pay_file_path, 'rb') as csv_pay:#, open(stats_file_path, 'wb') as stats_file :
 
-with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_file :
-     pay_reader = csv.DictReader(csv_pay)
+     ## FIND TRANSIENT
+     panda_reader = pd.read_csv(csv_pay)
+
+     end_time = panda_reader['EndTime'].max()
+     print 'end_time: ', end_time
+
+     for x in range(3000, end_time):
+          if (end_time-x)%n_batches == 0:
+               transient = x
+               break
+     delta = (end_time - transient)/n_batches
+
+     print 'transient: ', transient
+     print 'delta_batch: ', delta
+
+
+with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_file:
+
 
      ##GET STATS FROM FILE
+
+
+     pay_reader = csv.DictReader(csv_pay)
+
 
      for pay in pay_reader:
 
          pay_end_time = int(pay['EndTime'])
 
-         if pay_end_time < transient or pay_end_time >= end:
+         if pay_end_time < transient or pay_end_time >= end_time:
              continue
 
          b = int((pay_end_time-transient)/delta)

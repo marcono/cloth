@@ -145,10 +145,10 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
 
     do{
-      exp = gsl_ran_gaussian_tail(r, 0, sigmaAmount);
+      exp = gsl_ran_gaussian_tail(r, 3, sigmaAmount);
     } while(exp>8);
 
-    ++npay[exp];
+    //    ++npay[exp-3];
 
     base = gsl_rng_uniform_int(r, 8)+1;
 
@@ -164,7 +164,7 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
   }
 
   /* for(i=0; i<8; i++) */
-  /*   printf("%d, %d\n", i, npay[i]); */
+  /*   printf("%d, %d\n", i+3, npay[i]); */
 
   /* exit(-1); */
 
