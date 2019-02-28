@@ -37,6 +37,7 @@ confidence_max = {"Total": 0, "Succeeded": 0, "FailedNoPath":0, "FailedNoBalance
 
 total_mean_time = 0
 total_mean_route = 0
+total_mean_attempts = 0
 total_succeeded = 0
 
 
@@ -84,6 +85,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
              total_succeeded += 1
 
              attempts = int(pay['Attempts'])
+             total_mean_attempts += attempts
              batches[b]['AvgAttempts'] += attempts
              if attempts > batches[b]['MaxAttempts']:
                   batches[b]['MaxAttempts'] = attempts
@@ -120,6 +122,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
 
      total_mean_time = float(total_mean_time)/total_succeeded
      total_mean_route = float(total_mean_route)/total_succeeded
+     total_mean_attempts = float(total_mean_attempts)/total_succeeded
      print total_mean_time, total_mean_route
 
      ## COMPUTE PER-BATCH STATS
@@ -128,14 +131,16 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
           if batches[i]['Succeeded'] == 0:
                batches[i]['AvgTime'] = total_mean_time
                batches[i]['AvgRoute'] = total_mean_route
+               batches[i]['AvgAttempts'] = total_mean_attempts
           else:
                batches[i]['AvgTime'] = float(batches[i]['AvgTime'])/batches[i]['Succeeded']
                batches[i]['AvgRoute'] = float(batches[i]['AvgRoute'])/batches[i]['Succeeded']
+               batches[i]['AvgAttempts'] = float(batches[i]['AvgAttempts'])/batches[i]['Succeeded']
+
 
           if batches[i]['Total'] == 0:
                print i
 
-          batches[i]['AvgAttempts'] = float(batches[i]['AvgAttempts'])/batches[i]['Total']
           batches[i]['Succeeded'] = float(batches[i]['Succeeded'])/batches[i]['Total']
           batches[i]['FailedNoPath'] = float(batches[i]['FailedNoPath'])/batches[i]['Total']
           batches[i]['FailedNoBalance'] = float(batches[i]['FailedNoBalance'])/batches[i]['Total']

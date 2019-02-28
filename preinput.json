@@ -1,7 +1,7 @@
 
 {
-  "PaymentMean":0.000133,
-  "NPayments":7500000,
+  "PaymentMean":0.100000,
+  "NPayments":10000,
   "NPeers":10000,
   "NChannels":5,
   "PUncooperativeBeforeLock":0.0,

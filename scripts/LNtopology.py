@@ -1,9 +1,11 @@
 import json
 import csv
-from random import randint
 import sys
+import numpy as np
 
 input_args = list(sys.argv)
+
+np.random.seed(1992)
 
 with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer:
     data = json.load(input)
@@ -42,7 +44,7 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
         peer1 = map_nodes[edge["node1_pub"]]
         peer2 = map_nodes[edge["node2_pub"]]
         capacity = int(edge["capacity"])
-        latency = randint(10,100)
+        latency = np.random.randint(10,100)
 
         info_writer.writerow([info_id, channel_id, channel_id+1, peer1, peer2, capacity, latency])
 
@@ -57,7 +59,16 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
             fee_prop = edge["node1_policy"]["fee_rate_milli_msat"]
             min_htlc = edge["node1_policy"]["min_htlc"]
 
-        channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, capacity/2, fee_base, fee_prop, min_htlc, timelock])
+        fraction = np.random.normal(0.5, 0.1)
+        fraction = round(fraction, 1)
+        if fraction < 0.1:
+            fraction = 0.1
+        elif fraction > 0.9:
+            fraction = 0.9
+        balance1 = capacity*fraction
+        balance2 = capacity - balance1
+
+        channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, long(round(balance1)), fee_base, fee_prop, min_htlc, timelock])
 
         if edge["node2_policy"] is None:
             timelock = 144
@@ -70,7 +81,7 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
             fee_prop = edge["node2_policy"]["fee_rate_milli_msat"]
             min_htlc = edge["node2_policy"]["min_htlc"]
 
-        channel_writer.writerow([channel_id+1, info_id, channel_id, peer1, capacity/2, fee_base, fee_prop, min_htlc, timelock])
+        channel_writer.writerow([channel_id+1, info_id, channel_id, peer1, long(round(balance2)), fee_base, fee_prop, min_htlc, timelock])
 
         info_id+=1
         channel_id+=2
