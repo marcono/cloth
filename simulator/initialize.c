@@ -75,7 +75,7 @@ void initializeEvents(long nPayments, double paymentMean) {
 
 }
 
-void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest, int sigmaAmount) {
+void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest, double sigmaAmount) {
   long i, senderID, receiverID;
   uint64_t  paymentAmount=0, eventTime=0 ;
   uint32_t nextEventInterval;
@@ -146,15 +146,13 @@ void initializeEventsPreproc(long nPayments, double paymentMean, double sameDest
 
     do{
       exp = gsl_ran_gaussian_tail(r, 3, sigmaAmount);
-    } while(exp>8);
+    } while(exp>6);
 
-    //    ++npay[exp-3];
+    ++npay[exp-3];
 
     base = gsl_rng_uniform_int(r, 8)+1;
 
     paymentAmount = base*gsl_pow_int(10,exp);
-
-    
 
     nextEventInterval = 1000*gsl_ran_exponential(r, paymentMean);
     eventTime += nextEventInterval;
@@ -207,7 +205,7 @@ void createPaymentsFromCsv(unsigned int isPreproc) {
   fclose(csvPayment);
 }
 
-void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, int sigmaAmount, unsigned int isPreproc ) {
+void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, double sigmaAmount, unsigned int isPreproc ) {
   eventIndex = 0;
   simulatorTime = 1;
 

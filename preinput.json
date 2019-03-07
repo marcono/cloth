@@ -1,7 +1,7 @@
 
 {
-  "PaymentMean":0.100000,
-  "NPayments":10000,
+  "PaymentMean":0.004,
+  "NPayments":250000,
   "NPeers":10000,
   "NChannels":5,
   "PUncooperativeBeforeLock":0.0,
@@ -10,7 +10,7 @@
   "Gini":1,
   "Sigma":-1,
   "PercentageSameDest":0.0,
-  "SigmaAmount":10,
+  "SigmaAmount":1,
   "Capacity":3e8
 }
 

@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 input_args = list(sys.argv)
 
-with open(input_args[1], 'rb') as input, open('policy-stats.json', 'wb') as stats_file:
+with open(input_args[1], 'rb') as input, open('ln-stats.json', 'wb') as stats_file:
     data = json.load(input)
 
     edges = list(data["edges"])
@@ -35,10 +35,21 @@ with open(input_args[1], 'rb') as input, open('policy-stats.json', 'wb') as stat
             if long(edge["node2_policy"]["fee_base_msat"])==0 and long(edge["node2_policy"]["fee_rate_milli_msat"])==0:
                 n_fee_zero += 1
 
+    capacities = []
+    for edge in edges:
+        capacities.append(long(edge["capacity"]))
+
     output={}
 
+    output["NumberOfChannels"] = len(edges)
     output["NumberOfPolicies"] = len(policy_values["min_htlc"])
     output["NumberZeroFees"] = n_fee_zero
+
+    output["ChannelCapacity(msat)"] = OrderedDict([
+        ('Mean', np.mean(capacities)),
+        ('Variance',np.var(capacities))
+    ])
+
     output["MinHTLC"] = OrderedDict([
         ('Mean', np.mean(policy_values["min_htlc"])),
         ('Variance',np.var(policy_values["min_htlc"]))

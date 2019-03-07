@@ -409,12 +409,13 @@ uint64_t readPreInputAndInitialize(int isPreprocTopology) {
   double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
   struct json_object* jpreinput, *jobj;
   unsigned int isPreprocPayments=1;
-  int gini, sigmaTopology, sigmaAmount;
+  int gini, sigmaTopology;
   char answer;
   clock_t  begin, end;
   double timeSpent=0.0;
   struct timespec start, finish;
   uint64_t endTime;
+  double sigmaAmount;
 
 
   jpreinput = json_object_from_file("preinput.json");
@@ -440,7 +441,7 @@ uint64_t readPreInputAndInitialize(int isPreprocTopology) {
   jobj = json_object_object_get(jpreinput, "PercentageSameDest");
   sameDest = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "SigmaAmount");
-  sigmaAmount = json_object_get_int(jobj);
+  sigmaAmount = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "Capacity");
   capacityPerChannel = json_object_get_int64(jobj);
 
