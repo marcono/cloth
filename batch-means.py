@@ -46,7 +46,7 @@ with open(pay_file_path, 'rb') as csv_pay:#, open(stats_file_path, 'wb') as stat
      ## FIND TRANSIENT
      panda_reader = pd.read_csv(csv_pay)
 
-     end_time = panda_reader['EndTime'].max()
+     end_time = panda_reader['Time'].max()
      print 'end_time: ', end_time
 
      for x in range(3000, end_time):
@@ -128,6 +128,9 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      ## COMPUTE PER-BATCH STATS
 
      for i in range (0, n_batches):
+          print batches[i]['Total']
+
+
           if batches[i]['Succeeded'] == 0:
                batches[i]['AvgTime'] = total_mean_time
                batches[i]['AvgRoute'] = total_mean_route
@@ -148,6 +151,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
           batches[i]['FailedTimeout'] = float(batches[i]['FailedTimeout'])/batches[i]['Total']
           batches[i]['Unknown'] = float(batches[i]['Unknown'])/batches[i]['Total']
           #print batches[i]
+
 
 
      ## COMPUTE BATCH MEANS

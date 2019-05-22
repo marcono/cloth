@@ -1,0 +1,29 @@
+{
+    "NumberZeroFees": 62, 
+    "FeeProportional(msat)": {
+        "Mean": 671.65651345655, 
+        "Min": 0, 
+        "Max": 1000000, 
+        "Variance": 22173.416142042257
+    }, 
+    "MinHTLC": {
+        "Mean": 1034.790491245136, 
+        "Variance": 4300.169430079862
+    }, 
+    "NumberOfPolicies": 49344, 
+    "NumberOfChannels": 24683, 
+    "FeeBase(msat)": {
+        "Mean": 959.5766050583658, 
+        "Min": 0, 
+        "Max": 100000, 
+        "Variance": 2504.2635449590593
+    }, 
+    "ChannelCapacity": {
+        "Mean": 2672854.1374225174, 
+        "Variance": 4360589.695114483
+    }, 
+    "Timelock": {
+        "Mean": 134.74807474059662, 
+        "Variance": 68.28815947503111
+    }
+}
