@@ -45,29 +45,33 @@ with open(input_args[1], 'rb') as input, open('ln-stats.json', 'wb') as stats_fi
     output["NumberOfPolicies"] = len(policy_values["min_htlc"])
     output["NumberZeroFees"] = n_fee_zero
 
-    output["ChannelCapacity(msat)"] = OrderedDict([
+    output["ChannelCapacity"] = OrderedDict([
         ('Mean', np.mean(capacities)),
-        ('Variance',np.var(capacities))
+        ('Variance',np.std(capacities))
     ])
 
     output["MinHTLC"] = OrderedDict([
         ('Mean', np.mean(policy_values["min_htlc"])),
-        ('Variance',np.var(policy_values["min_htlc"]))
+        ('Variance',np.std(policy_values["min_htlc"]))
         ])
 
     output["FeeBase(msat)"] = OrderedDict([
         ('Mean', np.mean(policy_values["fee_base_msat"])),
-        ('Variance',np.var(policy_values["fee_base_msat"]))
+        ('Min', np.amin(policy_values["fee_base_msat"])),
+        ('Max', np.amax(policy_values["fee_base_msat"])),
+        ('Variance',np.std(policy_values["fee_base_msat"]))
         ])
 
     output["FeeProportional(msat)"] = OrderedDict([
         ('Mean', np.mean(policy_values["fee_rate_milli_msat"])),
-        ('Variance',np.var(policy_values["fee_rate_milli_msat"]))
+        ('Min', np.amin(policy_values["fee_rate_milli_msat"])),
+        ('Max', np.amax(policy_values["fee_rate_milli_msat"])),
+        ('Variance',np.std(policy_values["fee_rate_milli_msat"]))
         ])
 
     output["Timelock"] = OrderedDict([
         ('Mean', np.mean(policy_values["time_lock_delta"])),
-        ('Variance',np.var(policy_values["time_lock_delta"]))
+        ('Variance',np.std(policy_values["time_lock_delta"]))
         ])
 
     json.dump(output, stats_file, indent=4)

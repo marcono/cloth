@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include "./protocol/findRoute.h"
 #include "./utils/list.h"
-#define PARALLEL 8
+#define PARALLEL 4
 
 extern pthread_mutex_t pathsMutex;
 extern pthread_mutex_t peersMutex;

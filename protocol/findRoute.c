@@ -38,7 +38,7 @@ int present(long i) {
 }
 
 int compareDistance(Distance* a, Distance* b) {
-  uint16_t d1, d2;
+  uint64_t d1, d2;
   d1=a->distance;
   d2=b->distance;
   if(d1==d2)

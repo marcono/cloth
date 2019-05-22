@@ -7,7 +7,7 @@ input_args = list(sys.argv)
 
 np.random.seed(1992)
 
-with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer:
+with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer, open('../map-nodes.json', 'wb') as map_file:
     data = json.load(input)
     peer_writer = csv.writer(csv_peer)
 
@@ -29,6 +29,8 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
              map_nodes[node["pub_key"]] = peer_id
              peer_writer.writerow([peer_id, 0])
              peer_id+=1
+
+    json.dump(map_nodes, map_file, indent=2)
 
     info_writer = csv.writer(csv_info)
     info_writer.writerow(['ID', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])

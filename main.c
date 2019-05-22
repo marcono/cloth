@@ -286,7 +286,7 @@ void csvWriteOutput() {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route\n");
+  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route,TotalFee\n");
 
   for(i=0; i<paymentIndex; i++)  {
     payment = arrayGet(payments, i);
@@ -300,10 +300,11 @@ void csvWriteOutput() {
       for(j=0; j<arrayLen(hops); j++) {
         hop = arrayGet(hops, j);
         if(j==arrayLen(hops)-1)
-          fprintf(csvPaymentOutput,"%ld",hop->pathHop->channel);
+          fprintf(csvPaymentOutput,"%ld,",hop->pathHop->channel);
         else
           fprintf(csvPaymentOutput,"%ld-",hop->pathHop->channel);
       }
+      fprintf(csvPaymentOutput, "%ld", route->totalFee);
     }
     fprintf(csvPaymentOutput,"\n");
   }
@@ -367,6 +368,8 @@ void csvWriteOutput() {
   fclose(csvPeerOutput);
 
 }
+
+
 
 pthread_mutex_t pathsMutex;
 pthread_mutex_t peersMutex;

@@ -6,9 +6,9 @@ from collections import Counter
 
 np.random.seed(1992)
 
-hub_position = 0
+hub_position = 5
 
-with open('ln-mainnet-16-36-12-02-2019.json', 'rb') as input:
+with open('../results/hub/ln-without-hub-4.json', 'rb') as input:
     graph = json.load(input)
 
     # FIND AN HUB
@@ -58,7 +58,7 @@ with open('ln-mainnet-16-36-12-02-2019.json', 'rb') as input:
             print 'ERROR: hub still present'
             sys.exit(0)
 
-with open('ln-without-hub-'+ str(hub_position) + '.json', 'wb') as output:
+with open('../results/hub/ln-without-hub-'+ str(hub_position) + '.json', 'wb') as output:
     json.dump(graph, output, indent=2)
 
     print 'file written without errors'
