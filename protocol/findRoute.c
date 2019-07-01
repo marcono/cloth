@@ -13,7 +13,6 @@
 #define INF UINT64_MAX
 #define HOPSLIMIT 20
 
-//FIXME: non globale ma passato per riferimento a dijkstra
 char error[100];
 uint32_t** dist;
 PathHop** next;
@@ -882,7 +881,6 @@ Route* routeInitialize(long nHops) {
   return r;
 }
 
-//TODO: sposta computeFee nei file protocol
 
 Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalTimelock) {
   PathHop *pathHop;
@@ -931,7 +929,6 @@ Route* transformPathIntoRoute(Array* pathHops, uint64_t amountToSend, int finalT
       route->totalTimelock += currentChannelPolicy.timelock;
     }
 
-    //TODO: mettere stringa con messaggio di errore tra i parametri della funzione
     if(routeHop->amountToForward > currentChannelCapacity)
       return NULL;
 

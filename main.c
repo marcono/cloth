@@ -1425,7 +1425,6 @@ int main() {
     }
   }
 
-  //TODO: stampare ordinatamente le balances per testare correttezza
   printBalances();
 
 

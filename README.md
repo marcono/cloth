@@ -33,7 +33,7 @@ make build
 Run the simulator by typing in the project directory
 
 ```sh
-./run.sh <seed> <is-preprocess>
+./run.sh <seed> <is-preprocess> <path-results>
 ```
 where `seed` is the seed of the random variables used in the simulator and `pre-process` is the flag (0 or 1) which specifies whether the simulator is run or not in pre-processing mode. 
 
@@ -41,23 +41,7 @@ If the simulator is in pre-processing mode, it reads pre-input parameters from f
 
 If the simulator is not in pre-processing mode, it reads the topology from `peerLN.csv`, `channelLN.csv`, `channelInfoLN.csv` (which contain the data on the current LN mainnet) and generates payments to be simulated using the parameters in `preinput.json`. Then, it runs the simulation.
 
-At the end, the simulator produces `peer_output.csv`, `channel_output.csv`, `channelInfo_output.csv`, `payment_output.csv` output files. To compute batch-means statistical analysis on the output, in the project directory do:
-
-```sh
-python2.7 scripts/batch_means.py <results-directory> <simulation-end-time> <transient>
-```
-
-where `results-directory` is the directory of `payment_output.csv`, `simulator-end-time` is the end time of the simulation and `transient` is the transient removed by the statistical analysis. The output of the statistical analysis is stored in `results-directory/stats.json`.
-
-End time and possible value of transients can be found running the script:
-
-```sh
-python2.7 scripts/find-transients.py <results-directory>
-```
-
-which stores the transients in `transients.txt`
-
-For further information on the simulator pipeline and for an explanation of pre-input and other parameters, refer to [1].
+At the end, the simulator produces output measures in the file `output.json`. This file and all the others produced by the simulator are stored in path `path-results`.
 
 ## References
 

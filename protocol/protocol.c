@@ -34,12 +34,6 @@
 #define INF UINT16_MAX
 #define HOPSLIMIT 20
 
-//TODO: creare ID randomici e connettere peer "vicini" usando il concetto
-// di vicinanza di chord; memorizzare gli id dei peer in un Array di long
-// per avere facile accesso a tutti i peer nel momento della creazione dei canali
-// (per controllare invece se un certo ID e' gia' stato usato, usare direttamente l'hashtable dei peer
-// perche' e' piu' efficiente)
-// CONTROLLARE SE QUESTO POTREBBE ESSERE UN PROBLEMA PER GLI ALGORITMI DI ROUTING
 
 long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
 /* HashTable* peers; */
@@ -183,7 +177,7 @@ Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection,
 /* void connectPeers(long peerID1, long peerID2) { */
 /*   Peer* peer1, *peer2; */
 /*   Policy policy1, policy2; */
-/*   Channel* firstChannelDirection, *secondChannelDirection; //TODO: rinominare channelInfo->channel e channel->channelDirection */
+/*   Channel* firstChannelDirection, *secondChannelDirection; 
 /*   ChannelInfo *channelInfo; */
 /*   uint32_t latency; */
 /*   uint64_t balance;  */
@@ -242,7 +236,7 @@ void computePeersInitialFunds(double gini) {
   uint64_t computeChannelBalance(Peer *peer) {
   uint64_t channelBalance;
 
-  channelBalance = peer->initialFunds/4; //TODO: al posto di 4, il numero di canali per peer o altro
+  channelBalance = peer->initialFunds/4; 
   if(peer->remainingFunds < channelBalance) {
   channelBalance = peer->remainingFunds;
   peer->remainingFunds=0.0;
@@ -671,7 +665,6 @@ void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, d
 }
 
 
-//TODO: farne unica versione, con element void, e mettere in array.c
 int isPresent(long element, Array* longArray) {
   long i, *curr;
 
@@ -994,9 +987,6 @@ void addIgnored(long peerID, long ignoredID){
   peer->ignoredChannels = arrayInsert(peer->ignoredChannels, ignored);
 }
 
-//TODO: uniformare tipi di variabili d'appoggio da usare nelle seguenti tre funzioni
-// in particolare evitare tutte le variabili che non siano puntatori, perche e' rischioso
-// passarne poi l'indirizzo
 
 void sendPayment(Event* event) {
   Payment* payment;
@@ -1041,7 +1031,6 @@ void sendPayment(Event* event) {
   //  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
 
 
-  //TODO: creare funzione generateForwardEvent che ha tutte le seguenti righe di codice fino alla fine
   eventType = firstRouteHop->pathHop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   nextEventTime = simulatorTime + channelInfo->latency;
   nextEvent = createEvent(eventIndex, nextEventTime, eventType, firstRouteHop->pathHop->receiver, event->paymentID );
@@ -1220,9 +1209,6 @@ void receivePayment(Event* event ) {
   events = heapInsert(events, nextEvent, compareEvent);
 }
 
-//TODO: forse ha senso memorizzare nel peer tutti i payment ID che lo interessano (sia come sender che come receiver che come hop);
-//     questo puo' servire sia per motivi statistici che anche per debugging: controllare cioe che il peer non riceva una richiesta
-//     di settle o fail per un pagamento che non lo riguarda.
 
 void forwardSuccess(Event* event) {
   RouteHop* prevHop, *nextHop;
@@ -1301,7 +1287,6 @@ void receiveSuccess(Event* event){
 }
 
 
-//TODO: uniformare tutti i vari RouteHop a next previous
 void forwardFail(Event* event) {
   Payment* payment;
   RouteHop* nextHop, *prevHop;

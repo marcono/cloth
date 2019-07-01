@@ -119,7 +119,6 @@ void connectPeers(long peer1, long peer2);
 
 void createTopologyFromCsv(unsigned int isPreproc);
 
-//TODO: sposta queste due funzioni in qualche file utils.h
 int isPresent(long element, Array* longArray);
 
 int isEqual(long *a, long *b);
