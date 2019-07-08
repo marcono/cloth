@@ -9,14 +9,14 @@ typedef struct heap {
 } Heap;
 
 
-Heap* heapInitialize(long size);
+Heap* heap_initialize(long size);
 
-Heap* heapInsert(Heap *h, void* data, int(*compare)());
+Heap* heap_insert(Heap *h, void* data, int(*compare)());
 
-void* heapPop(Heap* h, int(*compare)());
+void* heap_pop(Heap* h, int(*compare)());
 
-long heapLen(Heap*h);
+long heap_len(Heap*h);
 
-void heapFree(Heap* h);
+void heap_free(Heap* h);
 
 #endif

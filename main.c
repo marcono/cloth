@@ -13,392 +13,173 @@
 #include "./simulator/event.h"
 #include "./simulator/initialize.h"
 #include "./utils/heap.h"
-#include "./utils/hashTable.h"
+//#include "./utils/hash_table.h"
 //#include "./gc-7.2/include/gc.h"
 #include "./utils/array.h"
-#include "./protocol/findRoute.h"
+#include "./protocol/routing.h"
 #include "./protocol/protocol.h"
-#include "./simulator/stats.h"
+//#include "./simulator/stats.h"
 #include "./global.h"
 #include "./utils/list.h"
 
-/*void printBalances() {
-  long i, j, *channelID;
-  Peer* peer;
-  Array* peerChannels;
-  Channel* channel;
 
-  printf("PRINT BALANCES\n");
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    peerChannels = peer->channel;
-    for(j=0; j<arrayLen(peerChannels); j++) {
-      channelID = arrayGet(peerChannels, j);
-      channel = arrayGet(channels, *channelID);
-      printf("Peer %ld, Channel %ld, Balance %lf\n", peer->ID, channel->channelInfoID, channel->balance);
-    }
-  }
-  }
-
-void printPayments() {
-  long i, j;
-  Payment *payment;
-  Array* routeHops;
-  RouteHop* hop;
-  Peer* peer;
-  Channel* forward, *backward;
-
-  for(i = 0; i < paymentIndex; i++) {
-    payment = arrayGet(payments, i);
-    printf("PAYMENT %ld\n", payment->ID);
-    if(payment->route==NULL) continue;
-    routeHops = payment->route->routeHops;
-    for(j=0; j<arrayLen(routeHops); j++){
-      hop = arrayGet(routeHops, j);
-      peer = arrayGet(peers, hop->pathHop->sender);
-      if(isPresent(hop->pathHop->channel, peer->channel)) {
-        forward = arrayGet(channels, hop->pathHop->channel);
-        backward = arrayGet(channels, forward->otherChannelDirectionID);
-        printf("Sender %ld, Receiver %ld, Channel %ld, Balance forward %ld, Balance backward %ld\n",
-               hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID, forward->balance, backward->balance);
-
-      }
-      else {
-        forward = arrayGet(channels, hop->pathHop->channel);
-        printf("Sender %ld, Receiver %ld, Channel %ld, Channel closed\n", hop->pathHop->sender, hop->pathHop->receiver, forward->channelInfoID);
-      }
-    }
-  }
-}
-
-struct json_object* jsonNewChannelDirection(Channel* direction) {
-  struct json_object* jdirection;
-  struct json_object* jID, *jcounterpartyID, *jbalance, *jpolicy, *jfeebase, *jfeeprop, *jtimelock;
-
-  jdirection = json_object_new_object();
-
-  jID = json_object_new_int64(direction->ID);
-  jcounterpartyID = json_object_new_int64(direction->counterparty);
-  jbalance = json_object_new_int64(direction->balance);
-
-  jpolicy = json_object_new_object();
-  jfeebase = json_object_new_int64(direction->policy.feeBase);
-  jfeeprop = json_object_new_int64(direction->policy.feeProportional);
-  jtimelock = json_object_new_int(direction->policy.timelock);
-  json_object_object_add(jpolicy, "FeeBase", jfeebase );
-  json_object_object_add(jpolicy, "FeeProportional", jfeeprop);
-  json_object_object_add(jpolicy, "Timelock", jtimelock );
- 
-  json_object_object_add(jdirection, "ID", jID );
-  json_object_object_add(jdirection, "CounterpartyID", jcounterpartyID);
-  json_object_object_add(jdirection, "Balance", jbalance );
-  json_object_object_add(jdirection, "Policy", jpolicy );
-
-  return jdirection;
-}
-
-struct json_object* jsonNewChannel(ChannelInfo *channel) {
-  struct json_object* jchannel;
-  struct json_object* jID, *jcapacity, *jlatency, *jpeer1, *jpeer2, *jdirection1, *jdirection2;
-
-  jchannel = json_object_new_object();
-
-  jID = json_object_new_int64(channel->ID);
-  jpeer1 = json_object_new_int64(channel->peer1);
-  jpeer2 = json_object_new_int64(channel->peer2);
-  jcapacity = json_object_new_int64(channel->capacity);
-  jlatency = json_object_new_int(channel->latency);
-  jdirection1 = jsonNewChannelDirection(arrayGet(channels, channel->channelDirection1));
-  jdirection2 = jsonNewChannelDirection(arrayGet(channels, channel->channelDirection2));
-
-  json_object_object_add(jchannel, "ID", jID);
-  json_object_object_add(jchannel, "Peer1ID", jpeer1);
-  json_object_object_add(jchannel, "Peer2ID", jpeer2);
-  json_object_object_add(jchannel, "Capacity", jcapacity);
-  json_object_object_add(jchannel, "Latency", jlatency);
-  json_object_object_add(jchannel, "Direction1", jdirection1);
-  json_object_object_add(jchannel, "Direction2", jdirection2);
-
-  return jchannel;
-}
-
-struct json_object* jsonNewPeer(Peer *peer) {
-  struct json_object* jpeer;
-  struct json_object *jID, *jChannelSize, *jChannelIDs, *jChannelID, *jwithholdsR;
-  long i, *channelID;
-
-  jpeer = json_object_new_object();
-
-  jID = json_object_new_int64(peer->ID);
-  jChannelSize = json_object_new_int64(arrayLen(peer->channel));
-  jwithholdsR = json_object_new_int(peer->withholdsR);
-
-  jChannelIDs = json_object_new_array();
-  for(i=0; i<arrayLen(peer->channel); i++) {
-    channelID = arrayGet(peer->channel, i);
-    jChannelID = json_object_new_int64(*channelID);
-    json_object_array_add(jChannelIDs, jChannelID);
-  }
-
-  json_object_object_add(jpeer, "ID", jID);
-  json_object_object_add(jpeer,"ChannelsSize",jChannelSize);
-  json_object_object_add(jpeer, "WithholdsR", jwithholdsR);
-  json_object_object_add(jpeer, "ChannelIDs", jChannelIDs);
-
-  return jpeer;
-}
-
-void jsonWriteInput() {
-  long i;
-  struct json_object* jpeer, *jpeers, *jchannel, *jchannels;
-  struct json_object* jobj;
-  Peer* peer;
-  ChannelInfo* channel;
-
-  jobj = json_object_new_object();
-  jpeers = json_object_new_array();
-  jchannels = json_object_new_array();
-
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    jpeer = jsonNewPeer(peer);
-    json_object_array_add(jpeers, jpeer);
-  }
-  json_object_object_add(jobj, "Peers",jpeers);
-
-  for(i=0; i<channelInfoIndex; i++){
-    channel = arrayGet(channelInfos, i);
-    jchannel = jsonNewChannel(channel);
-    json_object_array_add(jchannels, jchannel);
-  }
-  json_object_object_add(jobj, "Channels", jchannels);
-
-  //  printf("%s\n", json_object_to_json_string(jobj));
-
-  json_object_to_file_ext("simulator_input.json", jobj, JSON_C_TO_STRING_PRETTY);
-
-}
-
-void csvWriteInput() {
-  FILE *csvPeer, *csvChannelInfo, *csvChannel;
-  Peer* peer;
-  ChannelInfo* channelInfo;
-  Channel* channel;
-  long i, j, *channelID;
-
-  csvPeer = fopen("peer.csv", "w");
-   if(csvPeer==NULL) {
-    printf("ERROR cannot open file peer.csv\n");
-    return;
-  }
-
-  fprintf(csvPeer, "ID,ChannelsSize,WithholdsR,ChannelIDs\n");
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    fprintf(csvPeer, "%ld,%ld,%d,", peer->ID, arrayLen(peer->channel), peer->withholdsR);
-    for(j=0; j<arrayLen(peer->channel); j++) {
-      channelID = arrayGet(peer->channel, j);
-      if(j==arrayLen(peer->channel)-1) 
-        fprintf(csvPeer,"%ld\n", *channelID);
-      else
-        fprintf(csvPeer,"%ld-", *channelID);
-    }
-  }
-
-
-  fclose(csvPeer);
- 
-  csvChannelInfo = fopen("channelInfo.csv", "w");
-  if(csvChannelInfo==NULL) {
-    printf("ERROR cannot open file channelInfo.csv\n");
-    return;
-  }
-
-  fprintf(csvChannelInfo, "ID,Peer1,Peer2,Direction1,Direction2,Capacity,Latency\n");
-  for(i=0; i<channelInfoIndex; i++) {
-    channelInfo = arrayGet(channelInfos, i);
-    fprintf(csvChannelInfo,"%ld,%ld,%ld,%ld,%ld,%ld,%d\n",channelInfo->ID, channelInfo->peer1, channelInfo->peer2, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->capacity, channelInfo->latency);
-  }
-
-  fclose(csvChannelInfo);
-
-  csvChannel = fopen("channel.csv", "w");
-  if(csvChannel==NULL) {
-    printf("ERROR cannot open file channel.csv\n");
-    return;
-  }
-
-
-  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,Timelock\n");
-  for(i=0; i<channelIndex; i++) {
-    channel = arrayGet(channels, i);
-    fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
-  }
-
-
-  fclose(csvChannel);
-
-}
-
-*/
-
-void csvWriteOutput() {
-  FILE* csvChannelInfoOutput, *csvChannelOutput, *csvPaymentOutput, *csvPeerOutput;
+void csv_write_output() {
+  FILE* csv_channel_info_output, *csv_channel_output, *csv_payment_output, *csv_peer_output;
   long i,j, *id;
-  ChannelInfo* channelInfo;
+  Channel_info* channel_info;
   Channel* channel;
   Payment* payment;
   Peer* peer;
   Route* route;
   Array* hops;
-  RouteHop* hop;
+  Route_hop* hop;
 
-  csvChannelInfoOutput = fopen("channelInfo_output.csv", "w");
-  if(csvChannelInfoOutput  == NULL) {
-    printf("ERROR cannot open channelInfo_output.csv\n");
+  csv_channel_info_output = fopen("channel_info_output.csv", "w");
+  if(csv_channel_info_output  == NULL) {
+    printf("ERROR cannot open channel_info_output.csv\n");
     return;
   }
-  fprintf(csvChannelInfoOutput, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency,IsClosed\n");
+  fprintf(csv_channel_info_output, "id,direction1,direction2,peer1,peer2,capacity,latency,is_closed\n");
 
-  for(i=0; i<channelInfoIndex; i++) {
-    channelInfo = arrayGet(channelInfos, i);
-    fprintf(csvChannelInfoOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency, channelInfo->isClosed);
+  for(i=0; i<channel_info_index; i++) {
+    channel_info = array_get(channel_infos, i);
+    fprintf(csv_channel_info_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel_info->ID, channel_info->channel_direction1, channel_info->channel_direction2, channel_info->peer1, channel_info->peer2, channel_info->capacity, channel_info->latency, channel_info->is_closed);
   }
 
-  fclose(csvChannelInfoOutput);
+  fclose(csv_channel_info_output);
 
-  csvChannelOutput = fopen("channel_output.csv", "w");
-  if(csvChannelInfoOutput  == NULL) {
+  csv_channel_output = fopen("channel_output.csv", "w");
+  if(csv_channel_info_output  == NULL) {
     printf("ERROR cannot open channel_output.csv\n");
     return;
   }
-  fprintf(csvChannelOutput, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,MinHTLC,Timelock,isClosed\n");
+  fprintf(csv_channel_output, "id,channel_info,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
 
-  for(i=0; i<channelIndex; i++) {
-    channel = arrayGet(channels, i);
-    fprintf(csvChannelOutput, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.minHTLC, channel->policy.timelock, channel->isClosed);
+  for(i=0; i<channel_index; i++) {
+    channel = array_get(channels, i);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", channel->ID, channel->channel_info_iD, channel->other_channel_direction_iD, channel->counterparty, channel->balance, channel->policy.fee_base, channel->policy.fee_proportional, channel->policy.min_hTLC, channel->policy.timelock, channel->is_closed);
   }
 
-  fclose(csvChannelOutput);
+  fclose(csv_channel_output);
 
-  csvPaymentOutput = fopen("payment_output.csv", "w");
-  if(csvChannelInfoOutput  == NULL) {
+  csv_payment_output = fopen("payment_output.csv", "w");
+  if(csv_channel_info_output  == NULL) {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
-  fprintf(csvPaymentOutput, "ID,Sender,Receiver,Amount,Time,EndTime,IsSuccess,UncoopAfter,UncoopBefore,IsTimeout,Attempts,Route,TotalFee\n");
+  fprintf(csv_payment_output, "id,sender,receiver,amount,time,end_time,is_success,uncoop_after,uncoop_before,is_timeout,attempts,route,total_fee\n");
 
-  for(i=0; i<paymentIndex; i++)  {
-    payment = arrayGet(payments, i);
-    fprintf(csvPaymentOutput, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->startTime, payment->endTime, payment->isSuccess, payment->uncoopAfter, payment->uncoopBefore, payment->isTimeout, payment->attempts);
+  for(i=0; i<payment_index; i++)  {
+    payment = array_get(payments, i);
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
-      fprintf(csvPaymentOutput, "-1");
+      fprintf(csv_payment_output, "-1");
     else {
-      hops = route->routeHops;
-      for(j=0; j<arrayLen(hops); j++) {
-        hop = arrayGet(hops, j);
-        if(j==arrayLen(hops)-1)
-          fprintf(csvPaymentOutput,"%ld,",hop->pathHop->channel);
+      hops = route->route_hops;
+      for(j=0; j<array_len(hops); j++) {
+        hop = array_get(hops, j);
+        if(j==array_len(hops)-1)
+          fprintf(csv_payment_output,"%ld,",hop->path_hop->channel);
         else
-          fprintf(csvPaymentOutput,"%ld-",hop->pathHop->channel);
+          fprintf(csv_payment_output,"%ld-",hop->path_hop->channel);
       }
-      fprintf(csvPaymentOutput, "%ld", route->totalFee);
+      fprintf(csv_payment_output, "%ld", route->total_fee);
     }
-    fprintf(csvPaymentOutput,"\n");
+    fprintf(csv_payment_output,"\n");
   }
 
-  fclose(csvPaymentOutput);
+  fclose(csv_payment_output);
 
 
-  csvPeerOutput = fopen("peer_output.csv", "w");
-  if(csvChannelInfoOutput  == NULL) {
+  csv_peer_output = fopen("peer_output.csv", "w");
+  if(csv_channel_info_output  == NULL) {
     printf("ERROR cannot open peer_output.csv\n");
     return;
   }
-  fprintf(csvPeerOutput, "ID,OpenChannels,IgnoredPeers,IgnoredChannels\n");
+  fprintf(csv_peer_output, "id,open_channels,ignored_peers,ignored_channels\n");
 
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
+  for(i=0; i<peer_index; i++) {
+    peer = array_get(peers, i);
 
-    fprintf(csvPeerOutput, "%ld,", peer->ID);
+    fprintf(csv_peer_output, "%ld,", peer->ID);
 
-    if(arrayLen(peer->channel)==0)
-      fprintf(csvPeerOutput, "-1");
+    if(array_len(peer->channel)==0)
+      fprintf(csv_peer_output, "-1");
     else {
-      for(j=0; j<arrayLen(peer->channel); j++) {
-        id = arrayGet(peer->channel, j);
-        if(j==arrayLen(peer->channel)-1)
-          fprintf(csvPeerOutput,"%ld",*id);
+      for(j=0; j<array_len(peer->channel); j++) {
+        id = array_get(peer->channel, j);
+        if(j==array_len(peer->channel)-1)
+          fprintf(csv_peer_output,"%ld",*id);
         else
-          fprintf(csvPeerOutput,"%ld-",*id);
+          fprintf(csv_peer_output,"%ld-",*id);
       }
     }
-    fprintf(csvPeerOutput,",");
+    fprintf(csv_peer_output,",");
 
-    if(arrayLen(peer->ignoredPeers)==0)
-      fprintf(csvPeerOutput, "-1");
+    if(array_len(peer->ignored_peers)==0)
+      fprintf(csv_peer_output, "-1");
     else {
-      for(j=0; j<arrayLen(peer->ignoredPeers); j++) {
-        id = arrayGet(peer->ignoredPeers, j);
-        if(j==arrayLen(peer->ignoredPeers)-1)
-          fprintf(csvPeerOutput,"%ld",*id);
+      for(j=0; j<array_len(peer->ignored_peers); j++) {
+        id = array_get(peer->ignored_peers, j);
+        if(j==array_len(peer->ignored_peers)-1)
+          fprintf(csv_peer_output,"%ld",*id);
         else
-          fprintf(csvPeerOutput,"%ld-",*id);
+          fprintf(csv_peer_output,"%ld-",*id);
       }
     }
-    fprintf(csvPeerOutput,",");
+    fprintf(csv_peer_output,",");
 
-    if(arrayLen(peer->ignoredChannels)==0)
-      fprintf(csvPeerOutput, "-1");
+    if(array_len(peer->ignored_channels)==0)
+      fprintf(csv_peer_output, "-1");
     else {
-      for(j=0; j<arrayLen(peer->ignoredChannels); j++) {
-        id = arrayGet(peer->ignoredChannels, j);
-        if(j==arrayLen(peer->ignoredChannels)-1)
-          fprintf(csvPeerOutput,"%ld",*id);
+      for(j=0; j<array_len(peer->ignored_channels); j++) {
+        id = array_get(peer->ignored_channels, j);
+        if(j==array_len(peer->ignored_channels)-1)
+          fprintf(csv_peer_output,"%ld",*id);
         else
-          fprintf(csvPeerOutput,"%ld-",*id);
+          fprintf(csv_peer_output,"%ld-",*id);
       }
     }
-    fprintf(csvPeerOutput,"\n");
+    fprintf(csv_peer_output,"\n");
   
   }
 
-  fclose(csvPeerOutput);
+  fclose(csv_peer_output);
 
 }
 
 
 
-pthread_mutex_t pathsMutex;
-pthread_mutex_t peersMutex;
-pthread_mutex_t jobsMutex;
+pthread_mutex_t paths_mutex;
+pthread_mutex_t peers_mutex;
+pthread_mutex_t jobs_mutex;
 Array** paths;
 Node* jobs=NULL;
 
 
-void initializeThreads() {
+void initialize_threads() {
   long i;
   Payment *payment;
   pthread_t tid[PARALLEL];
-  int dataIndex[PARALLEL];
+  int data_index[PARALLEL];
 
-  pthread_mutex_init(&peersMutex, NULL);
-  pthread_mutex_init(&jobsMutex, NULL);
-  pthread_mutex_init(&pathsMutex, NULL);
+  pthread_mutex_init(&peers_mutex, NULL);
+  pthread_mutex_init(&jobs_mutex, NULL);
+  pthread_mutex_init(&paths_mutex, NULL);
 
-  paths = malloc(sizeof(Array*)*paymentIndex);
+  paths = malloc(sizeof(Array*)*payment_index);
 
-  for(i=0; i<paymentIndex ;i++){
+  for(i=0; i<payment_index ;i++){
     paths[i] = NULL;
-    payment = arrayGet(payments, i);
+    payment = array_get(payments, i);
     jobs = push(jobs, payment->ID);
   }
 
   for(i=0; i<PARALLEL; i++) {
-    dataIndex[i] = i;
-    pthread_create(&(tid[i]), NULL, &dijkstraThread, &(dataIndex[i]));
+    data_index[i] = i;
+    pthread_create(&(tid[i]), NULL, &dijkstra_thread, &(data_index[i]));
   }
 
   for(i=0; i<PARALLEL; i++)
@@ -407,87 +188,79 @@ void initializeThreads() {
 
 }
 
-uint64_t readPreInputAndInitialize(int isPreprocTopology) {
-  long nPayments, nPeers, nChannels, capacityPerChannel;
-  double paymentMean, pUncoopBefore, pUncoopAfter, RWithholding, sameDest;
+uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
+  long n_payments, n_peers, n_channels, capacity_per_channel;
+  double payment_mean, p_uncoop_before, p_uncoop_after, RWithholding, same_dest;
   struct json_object* jpreinput, *jobj;
-  unsigned int isPreprocPayments=1;
-  int gini, sigmaTopology;
+  unsigned int is_preproc_payments=1;
+  int gini, sigma_topology;
   char answer;
   clock_t  begin, end;
-  double timeSpent=0.0;
+  double time_spent=0.0;
   struct timespec start, finish;
-  uint64_t endTime;
-  double sigmaAmount;
+  uint64_t end_time;
+  double sigma_amount;
 
 
   jpreinput = json_object_from_file("preinput.json");
 
-  jobj = json_object_object_get(jpreinput, "PaymentMean");
-  paymentMean = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "NPayments");
-  nPayments = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "NPeers");
-  nPeers = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "NChannels");
-  nChannels = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "PUncooperativeBeforeLock");
-  pUncoopBefore = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "PUncooperativeAfterLock");
-  pUncoopAfter = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "PercentageRWithholding");
+  jobj = json_object_object_get(jpreinput, "payment_mean");
+  payment_mean = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "n_payments");
+  n_payments = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "n_peers");
+  n_peers = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "n_channels");
+  n_channels = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
+  p_uncoop_before = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock");
+  p_uncoop_after = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "percentage_r_withholding");
   RWithholding = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "Gini");
+  jobj = json_object_object_get(jpreinput, "gini");
   gini = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "SigmaTopology");
-  sigmaTopology = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "PercentageSameDest");
-  sameDest = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "SigmaAmount");
-  sigmaAmount = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "Capacity");
-  capacityPerChannel = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "sigma_topology");
+  sigma_topology = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "percentage_same_dest");
+  same_dest = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "sigma_amount");
+  sigma_amount = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "capacity");
+  capacity_per_channel = json_object_get_int64(jobj);
 
 
-  endTime = nPayments*paymentMean*1000;
+  end_time = n_payments*payment_mean*1000;
 
-  //printf("%ld\n", endTime);
-
-  /* printf("Create random topology from preinput.json? [y/n]\n"); */
-  /* scanf("%c", &answer); */
-  /* if(answer == 'y') */
-  /*   isPreproc=1; */
-  /* else */
-  /*   isPreproc=0; */
 
   begin = clock();
 
-  initializeProtocolData(nPeers, nChannels, pUncoopBefore, pUncoopAfter, RWithholding, gini, sigmaTopology, capacityPerChannel, isPreprocTopology);
-  initializeSimulatorData(nPayments, paymentMean, sameDest, sigmaAmount, isPreprocPayments);
+  initialize_protocol_data(n_peers, n_channels, p_uncoop_before, p_uncoop_after, RWithholding, gini, sigma_topology, capacity_per_channel, is_preproc_topology);
+  initialize_simulator_data(n_payments, payment_mean, same_dest, sigma_amount, is_preproc_payments);
 
 
-  statsInitialize();
+  //  stats_initialize();
 
-  initializeDijkstra();
+  initialize_dijkstra();
 
   end = clock();
-  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by initialization: %lf\n", timeSpent);
+  time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by initialization: %lf\n", time_spent);
 
 
   begin = clock();
   clock_gettime(CLOCK_MONOTONIC, &start);
-  initializeThreads();
+  initialize_threads();
   end = clock();
   clock_gettime(CLOCK_MONOTONIC, &finish);
-  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by dijkstra executions (normal): %lf\n", timeSpent);
-  timeSpent = finish.tv_sec - start.tv_sec;
-  printf("Time consumed by dijkstra executions (threads): %lf\n", timeSpent);
+  time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by dijkstra executions (normal): %lf\n", time_spent);
+  time_spent = finish.tv_sec - start.tv_sec;
+  printf("Time consumed by dijkstra executions (threads): %lf\n", time_spent);
 
-  //  floydWarshall();
+  //  floyd_warshall();
 
-  return endTime;
+  return end_time;
 
 }
 
@@ -495,12 +268,12 @@ uint64_t readPreInputAndInitialize(int isPreprocTopology) {
 int main(int argc, char* argv[]) {
   Event* event;
   //  Peer* peer;
-  //ChannelInfo* channelInfo;
+  //Channel_info* channel_info;
   //Channel* channel;
   //Payment* payment;
   clock_t  begin, end;
-  double timeSpent=0.0;
-  uint64_t endTime;
+  double time_spent=0.0;
+  uint64_t end_time;
   int preproc;
 
   if(argc!=2) {
@@ -510,61 +283,42 @@ int main(int argc, char* argv[]) {
 
   preproc = atoi(argv[1]);
 
-  endTime = readPreInputAndInitialize(preproc);
+  end_time = read_pre_input_and_initialize(preproc);
 
-
-  /*
-  payment = arrayGet(payments, 7);
-  if(payment==NULL) printf("NULL\n");
-  printf("Payment %ld,%ld,%ld,%ld\n", payment->ID, payment->sender, payment->receiver, payment->amount);
-
-  peer = arrayGet(peers, 0);
-  printf("Peer %ld %d\n", peer->ID, peer->withholdsR);
-
-  channelInfo = arrayGet(channelInfos, 10);
-  printf("ChannelInfo %ld %ld %ld %ld %ld %ld %d\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2, channelInfo->peer1, channelInfo->peer2, channelInfo->capacity, channelInfo->latency);
-
-
-  channel = arrayGet(channels, channelIndex-1);
-  printf("Channel %ld %ld %ld %ld %ld %d %d %d\n", channel->ID, channel->channelInfoID, channel->otherChannelDirectionID, channel->counterparty, channel->balance, channel->policy.feeBase, channel->policy.feeProportional, channel->policy.timelock);
-  */
-
-  //  csvWriteInput();
-  //jsonWriteInput();
 
   begin = clock();
-  while(heapLen(events) != 0) {
-    event = heapPop(events, compareEvent);
-    simulatorTime = event->time;
+  while(heap_len(events) != 0) {
+    event = heap_pop(events, compare_event);
+    simulator_time = event->time;
 
-    if(simulatorTime >= endTime) {
+    if(simulator_time >= end_time) {
       break;
     }
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("ERROR wrong event type\n");
@@ -572,17 +326,13 @@ int main(int argc, char* argv[]) {
   }
 
   end = clock();
-  timeSpent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by simulator events: %lf\n", timeSpent);
+  time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
+  printf("Time consumed by simulator events: %lf\n", time_spent);
 
-  //  statsComputeBatchMeans(endTime);
 
-  //printPayments();
-  //jsonWriteOutput();
+  csv_write_output();
 
-  csvWriteOutput();
-
-  printf("DIJKSTRA CALLS: %ld\n", nDijkstra);
+  printf("DIJKSTRA CALLS: %ld\n", n_dijkstra);
 
   return 0;
 }
@@ -592,7 +342,7 @@ int main(int argc, char* argv[]) {
 
 // test json writer
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -601,89 +351,89 @@ int main() {
   Channel* channel;
 
 
-  nP = 5;
-  nC = 2;
+  n_p = 5;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
-  statsInitialize();
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
+  stats_initialize();
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<4; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
-  connectPeers(1, 4);
+  connect_peers(1, 4);
 
-  jsonWriteInput();
-
-  sender = 0;
-  receiver = 3;
-  amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  json_write_input();
 
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
+
+  sender = 0;
+  receiver = 3;
+  amount = 0.1;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   //this payment fails for peer 2 non cooperative
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   //this payment fails for peer 1 non cooperative
   sender = 0;
   receiver = 4;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
-    simulatorTime = event->time;
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
+    simulator_time = event->time;
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -691,9 +441,9 @@ int main() {
   }
 
 
-  printPayments();
+  print_payments();
 
-  jsonWriteOutput();
+  json_write_output();
 
   return 0;
 
@@ -703,9 +453,9 @@ int main() {
 
 
 /*
-//test statsUpdateLockedFundCost 
+//test stats_update_locked_fund_cost 
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -714,62 +464,62 @@ int main() {
   Channel* channel;
 
 
-  nP = 4;
-  nC = 2;
+  n_p = 4;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
-  statsInitialize();
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
+  stats_initialize();
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<4; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
 
-  // failed payment for peer 2 non cooperative in forwardPayment
+  // failed payment for peer 2 non cooperative in forward_payment
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
-    simulatorTime = event->time;
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
+    simulator_time = event->time;
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -777,8 +527,8 @@ int main() {
   }
 
 
-  printPayments();
-  printStats();
+  print_payments();
+  print_stats();
 
 
   return 0;
@@ -787,9 +537,9 @@ int main() {
 */
 
 /*
-//test statsComputePaymentTime 
+//test stats_compute_payment_time 
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -798,21 +548,21 @@ int main() {
   Channel* channel;
 
   
-  nP = 4;
-  nC = 2;
+  n_p = 4;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
-  statsInitialize();
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
+  stats_initialize();
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<4; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
 
@@ -820,49 +570,49 @@ int main() {
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
-  // failed payment for peer 2 non cooperative in forwardPayment
+  // failed payment for peer 2 non cooperative in forward_payment
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
-    simulatorTime = event->time;
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
+    simulator_time = event->time;
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -870,8 +620,8 @@ int main() {
   }
 
 
-  printPayments();
-  printStats();
+  print_payments();
+  print_stats();
 
 
   return 0;
@@ -880,9 +630,9 @@ int main() {
 */
 /*
 
-//test statsUpdatePayments 
+//test stats_update_payments 
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -891,91 +641,91 @@ int main() {
   Channel* channel;
 
   
-  nP = 7;
-  nC = 2;
+  n_p = 7;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
-  statsInitialize();
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
+  stats_initialize();
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<4; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
-  connectPeers(0, 4);
-  connectPeers(4, 5);
+  connect_peers(0, 4);
+  connect_peers(4, 5);
 
   //succeed payment
   sender = 0;
   receiver = 5;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   // failed payment for no path
   sender = 0;
   receiver = 6;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
-  // succeeded payment but uncoop node in forwardsuccess (uncoop if paymentID==2 && peerID==1) 
+  // succeeded payment but uncoop node in forwardsuccess (uncoop if payment_iD==2 && peer_iD==1) 
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
-  //failed payment due to uncoop node in forwardpayment (uncoop if paymentID==3 and peerID==2)
+  //failed payment due to uncoop node in forwardpayment (uncoop if payment_iD==3 and peer_iD==2)
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
-    simulatorTime = event->time;
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
+    simulator_time = event->time;
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -983,8 +733,8 @@ int main() {
   }
 
 
-  printPayments();
-  printStats();
+  print_payments();
+  print_stats();
 
 
   return 0;
@@ -994,7 +744,7 @@ int main() {
 /*
 //test channels not present 
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -1003,156 +753,156 @@ int main() {
   Channel* channel;
 
   
-  nP = 5;
-  nC = 2;
+  n_p = 5;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<4; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
-  connectPeers(1, 4);
+  connect_peers(1, 4);
 
 
-  //test is!Present in forwardSuccess
-  connectPeers(1, 4);
+  //test is!Present in forward_success
+  connect_peers(1, 4);
 
   sender = 0;
   receiver = 4;
   amount = 0.1;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   //for this payment only peer 1 must be not cooperative
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  simulatorTime = 0.05;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  // end test is!Present in forwardSuccess
+  simulator_time = 0.05;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
+  // end test is!Present in forward_success
 
 
 
-  //test is!Present in forwardFail
-  connectPeers(1, 4);
+  //test is!Present in forward_fail
+  connect_peers(1, 4);
 
-  channel = arrayGet(channels, 6);
+  channel = array_get(channels, 6);
   channel->balance = 0.0;
 
   sender = 0;
   receiver = 4;
   amount = 0.1;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   //for this payment only peer 1 must be not cooperative
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  simulatorTime = 0.05;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  // end test is!Present in forwardFail
+  simulator_time = 0.05;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
+  // end test is!Present in forward_fail
 
 
 
 
-  //test is!Present in forwardPayment
+  //test is!Present in forward_payment
 
   //for this payment peer 2 must be non-cooperative
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  //  simulatorTime = 0.2;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.1, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  // end test is!Present in forwardPayment
+  //  simulator_time = 0.2;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.1, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
+  // end test is!Present in forward_payment
 
 
   
-  //test is!Present in receiveFail
+  //test is!Present in receive_fail
 
   //for this payment peer 3 must be non-cooperative
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.0, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   
   sender = 0;
   receiver = 3;
   amount = 0.1;
-  //  simulatorTime = 0.2;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, 0.2, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
-  // end test is!Present in receiveFail
+  //  simulator_time = 0.2;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, 0.2, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
+  // end test is!Present in receive_fail
   
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -1160,7 +910,7 @@ int main() {
   }
 
 
-  printPayments();
+  print_payments();
 
 
   return 0;
@@ -1170,7 +920,7 @@ int main() {
 /*
 //test peer not cooperatives
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -1179,67 +929,67 @@ int main() {
   Channel* channel;
 
   //test peer 2 not cooperative before/after lock
-  nP = 6;
-  nC = 2;
+  n_p = 6;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<5; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
  
-  connectPeers(1, 5);
-  connectPeers(5, 3);
-  channel = arrayGet(channels, 8);
+  connect_peers(1, 5);
+  connect_peers(5, 3);
+  channel = array_get(channels, 8);
   channel->policy.timelock = 5;
   
 
   sender = 0;
   receiver = 4;
   amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
@@ -1247,7 +997,7 @@ int main() {
   }
 
 
-  printBalances();
+  print_balances();
 
 
   return 0;
@@ -1257,7 +1007,7 @@ int main() {
 //test payments
 
 int main() {
-  long i, nP, nC;
+  long i, n_p, n_c;
   Peer* peer;
   long sender, receiver;
   Payment *payment;
@@ -1266,60 +1016,60 @@ int main() {
   Channel* channel;
 
 
-  nP = 5;
-  nC = 2;
+  n_p = 5;
+  n_c = 2;
 
-  initializeSimulatorData();
-  initializeProtocolData(nP, nC);
+  initialize_simulator_data();
+  initialize_protocol_data(n_p, n_c);
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(peerIndex,5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(peer_index,5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
 
   for(i=1; i<5; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
   
 
    
   //test fail
-  channel = arrayGet(channels, 6);
+  channel = array_get(channels, 6);
   channel->balance = 0.5;
   //end test fail
   
 
   
-  //test ignoredChannels hop
-  channel = arrayGet(channels, 6);
+  //test ignored_channels hop
+  channel = array_get(channels, 6);
   channel->balance = 0.5;
-  connectPeers(3,4);
-  channel = arrayGet(channels, 8);
+  connect_peers(3,4);
+  channel = array_get(channels, 8);
   channel->policy.timelock = 5;
-  //end test ignoredChannels hop
+  //end test ignored_channels hop
   
 
   
-  //test ignoredChannels sender
-  channel = arrayGet(channels, 0);
+  //test ignored_channels sender
+  channel = array_get(channels, 0);
   channel->balance = 0.5;
-  connectPeers(0,1);
-  channel = arrayGet(channels, 8);
+  connect_peers(0,1);
+  channel = array_get(channels, 8);
   channel->policy.timelock = 5;
-  //end test ignoredChannels sender
+  //end test ignored_channels sender
   
 
   //test full payment
   sender = 0;
   receiver = 4;
   amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
   //end test full payment
 
 
@@ -1328,20 +1078,20 @@ int main() {
   sender = 0;
   receiver = 4;
   amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   sender = 4;
   receiver = 0;
   amount = 4.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
   //end test two payments
   
 
@@ -1350,11 +1100,11 @@ int main() {
   sender = 0;
   receiver = 1;
   amount = 1.0;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
   //end test payment without hops
   
 
@@ -1363,69 +1113,69 @@ int main() {
   sender = 0;
   receiver = 4;
   amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
   
   sender = 0;
   receiver = 4;
   amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
 
   sender = 0;
   receiver = 4;
   amount = 0.3;
-  simulatorTime = 0.0;
-  payment = createPayment(paymentIndex, sender, receiver, amount);
-  hashTablePut(payments, payment->ID, payment);
-  event = createEvent(eventIndex, simulatorTime, FINDROUTE, sender, payment->ID);
-  events = heapInsert(events, event, compareEvent);
+  simulator_time = 0.0;
+  payment = create_payment(payment_index, sender, receiver, amount);
+  hash_table_put(payments, payment->ID, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  events = heap_insert(events, event, compare_event);
    //end test more payments from same source
    
 
   
 
 
- while(heapLen(events) != 0 ) {
-    event = heapPop(events, compareEvent);
+ while(heap_len(events) != 0 ) {
+    event = heap_pop(events, compare_event);
 
     switch(event->type){
     case FINDROUTE:
-      findRoute(event);
+      find_route(event);
       break;
     case SENDPAYMENT:
-      sendPayment(event);
+      send_payment(event);
       break;
     case FORWARDPAYMENT:
-      forwardPayment(event);
+      forward_payment(event);
       break;
     case RECEIVEPAYMENT:
-      receivePayment(event);
+      receive_payment(event);
       break;
     case FORWARDSUCCESS:
-      forwardSuccess(event);
+      forward_success(event);
       break;
     case RECEIVESUCCESS:
-      receiveSuccess(event);
+      receive_success(event);
       break;
     case FORWARDFAIL:
-      forwardFail(event);
+      forward_fail(event);
       break;
     case RECEIVEFAIL:
-      receiveFail(event);
+      receive_fail(event);
       break;
     default:
       printf("Error wrong event type\n");
     }
   }
 
-  printBalances();
+  print_balances();
 
 
   return 0;
@@ -1433,60 +1183,60 @@ int main() {
 
 */
 
-/*HashTable* peers, *channels, *channelInfos;
-long nPeers, nChannels;
+/*Hash_table* peers, *channels, *channel_infos;
+long n_peers, n_channels;
  
-//test trasformPathIntoRoute
+//test trasform_path_into_route
 int main() {
-  PathHop* pathHop;
+  Path_hop* path_hop;
   Array *ignored;
   long i, sender, receiver;
-  long fakeIgnored = -1;
+  long fake_ignored = -1;
   Route* route;
-  Array* routeHops, *pathHops;
-  RouteHop* routeHop;
+  Array* route_hops, *path_hops;
+  Route_hop* route_hop;
   Peer* peer;
   Channel* channel;
-  ChannelInfo * channelInfo;
+  Channel_info * channel_info;
 
-  ignored = arrayInitialize(1);
-  ignored = arrayInsert(ignored, &fakeIgnored);
+  ignored = array_initialize(1);
+  ignored = array_insert(ignored, &fake_ignored);
 
-  peers = hashTableInitialize(2);
-  channels = hashTableInitialize(2);
-  channelInfos= hashTableInitialize(2);
+  peers = hash_table_initialize(2);
+  channels = hash_table_initialize(2);
+  channel_infos= hash_table_initialize(2);
 
-  nPeers=5;
+  n_peers=5;
 
-  for(i=0; i<nPeers; i++) {
-      peer = createPeer(5);
-      hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+      peer = create_peer(5);
+      hash_table_put(peers, peer->ID, peer);
     }
 
     for(i=1; i<5; i++) {
-      connectPeers(i-1, i);
+      connect_peers(i-1, i);
     }
 
-    pathHops=dijkstra(0, 4, 1.0, ignored, ignored );
-    route = transformPathIntoRoute(pathHops, 1.0, 5);
+    path_hops=dijkstra(0, 4, 1.0, ignored, ignored );
+    route = transform_path_into_route(path_hops, 1.0, 5);
     printf("Route/n");
     if(route==NULL) {
       printf("Null route/n");
       return 0;
     }
 
-  for(i=0; i < arrayLen(route->routeHops); i++) {
-    routeHop = arrayGet(route->routeHops, i);
-    pathHop = routeHop->pathHop;
+  for(i=0; i < array_len(route->route_hops); i++) {
+    route_hop = array_get(route->route_hops, i);
+    path_hop = route_hop->path_hop;
     printf("HOP %ld\n", i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld)\n", pathHop->sender, pathHop->receiver, pathHop->channel);
-    printf("Amount to forward: %lf\n", routeHop->amountToForward);
-    printf("Timelock: %d\n\n", routeHop->timelock);
+    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld)\n", path_hop->sender, path_hop->receiver, path_hop->channel);
+    printf("Amount to forward: %lf\n", route_hop->amount_to_forward);
+    printf("Timelock: %d\n\n", route_hop->timelock);
   }
 
-  printf("Total amount: %lf\n", route->totalAmount);
-  printf("Total fee: %lf\n", route->totalFee);
-  printf("Total timelock: %d\n", route->totalTimelock);
+  printf("Total amount: %lf\n", route->total_amount);
+  printf("Total fee: %lf\n", route->total_fee);
+  printf("Total timelock: %d\n", route->total_timelock);
 
   return 0;
 }
@@ -1494,29 +1244,29 @@ int main() {
 /*
 // Test Yen
 
-HashTable* peers, *channels, *channelInfos;
-long nPeers, nChannels;
+Hash_table* peers, *channels, *channel_infos;
+long n_peers, n_channels;
 
 int main() {
   Array *paths;
   Array* path;
-  PathHop* hop;
+  Path_hop* hop;
   long i, j;
   Peer* peer;
   Channel* channel;
-  ChannelInfo * channelInfo;
+  Channel_info * channel_info;
 
-  peers = hashTableInitialize(2);
-  channels = hashTableInitialize(2);
-  channelInfos= hashTableInitialize(2);
+  peers = hash_table_initialize(2);
+  channels = hash_table_initialize(2);
+  channel_infos= hash_table_initialize(2);
 
-  nPeers=8;
+  n_peers=8;
 
   
 
-  for(i=0; i<nPeers; i++) {
-    peer = createPeer(5);
-    hashTablePut(peers, peer->ID, peer);
+  for(i=0; i<n_peers; i++) {
+    peer = create_peer(5);
+    hash_table_put(peers, peer->ID, peer);
   }
 
   Policy policy;
@@ -1524,44 +1274,44 @@ int main() {
   policy.timelock=1.0;
 
   for(i=1; i<5; i++) {
-    connectPeers(i-1, i);
+    connect_peers(i-1, i);
   }
 
-  connectPeers(0, 5);
-  connectPeers(5,6);
-  connectPeers(6,4);
+  connect_peers(0, 5);
+  connect_peers(5,6);
+  connect_peers(6,4);
 
-  connectPeers(0,7);
-  connectPeers(7,4);
-
-
+  connect_peers(0,7);
+  connect_peers(7,4);
 
 
-  long *currChannelID;
-  for(i=0; i<nPeers; i++) {
-    peer = arrayGet(peers, i);
-    //    printf("%ld ", arrayLen(peer->channel));
-    for(j=0; j<arrayLen(peer->channel); j++) {
-      currChannelID=arrayGet(peer->channel, j);
-      if(currChannelID==NULL) {
+
+
+  long *curr_channel_iD;
+  for(i=0; i<n_peers; i++) {
+    peer = array_get(peers, i);
+    //    printf("%ld ", array_len(peer->channel));
+    for(j=0; j<array_len(peer->channel); j++) {
+      curr_channel_iD=array_get(peer->channel, j);
+      if(curr_channel_iD==NULL) {
         printf("null\n");
         continue;
       }
-      channel = arrayGet(channels, *currChannelID);
+      channel = array_get(channels, *curr_channel_iD);
       printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
       }
   }
 
 
 
-  printf("\nYen\n");
-  paths=findPaths(0, 4, 0.0);
-  printf("%ld\n", arrayLen(paths));
-  for(i=0; i<arrayLen(paths); i++) {
+  printf("\n_yen\n");
+  paths=find_paths(0, 4, 0.0);
+  printf("%ld\n", array_len(paths));
+  for(i=0; i<array_len(paths); i++) {
     printf("\n");
-     path = arrayGet(paths, i);
-     for(j=0;j<arrayLen(path); j++) {
-       hop = arrayGet(path, j);
+     path = array_get(paths, i);
+     for(j=0;j<array_len(path); j++) {
+       hop = array_get(path, j);
        printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
      }
   }
@@ -1574,66 +1324,66 @@ int main() {
 //test dijkstra
 /* int main() { */
 /*   Array *hops; */
-/*   PathHop* hop; */
+/*   Path_hop* hop; */
 /*   Array *ignored; */
 /*   long i, sender, receiver; */
-/*   long fakeIgnored = -1; */
+/*   long fake_ignored = -1; */
 /*   Peer* peer[3]; */
-/*   ChannelInfo* channelInfo; */
+/*   Channel_info* channel_info; */
 /*   Channel* channel; */
 /*   Policy policy; */
 
 
-/*   ignored = arrayInitialize(1); */
-/*   ignored = arrayInsert(ignored, &fakeIgnored); */
+/*   ignored = array_initialize(1); */
+/*   ignored = array_insert(ignored, &fake_ignored); */
 
-/*   peers = arrayInitialize(5); */
-/*   channels = arrayInitialize(4); */
-/*   channelInfos = arrayInitialize(2); */
+/*   peers = array_initialize(5); */
+/*   channels = array_initialize(4); */
+/*   channel_infos = array_initialize(2); */
 
 /*   for(i=0; i<5; i++){ */
-/*     peer[i] = createPeerPostProc(i, 0); */
-/*     peers = arrayInsert(peers, peer[i]);  */
+/*     peer[i] = create_peer_post_proc(i, 0); */
+/*     peers = array_insert(peers, peer[i]);  */
 /*   } */
 
-/*   channelInfo = createChannelInfoPostProc(0, 0, 1, 0, 1, 100, 0); */
-/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
-/*   channelInfo = createChannelInfoPostProc(1, 2, 3, 1, 2, 100, 0); */
-/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
+/*   channel_info = create_channel_info_post_proc(0, 0, 1, 0, 1, 100, 0); */
+/*   channel_infos = array_insert(channel_infos, channel_info); */
+/*   channel_info = create_channel_info_post_proc(1, 2, 3, 1, 2, 100, 0); */
+/*   channel_infos = array_insert(channel_infos, channel_info); */
 
 
-/*   policy.feeBase = 1; */
-/*   policy.feeProportional =1; */
-/*   policy.minHTLC = 0; */
+/*   policy.fee_base = 1; */
+/*   policy.fee_proportional =1; */
+/*   policy.min_hTLC = 0; */
 /*   policy.timelock = 1; */
 
-/*   channel = createChannelPostProc(0, 0, 1, 1, 50, policy); */
-/*   channels = arrayInsert(channels, channel); */
-/*   peer[0]->channel = arrayInsert(peer[0]->channel, &channel->ID); */
+/*   channel = create_channel_post_proc(0, 0, 1, 1, 50, policy); */
+/*   channels = array_insert(channels, channel); */
+/*   peer[0]->channel = array_insert(peer[0]->channel, &channel->ID); */
 
-/*   channel = createChannelPostProc(1, 0, 0, 0, 50, policy); */
-/*   channels = arrayInsert(channels, channel); */
-/*   peer[1]->channel = arrayInsert(peer[1]->channel, &channel->ID); */
+/*   channel = create_channel_post_proc(1, 0, 0, 0, 50, policy); */
+/*   channels = array_insert(channels, channel); */
+/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->ID); */
 
-/*   channel = createChannelPostProc(2, 1, 3, 2, 50, policy); */
-/*   channels = arrayInsert(channels, channel); */
-/*   peer[1]->channel = arrayInsert(peer[1]->channel, &channel->ID); */
+/*   channel = create_channel_post_proc(2, 1, 3, 2, 50, policy); */
+/*   channels = array_insert(channels, channel); */
+/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->ID); */
 
-/*   channel = createChannelPostProc(3, 1, 2, 1, 50, policy); */
-/*   channels = arrayInsert(channels, channel); */
-/*   peer[2]->channel = arrayInsert(peer[2]->channel, &channel->ID); */
+/*   channel = create_channel_post_proc(3, 1, 2, 1, 50, policy); */
+/*   channels = array_insert(channels, channel); */
+/*   peer[2]->channel = array_insert(peer[2]->channel, &channel->ID); */
 
 
-/*   initializeDijkstra(); */
-/*   printf("\nDijkstra\n"); */
+/*   initialize_dijkstra(); */
+/*   printf("\n_dijkstra\n"); */
 
 /*   sender = 2; */
 /*   receiver = 0; */
 /*   hops=dijkstra(sender, receiver, 10, ignored, ignored ); */
 /*   printf("From node %ld to node %ld\n", sender, receiver); */
 /*   if(hops!=NULL){ */
-/*     for(i=0; i<arrayLen(hops); i++) { */
-/*       hop = arrayGet(hops, i); */
+/*     for(i=0; i<array_len(hops); i++) { */
+/*       hop = array_get(hops, i); */
 /*       printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
 /*     } */
 /*   } */
@@ -1644,8 +1394,8 @@ int main() {
 /*   /\* receiver = 1; *\/ */
 /*   /\* hops=dijkstra(sender, receiver, 0.0, ignored, ignored ); *\/ */
 /*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
-/*   /\* for(i=0; i<arrayLen(hops); i++) { *\/ */
-/*   /\*   hop = arrayGet(hops, i); *\/ */
+/*   /\* for(i=0; i<array_len(hops); i++) { *\/ */
+/*   /\*   hop = array_get(hops, i); *\/ */
 /*   /\*   printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\* } *\/ */
 /*   /\* printf("\n"); *\/ */
@@ -1655,8 +1405,8 @@ int main() {
 /*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
 /*   /\* hops=dijkstra(sender,receiver, 0.0, ignored, ignored ); *\/ */
 /*   /\* if(hops != NULL) { *\/ */
-/*   /\*   for(i=0; i<arrayLen(hops); i++) { *\/ */
-/*   /\*     hop = arrayGet(hops, i); *\/ */
+/*   /\*   for(i=0; i<array_len(hops); i++) { *\/ */
+/*   /\*     hop = array_get(hops, i); *\/ */
 /*   /\*     printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\*   } *\/ */
 /*   /\* } *\/ */
@@ -1671,16 +1421,16 @@ int main() {
   Array *a;
   long i, *data;
 
-  a=arrayInitialize(10);
+  a=array_initialize(10);
 
   for(i=0; i< 21; i++){
     data = malloc(sizeof(long));
     *data = i;
-   a = arrayInsert(a,data);
+   a = array_insert(a,data);
   }
 
   for(i=0; i<21; i++) {
-    data = arrayGet(a,i);
+    data = array_get(a,i);
     if(data!=NULL) printf("%ld ", *data);
     else printf("null ");
   }
@@ -1692,12 +1442,12 @@ int main() {
 
 /*
 int main() {
-  HashTable *ht;
+  Hash_table *ht;
   long i;
   Event *e;
   long N=100000;
 
-  ht = initializeHashTable(10);
+  ht = initialize_hash_table(10);
 
   for(i=0; i<N; i++) {
     e = malloc(sizeof(Event));
@@ -1709,18 +1459,18 @@ int main() {
 
 }
 
-  long listDim[10]={0};
+  long list_dim[10]={0};
   Element* el;
   for(i=0; i<10;i++) {
     el =ht->table[i];
     while(el!=NULL){
-      listDim[i]++;
+      list_dim[i]++;
       el = el->next;
     }
   }
 
   for(i=0; i<10; i++)
-   printf("%ld ", listDim[i]);
+   printf("%ld ", list_dim[i]);
 
   printf("\n");
 

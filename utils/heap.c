@@ -3,16 +3,16 @@
 #include "heap.h"
 //#include "../gc-7.2/include/gc.h"
 
-long getParent(long i) {
+long get_parent(long i) {
   return (i-1)/2;
 }
 
-long getLeftChild(long i) {
+long get_left_child(long i) {
   return 2*i+1;
 }
 
 
-long getRightChild(long i) {
+long get_right_child(long i) {
   return 2*i+2;
 }
 
@@ -23,7 +23,7 @@ void swap(void** a, void** b) {
   *b=tmp;
 }
 
-Heap* resizeHeap(Heap* h) {
+Heap* resize_heap(Heap* h) {
   Heap* new;
   long i;
   new=malloc(sizeof(Heap));
@@ -36,20 +36,20 @@ Heap* resizeHeap(Heap* h) {
 }
 
 void heapify(Heap* h, long i, int(*compare)() ){
-  long leftChild, rightChild, smallest;
-  int compRes;
+  long left_child, right_child, smallest;
+  int comp_res;
 
   smallest=i;
-  leftChild = getLeftChild(smallest);
-  rightChild = getRightChild(smallest);
+  left_child = get_left_child(smallest);
+  right_child = get_right_child(smallest);
 
-  compRes = leftChild < h->index ? (*compare)(h->data[smallest], h->data[leftChild]) : -1;
-  if(compRes>=0)
-    smallest=leftChild;
+  comp_res = left_child < h->index ? (*compare)(h->data[smallest], h->data[left_child]) : -1;
+  if(comp_res>=0)
+    smallest=left_child;
 
-  compRes = rightChild < h->index ? (*compare)(h->data[smallest], h->data[rightChild]) : -1;
-  if(compRes>=0)
-    smallest =rightChild;
+  comp_res = right_child < h->index ? (*compare)(h->data[smallest], h->data[right_child]) : -1;
+  if(comp_res>=0)
+    smallest =right_child;
 
 
   if(smallest!=i) {
@@ -59,7 +59,7 @@ void heapify(Heap* h, long i, int(*compare)() ){
 }
 
 
-Heap* heapInitialize(long size) {
+Heap* heap_initialize(long size) {
   Heap *h;
   h=malloc(sizeof(Heap));
   h->data = malloc(size*sizeof(void*));
@@ -68,30 +68,30 @@ Heap* heapInitialize(long size) {
   return h;
 }
 
-Heap* heapInsert(Heap *h, void* data, int(*compare)()) {
-  int i, parent, compRes;
+Heap* heap_insert(Heap *h, void* data, int(*compare)()) {
+  int i, parent, comp_res;
 
   if(h->index>=h->size) {
-    h = resizeHeap(h);
+    h = resize_heap(h);
   }
 
   i=h->index;
   (h->index)++;
   h->data[i]=data;
-  parent = getParent(i);
+  parent = get_parent(i);
 
   while(i>0) {
-    compRes=(*compare)(h->data[i], h->data[parent]);
-    if(compRes>0) break;
+    comp_res=(*compare)(h->data[i], h->data[parent]);
+    if(comp_res>0) break;
     swap(&(h->data[i]),&(h->data[parent]));
     i=parent;
-    parent=getParent(i);
+    parent=get_parent(i);
   }
 
   return h;
 }
 
-void* heapPop(Heap* h, int(*compare)()) {
+void* heap_pop(Heap* h, int(*compare)()) {
   void* min;
 
   if(h->index==0) return NULL;
@@ -106,11 +106,11 @@ void* heapPop(Heap* h, int(*compare)()) {
   return min;
 }
 
-long heapLen(Heap*h){
+long heap_len(Heap*h){
   return h->index;
 }
 
-void heapFree(Heap *h) {
+void heap_free(Heap *h) {
   long i;
 
   //  for(i=0; i<h->size; i++)
@@ -122,42 +122,42 @@ void heapFree(Heap *h) {
 
 /*
   void heapify(Heap* h, int i, int(*compare)() ){
-  int leftChild, rightChild, compResL, compResR;
+  int left_child, right_child, comp_res_l, comp_res_r;
   void* tmp;
 
   i=0;
   while(i<h->index) {
 
-  leftChild = getLeftChild(i);
-  rightChild = getRightChild(i);
+  left_child = get_left_child(i);
+  right_child = get_right_child(i);
   
-  //  printEvent(h->data[i]);
+  //  print_event(h->data[i]);
 
-  if(leftChild < (h->index))
-  compResL = (*compare)(h->data[i], h->data[leftChild]);
+  if(left_child < (h->index))
+  comp_res_l = (*compare)(h->data[i], h->data[left_child]);
   else
-  compResL=-1;
+  comp_res_l=-1;
 
-  if(rightChild < (h->index))
-  compResR = (*compare)(h->data[i], h->data[rightChild]);
+  if(right_child < (h->index))
+  comp_res_r = (*compare)(h->data[i], h->data[right_child]);
   else
-  compResR=-1;
+  comp_res_r=-1;
 
   
 
-  if(compResL>0) {
+  if(comp_res_l>0) {
   tmp=h->data[i];
-  h->data[i]=h->data[leftChild];
-  h->data[leftChild]=tmp;
-  i = leftChild;
+  h->data[i]=h->data[left_child];
+  h->data[left_child]=tmp;
+  i = left_child;
   }
-  if (compResR>0) {
+  if (comp_res_r>0) {
   tmp=h->data[i];
-  h->data[i]=h->data[rightChild];
-  h->data[rightChild]=tmp;
-  i = rightChild;
+  h->data[i]=h->data[right_child];
+  h->data[right_child]=tmp;
+  i = right_child;
   }
-  if(compResR<=0 && compResL<=0) break;
+  if(comp_res_r<=0 && comp_res_l<=0) break;
 
   }
   }*/

@@ -7,18 +7,18 @@ typedef struct array {
   long index;
 } Array;
 
-Array* arrayInitialize(long size);
+Array* array_initialize(long size);
 
-Array*  arrayInsert(Array* a, void* data);
+Array*  array_insert(Array* a, void* data);
 
-void* arrayGet(Array* a,long i);
+void* array_get(Array* a,long i);
 
-long arrayLen(Array* a);
+long array_len(Array* a);
 
-void arrayReverse(Array* a);
+void array_reverse(Array* a);
 
-void arrayDelete(Array* a, void* element,  int(*isEqual)());
+void array_delete(Array* a, void* element,  int(*is_equal)());
 
-void arrayDeleteAll(Array* a);
+void array_delete_all(Array* a);
 
 #endif

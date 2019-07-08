@@ -70,7 +70,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
 
      for pay in pay_reader:
 
-         pay_end_time = int(pay['EndTime'])
+         pay_end_time = int(pay['end_time'])
 
          if pay_end_time < transient or pay_end_time >= end_time:
              continue
@@ -80,11 +80,11 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
 
          batches[b]['Total'] += 1
 
-         if pay['IsSuccess']=='1':
+         if pay['is_success']=='1':
              batches[b]['Succeeded'] += 1
              total_succeeded += 1
 
-             attempts = int(pay['Attempts'])
+             attempts = int(pay['attempts'])
              total_mean_attempts += attempts
              batches[b]['AvgAttempts'] += attempts
              if attempts > batches[b]['MaxAttempts']:
@@ -92,7 +92,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
              if attempts < batches[b]['MinAttempts']:
                   batches[b]['MinAttempts'] = attempts
 
-             duration = pay_end_time - int(pay['Time']);
+             duration = pay_end_time - int(pay['time']);
              total_mean_time += duration
              batches[b]['AvgTime'] += duration
              if duration > batches[b]['MaxTime']:
@@ -100,7 +100,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
              if duration < batches[b]['MinTime']:
                   batches[b]['MinTime'] = duration
 
-             routelen = len(pay['Route'].split('-'))
+             routelen = len(pay['route'].split('-'))
              total_mean_route += routelen
              batches[b]['AvgRoute'] += routelen
              if routelen > batches[b]['MaxRoute']:
@@ -109,13 +109,13 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
                   batches[b]['MinRoute'] = routelen
 
          else:
-             if pay['IsTimeout'] == '1':
+             if pay['is_timeout'] == '1':
                   batches[b]['FailedTimeout'] += 1
-             elif pay['Route'] == '-1':
+             elif pay['route'] == '-1':
                  batches[b]['FailedNoPath'] +=1
-             elif pay['UncoopAfter'] == '1':
+             elif pay['uncoop_after'] == '1':
                  batches[b]['Unknown'] += 1
-             elif pay['UncoopBefore'] == '1':
+             elif pay['uncoop_before'] == '1':
                  batches[b]['FailedOffline'] += 1
              else:
                  batches[b]['FailedNoBalance'] += 1

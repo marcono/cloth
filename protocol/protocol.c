@@ -7,16 +7,14 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
-
-//#include "../gc-7.2/include/gc.h"
 #include "protocol.h"
 #include "../utils/array.h"
-#include "../utils/hashTable.h"
+//#include "../utils/hash_table.h"
 #include "../utils/heap.h"
 #include "../simulator/initialize.h"
-#include "findRoute.h"
+#include "routing.h"
 #include "../simulator/event.h"
-#include "../simulator/stats.h"
+//#include "../simulator/stats.h"
 #include "../global.h"
 
 #define MAXMSATOSHI 5E17 //5 millions  bitcoin
@@ -35,69 +33,66 @@
 #define HOPSLIMIT 20
 
 
-long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-/* HashTable* peers; */
-/* HashTable* channels; */
-/* HashTable* channelInfos; */
+long channel_index, peer_index, channel_info_index, payment_index;
 gsl_rng *r;
 const gsl_rng_type * T;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 Array* peers;
 Array* channels;
-Array* channelInfos;
+Array* channel_infos;
 
-long nDijkstra;
+long n_dijkstra;
 
-Peer* createPeer(long ID, long channelsSize) {
+Peer* create_peer(long ID, long channels_size) {
   Peer* peer;
 
   peer = malloc(sizeof(Peer));
   peer->ID=ID;
-  peer->channel = arrayInitialize(channelsSize);
-  peer->initialFunds = 0;
-  peer->remainingFunds = 0;
-  peer->withholdsR = 0;
+  peer->channel = array_initialize(channels_size);
+  peer->initial_funds = 0;
+  peer->remaining_funds = 0;
+  peer->withholds_r = 0;
 
-  peerIndex++;
+  peer_index++;
 
   return peer;
 }
 
-ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency) {
-  ChannelInfo* channelInfo;
+Channel_info* create_channel_info(long ID, long peer1, long peer2, uint32_t latency) {
+  Channel_info* channel_info;
 
-  channelInfo = malloc(sizeof(ChannelInfo));
-  channelInfo->ID = ID;
-  channelInfo->peer1 = peer1;
-  channelInfo->peer2 = peer2;
-  channelInfo->latency = latency;
-  channelInfo->capacity = 0;
-  channelInfo->isClosed = 0;
+  channel_info = malloc(sizeof(Channel_info));
+  channel_info->ID = ID;
+  channel_info->peer1 = peer1;
+  channel_info->peer2 = peer2;
+  channel_info->latency = latency;
+  channel_info->capacity = 0;
+  channel_info->is_closed = 0;
 
-  channelInfoIndex++;
+  channel_info_index++;
 
-  return channelInfo;
+  return channel_info;
 }
 
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy){
+Channel* create_channel(long ID, long channel_info_iD, long counterparty, Policy policy){
   Channel* channel;
 
   channel = malloc(sizeof(Channel));
   channel->ID = ID;
-  channel->channelInfoID = channelInfoID;
+  channel->channel_info_iD = channel_info_iD;
   channel->counterparty = counterparty;
   channel->policy = policy;
   channel->balance = 0;
-  channel->isClosed = 0;
+  channel->is_closed = 0;
 
-  channelIndex++;
+  channel_index++;
 
   return channel;
 }
 
-Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
+Payment* create_payment(long ID, long sender, long receiver, uint64_t amount) {
   Payment * p;
 
   p = malloc(sizeof(Payment));
@@ -106,67 +101,67 @@ Payment* createPayment(long ID, long sender, long receiver, uint64_t amount) {
   p->receiver = receiver;
   p->amount = amount;
   p->route = NULL;
-  p->isSuccess = 0;
-  p->uncoopAfter = 0;
-  p->uncoopBefore=0;
-  p->isTimeout = 0;
-  p->startTime = 0;
-  p->endTime = 0;
+  p->is_success = 0;
+  p->uncoop_after = 0;
+  p->uncoop_before=0;
+  p->is_timeout = 0;
+  p->start_time = 0;
+  p->end_time = 0;
   p->attempts = 0;
 
-  paymentIndex++;
+  payment_index++;
 
   return p;
 }
 
-Peer* createPeerPostProc(long ID, int withholdsR) {
+Peer* create_peer_post_proc(long ID, int withholds_r) {
   Peer* peer;
 
   peer = malloc(sizeof(Peer));
   peer->ID=ID;
-  peer->channel = arrayInitialize(5);
-  peer->initialFunds = 0;
-  peer->remainingFunds = 0;
-  peer->withholdsR = withholdsR;
-  peer->ignoredChannels = arrayInitialize(10);
-  peer->ignoredPeers = arrayInitialize(1);
+  peer->channel = array_initialize(5);
+  peer->initial_funds = 0;
+  peer->remaining_funds = 0;
+  peer->withholds_r = withholds_r;
+  peer->ignored_channels = array_initialize(10);
+  peer->ignored_peers = array_initialize(1);
 
-  peerIndex++;
+  peer_index++;
 
   return peer;
 }
 
-ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency) {
-  ChannelInfo* channelInfo;
+Channel_info* create_channel_info_post_proc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency) {
+  Channel_info* channel_info;
 
-  channelInfo = malloc(sizeof(ChannelInfo));
-  channelInfo->ID = ID;
-  channelInfo->channelDirection1 = direction1;
-  channelInfo->channelDirection2 = direction2;
-  channelInfo->peer1 = peer1;
-  channelInfo->peer2 = peer2;
-  channelInfo->latency = latency;
-  channelInfo->capacity = capacity;
-  channelInfo->isClosed = 0;
+  channel_info = malloc(sizeof(Channel_info));
+  channel_info->ID = ID;
+  channel_info->channel_direction1 = direction1;
+  channel_info->channel_direction2 = direction2;
+  channel_info->peer1 = peer1;
+  channel_info->peer2 = peer2;
+  channel_info->latency = latency;
+  channel_info->capacity = capacity;
+  channel_info->is_closed = 0;
 
-  channelInfoIndex++;
+  channel_info_index++;
 
-  return channelInfo;
+  return channel_info;
 }
 
-Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection, long counterparty, uint64_t balance, Policy policy){
+Channel* create_channel_post_proc(long ID, long channel_info_iD, long other_direction, long counterparty, uint64_t balance, Policy policy){
   Channel* channel;
 
   channel = malloc(sizeof(Channel));
   channel->ID = ID;
-  channel->channelInfoID = channelInfoID;
+  channel->channel_info_iD = channel_info_iD;
   channel->counterparty = counterparty;
-  channel->otherChannelDirectionID = otherDirection;
+  channel->other_channel_direction_iD = other_direction;
   channel->policy = policy;
   channel->balance = balance;
-  channel->isClosed = 0;
+  channel->is_closed = 0;
 
-  channelIndex++;
+  channel_index++;
 
   return channel;
 }
@@ -174,94 +169,32 @@ Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection,
 
 
 
-/* void connectPeers(long peerID1, long peerID2) { */
-/*   Peer* peer1, *peer2; */
-/*   Policy policy1, policy2; */
-/*   Channel* firstChannelDirection, *secondChannelDirection; 
-/*   ChannelInfo *channelInfo; */
-/*   uint32_t latency; */
-/*   uint64_t balance;  */
 
-/*   peer1 = arrayGet(peers, peerID1); */
-/*   peer2 = arrayGet(peers, peerID2); */
-
-/*   latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY; */
-/*   channelInfo = createChannelInfo(channelInfoIndex, peer1->ID, peer2->ID, latency); */
-/*   //  hashTablePut(channelInfos, channelInfo->ID, channelInfo); */
-/*   channelInfos = arrayInsert(channelInfos, channelInfo); */
-
-/*   balance = gsl_rng_uniform_int(r, 10) + 1; */
-/*   //  exponent = gsl_ran_poisson(r, 4.5); */
-/*   balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); //balance*10^exponent, where exponent is a uniform number in [4,11] */
-
-/*   policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
-/*   policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP); */
-/*   policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
-/*   firstChannelDirection = createChannel(channelIndex, channelInfo->ID, peer2->ID, policy1); */
-/*   firstChannelDirection->balance = balance; */
-/*   //  hashTablePut(channels, firstChannelDirection->ID, firstChannelDirection); */
-/*   channels = arrayInsert(channels, firstChannelDirection); */
-/*   peer1->channel = arrayInsert(peer1->channel, &(firstChannelDirection->ID)); */
-/*   channelInfo->channelDirection1 = firstChannelDirection->ID; */
-
-/*   policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
-/*   policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP)*1000; */
-/*   policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
-/*   secondChannelDirection = createChannel(channelIndex, channelInfo->ID, peer1->ID, policy2); */
-/*   secondChannelDirection->balance = balance; */
-/*   //hashTablePut(channels,secondChannelDirection->ID, secondChannelDirection); */
-/*   channels = arrayInsert(channels, secondChannelDirection); */
-/*   peer2->channel =arrayInsert(peer2->channel, &(secondChannelDirection->ID)); */
-/*   channelInfo->channelDirection2 = secondChannelDirection->ID; */
-
-/*   firstChannelDirection->otherChannelDirectionID = secondChannelDirection->ID; */
-/*   secondChannelDirection->otherChannelDirectionID = firstChannelDirection->ID; */
-
-/*   channelInfo->capacity = firstChannelDirection->balance + secondChannelDirection->balance; */
-
-/* } */
-
-void computePeersInitialFunds(double gini) {
+void compute_peers_initial_funds(double gini) {
   long i;
   Peer* peer;
 
-  for(i=0; i<peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    peer->initialFunds = MAXMSATOSHI/peerIndex;
-    peer->remainingFunds = peer->initialFunds;
+  for(i=0; i<peer_index; i++) {
+    peer = array_get(peers, i);
+    peer->initial_funds = MAXMSATOSHI/peer_index;
+    peer->remaining_funds = peer->initial_funds;
   }
 }
 
-/*
-  uint64_t computeChannelBalance(Peer *peer) {
-  uint64_t channelBalance;
 
-  channelBalance = peer->initialFunds/4; 
-  if(peer->remainingFunds < channelBalance) {
-  channelBalance = peer->remainingFunds;
-  peer->remainingFunds=0.0;
-  }
-  else
-  peer->remainingFunds -= channelBalance;
-
-  return channelBalance;
-  }
-*/
-
-
-double computeGini() {
+double compute_gini() {
   long i, j;
   __uint128_t num=0, den=0;
   __uint128_t difference;
-  ChannelInfo *channeli, *channelj;
+  Channel_info *channeli, *channelj;
   double gini;
 
-  for(i=0;i<channelInfoIndex; i++) {
-    channeli = arrayGet(channelInfos, i);
+  for(i=0;i<channel_info_index; i++) {
+    channeli = array_get(channel_infos, i);
     den += channeli->capacity;
-    for(j=0; j<channelInfoIndex; j++){
+    for(j=0; j<channel_info_index; j++){
       if(i==j) continue;
-      channelj = arrayGet(channelInfos, j);
+      channelj = array_get(channel_infos, j);
       if(channeli->capacity > channelj->capacity)
         difference = channeli->capacity - channelj->capacity;
       else
@@ -270,23 +203,23 @@ double computeGini() {
     }
   }
 
-  den = 2*channelInfoIndex*den;
+  den = 2*channel_info_index*den;
 
   gini = num/(den*1.0);
 
   return gini;
 }
 
-void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding, int gini, int sigma, long capacityPerChannel) {
-  long i, j, peerIDIndex, channelInfoIDIndex, channelIDIndex, peer1, peer2, direction1, direction2, info;
-  double RwithholdingP[] = {1-RWithholding, RWithholding}, balanceP[] = {0.5, 0.5}, giniP[3], minHTLCP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=nPeers/2 ;
-  gsl_ran_discrete_t* RwithholdingDiscrete, *balanceDiscrete, *giniDiscrete, *minHTLCDiscrete;
-  int *peerChannels;
+void initialize_topology_preproc(long n_peers, long n_channels, double RWithholding, int gini, int sigma, long capacity_per_channel) {
+  long i, j, peer_iDIndex, channel_info_iDIndex, channel_iDIndex, peer1, peer2, direction1, direction2, info;
+  double Rwithholding_p[] = {1-RWithholding, RWithholding}, balance_p[] = {0.5, 0.5}, gini_p[3], min_hTLCP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=n_peers/2 ;
+  gsl_ran_discrete_t* Rwithholding_discrete, *balance_discrete, *gini_discrete, *min_hTLCDiscrete;
+  int *peer_channels;
   uint32_t latency;
-  uint64_t balance1, balance2, capacity, minHTLC;
+  uint64_t balance1, balance2, capacity, min_hTLC;
   Policy policy1, policy2;
   long thresh1, thresh2, counter=0;
-  uint64_t funds[2], maxfunds, fundsPart;
+  uint64_t funds[3], maxfunds, funds_part;
 
   switch(gini) {
   case 1:
@@ -306,8 +239,6 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     coeff2 = 1.0/12;
     break;
   case 5:
-    /* coeff1 = 10.0/(nPeers*nChannels); */
-    /* coeff2 = 1; */
     coeff1 = 1.0/1000;
     coeff2 = 1.0/1000;
     break;
@@ -316,126 +247,97 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
     return;
   }
 
-  giniP[0] = coeff1;
-  giniP[1] = coeff2;
-  giniP[2] = 1 - (coeff1+coeff2);
+  gini_p[0] = coeff1;
+  gini_p[1] = coeff2;
+  gini_p[2] = 1 - (coeff1+coeff2);
 
-  giniDiscrete = gsl_ran_discrete_preproc(3, giniP);
+  gini_discrete = gsl_ran_discrete_preproc(3, gini_p);
 
-  thresh1 = nPeers*nChannels*coeff1;
-  thresh2 = nPeers*nChannels*coeff2;
+  thresh1 = n_peers*n_channels*coeff1;
+  thresh2 = n_peers*n_channels*coeff2;
 
-  // NOTE: *5 instead of *nChannels if you want to test Gini
-  fundsPart = (capacityPerChannel/3)*nPeers*nChannels;
+  // NOTE: *5 instead of *n_channels if you want to test Gini
+  funds_part = (capacity_per_channel/3)*n_peers*n_channels;
 
 //  printf("%ld, %ld\n", thresh1, thresh2);
 
   /* if(gini != 5) { */
-  funds[0] = (fundsPart)/thresh1;
-  funds[1] = (fundsPart)/(thresh2);
-  funds[2] = (fundsPart)/ (nPeers*nChannels - (thresh1 + thresh2));
-  /* } */
-  /* else { */
-  /* funds[0] = maxfunds; */
-  /* funds[1] = 100000; */
-  /* funds[2] = 100000; */
-  /* } */
+  funds[0] = (funds_part)/thresh1;
+  funds[1] = (funds_part)/(thresh2);
+  funds[2] = (funds_part)/ (n_peers*n_channels - (thresh1 + thresh2));
 
-  csvPeer = fopen("peer.csv", "w");
-  if(csvPeer==NULL) {
+  csv_peer = fopen("peer.csv", "w");
+  if(csv_peer==NULL) {
     printf("ERROR cannot open file peer.csv\n");
     return;
   }
-  fprintf(csvPeer, "ID,WithholdsR\n");
+  fprintf(csv_peer, "id,withholds_r\n");
 
-  csvChannelInfo = fopen("channelInfo.csv", "w");
-  if(csvChannelInfo==NULL) {
-    printf("ERROR cannot open file channelInfo.csv\n");
+  csv_channel_info = fopen("channel_info.csv", "w");
+  if(csv_channel_info==NULL) {
+    printf("ERROR cannot open file channel_info.csv\n");
     return;
   }
-  fprintf(csvChannelInfo, "ID,Direction1,Direction2,Peer1,Peer2,Capacity,Latency\n");
+  fprintf(csv_channel_info, "id,direction1,direction2,peer1,peer2,capacity,latency\n");
 
-  csvChannel = fopen("channel.csv", "w");
-  if(csvChannel==NULL) {
+  csv_channel = fopen("channel.csv", "w");
+  if(csv_channel==NULL) {
     printf("ERROR cannot open file channel.csv\n");
     return;
   }
-  fprintf(csvChannel, "ID,ChannelInfo,OtherDirection,Counterparty,Balance,FeeBase,FeeProportional,MinHTLC,Timelock\n");
+  fprintf(csv_channel, "id,channel_info,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n");
 
 
-  RwithholdingDiscrete = gsl_ran_discrete_preproc(2, RwithholdingP);
-  balanceDiscrete = gsl_ran_discrete_preproc(2, balanceP);
+  Rwithholding_discrete = gsl_ran_discrete_preproc(2, Rwithholding_p);
+  balance_discrete = gsl_ran_discrete_preproc(2, balance_p);
 
 
-  peerIDIndex=0;
-  for(i=0; i<nPeers; i++){
-    fprintf(csvPeer, "%ld,%ld\n", peerIDIndex, gsl_ran_discrete(r, RwithholdingDiscrete));
-    peerIDIndex++;
+  peer_iDIndex=0;
+  for(i=0; i<n_peers; i++){
+    fprintf(csv_peer, "%ld,%ld\n", peer_iDIndex, gsl_ran_discrete(r, Rwithholding_discrete));
+    peer_iDIndex++;
   }
 
+  peer_channels = malloc(peer_iDIndex*sizeof(int));
+  for(i=0;i<peer_iDIndex;i++) 
+    peer_channels[i] = 0;
 
-  /*
-  rewind(csvPeer);
-  unsigned long nR=0, withholdsR=0, ID=0;
-  char row[100];
-  while(fgets(row, 100, csvPeer)!=NULL) {
-    sscanf(row, "%ld,%ld\n", &ID, &withholdsR);
-    if(withholdsR) ++nR;
-  }
-  */
-
-  peerChannels = malloc(peerIDIndex*sizeof(int));
-  for(i=0;i<peerIDIndex;i++) 
-    peerChannels[i] = 0;
-
-  channelInfoIDIndex = channelIDIndex= 0;
-  for(i=0; i<peerIDIndex; i++) {
+  channel_info_iDIndex = channel_iDIndex= 0;
+  for(i=0; i<peer_iDIndex; i++) {
     peer1 = i;
-    for(j=0; j<nChannels &&  (peerChannels[peer1] < nChannels); j++){
+    for(j=0; j<n_channels &&  (peer_channels[peer1] < n_channels); j++){
 
       do {
        if(j==0 && sigma!=-1) {
           peer2 = mean + gsl_ran_gaussian(r, sigma);
-          //printf("peer2: %ld\n", peer2);
           }
           else
-            peer2 = gsl_rng_uniform_int(r,peerIDIndex);
+            peer2 = gsl_rng_uniform_int(r,peer_iDIndex);
       }while(peer2==peer1);
 
-      if(peer2<0 || peer2>=peerIDIndex) continue;
+      if(peer2<0 || peer2>=peer_iDIndex) continue;
 
       if(sigma!=-1) {
-        if(j!=0 && peerChannels[peer2]>=nChannels) continue;
+        if(j!=0 && peer_channels[peer2]>=n_channels) continue;
       }
       else {
-        if(peerChannels[peer2]>=nChannels) continue;
+        if(peer_channels[peer2]>=n_channels) continue;
       }
 
 
 
-      ++peerChannels[peer1];
-      ++peerChannels[peer2];
-      info = channelInfoIDIndex;
-      ++channelInfoIDIndex;
-      direction1 = channelIDIndex;
-      ++channelIDIndex;
-      direction2 = channelIDIndex;
-      ++channelIDIndex;
+      ++peer_channels[peer1];
+      ++peer_channels[peer2];
+      info = channel_info_iDIndex;
+      ++channel_info_iDIndex;
+      direction1 = channel_iDIndex;
+      ++channel_iDIndex;
+      direction2 = channel_iDIndex;
+      ++channel_iDIndex;
 
       latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
-      /* balance = gsl_rng_uniform_int(r, 10) + 1; */
-      /* balance = balance*gsl_pow_uint(10, gsl_rng_uniform_int(r, 7)+4); */
-      /* capacity = balance*2; */
 
-      /* counter++; */
-      /* if(counter <= thresh1) */
-      /*   capacity = funds1; */
-      /* else if (counter > thresh1 && counter <= thresh1 + thresh2) */
-      /*   capacity = funds2; */
-      /* else */
-      /*   capacity = funds3; */
-
-      capacity = funds[gsl_ran_discrete(r, giniDiscrete)];
+      capacity = funds[gsl_ran_discrete(r, gini_discrete)];
 
 
       double balance_mean=5, balance_sigma=2.0, fraction;
@@ -443,7 +345,7 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
       gauss=gsl_ran_gaussian(r, balance_sigma);
 
-      if(gsl_ran_discrete(r, balanceDiscrete))
+      if(gsl_ran_discrete(r, balance_discrete))
         gauss = 2+gauss;
       else
         gauss = 7+gauss;
@@ -452,29 +354,29 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
       if(gauss<0) gauss = 0;
 
       fraction = gauss/10.0;
-      balance1 = fraction*capacity; //2;//(gsl_rng_uniform_int(r, 10)+1);
+      balance1 = fraction*capacity;
       balance2 = capacity - balance1;
 
 
-      minHTLCDiscrete = gsl_ran_discrete_preproc(4, minHTLCP);
+      min_hTLCDiscrete = gsl_ran_discrete_preproc(4, min_hTLCP);
 
 
-      policy1.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy1.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
+      policy1.fee_base = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy1.fee_proportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-      policy1.minHTLC = gsl_pow_int(10, gsl_ran_discrete(r, minHTLCDiscrete));
-      policy1.minHTLC = policy1.minHTLC == 1 ? 0 : policy1.minHTLC;
-      policy2.feeBase = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy2.feeProportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
+      policy1.min_hTLC = gsl_pow_int(10, gsl_ran_discrete(r, min_hTLCDiscrete));
+      policy1.min_hTLC = policy1.min_hTLC == 1 ? 0 : policy1.min_hTLC;
+      policy2.fee_base = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy2.fee_proportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
       policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-      policy2.minHTLC = gsl_pow_int(10, gsl_ran_discrete(r, minHTLCDiscrete));
-      policy2.minHTLC = policy2.minHTLC == 1 ? 0 : policy2.minHTLC;
+      policy2.min_hTLC = gsl_pow_int(10, gsl_ran_discrete(r, min_hTLCDiscrete));
+      policy2.min_hTLC = policy2.min_hTLC == 1 ? 0 : policy2.min_hTLC;
 
-      fprintf(csvChannelInfo, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
+      fprintf(csv_channel_info, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, peer1, peer2, capacity, latency);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, peer2, balance1, policy1.feeBase, policy1.feeProportional, policy1.minHTLC, policy1.timelock);
+      fprintf(csv_channel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, peer2, balance1, policy1.fee_base, policy1.fee_proportional, policy1.min_hTLC, policy1.timelock);
 
-      fprintf(csvChannel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, peer1, balance2, policy2.feeBase, policy2.feeProportional, policy2.minHTLC, policy2.timelock);
+      fprintf(csv_channel, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, peer1, balance2, policy2.fee_base, policy2.fee_proportional, policy2.min_hTLC, policy2.timelock);
 
     }
 
@@ -482,13 +384,13 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
 
 /*   double num = 0, den = 0; */
-/*   for(i=0; i<peerIDIndex; i++) { */
-/*     //    if(peerChannels[i]>5) printf("%ld, %d\n", i, peerChannels[i]); */
+/*   for(i=0; i<peer_iDIndex; i++) { */
+/*     //    if(peer_channels[i]>5) printf("%ld, %d\n", i, peer_channels[i]); */
 /*     // else { */
-/*     if(peerChannels[i]>5) */
-/*       printf("%ld, %d\n", i, peerChannels[i]); */
+/*     if(peer_channels[i]>5) */
+/*       printf("%ld, %d\n", i, peer_channels[i]); */
 /*     den++; */
-/*     num += peerChannels[i]; */
+/*     num += peer_channels[i]; */
 /*       //} */
 /*   } */
 
@@ -496,182 +398,127 @@ void initializeTopologyPreproc(long nPeers, long nChannels, double RWithholding,
 
 /* exit(-1); */
 
-  fclose(csvPeer);
-  fclose(csvChannelInfo);
-  fclose(csvChannel);
+  fclose(csv_peer);
+  fclose(csv_channel_info);
+  fclose(csv_channel);
 
 
 }
 
 
-void createTopologyFromCsv(unsigned int isPreproc) {
-  char row[256], channelFile[64], infoFile[64], peerFile[64];
+void create_topology_from_csv(unsigned int is_preproc) {
+  char row[256], channel_file[64], info_file[64], peer_file[64];
   Peer* peer, *peer1, *peer2;
-  long ID, direction1, direction2, peerID1, peerID2, channelInfoID, otherDirection, counterparty;
+  long ID, direction1, direction2, peer_iD1, peer_iD2, channel_info_iD, other_direction, counterparty;
   Policy policy;
-  int withholdsR;
+  int withholds_r;
   uint32_t latency;
   uint64_t capacity, balance;
-  ChannelInfo* channelInfo;
+  Channel_info* channel_info;
   Channel* channel;
 
-  if(isPreproc) {
-    strcpy(channelFile, "channel.csv");
-    strcpy(infoFile, "channelInfo.csv");
-    strcpy(peerFile, "peer.csv");
+  if(is_preproc) {
+    strcpy(channel_file, "channel.csv");
+    strcpy(info_file, "channel_info.csv");
+    strcpy(peer_file, "peer.csv");
   }
   else {
-    strcpy(channelFile, "channelLN.csv");
-    strcpy(infoFile, "channelInfoLN.csv");
-    strcpy(peerFile, "peerLN.csv");
+    strcpy(channel_file, "channel_ln.csv");
+    strcpy(info_file, "channel_info_ln.csv");
+    strcpy(peer_file, "peer_ln.csv");
     }
 
 
-  csvPeer = fopen(peerFile, "r");
-  if(csvPeer==NULL) {
+  csv_peer = fopen(peer_file, "r");
+  if(csv_peer==NULL) {
     printf("ERROR cannot open file peer.csv\n");
     return;
   }
 
-  fgets(row, 256, csvPeer);
-  while(fgets(row, 256, csvPeer)!=NULL) {
-    sscanf(row, "%ld,%d", &ID, &withholdsR);
-    peer = createPeerPostProc(ID, withholdsR);
-    //hashTablePut(peers,peer->ID, peer);
-    peers = arrayInsert(peers, peer);
+  fgets(row, 256, csv_peer);
+  while(fgets(row, 256, csv_peer)!=NULL) {
+    sscanf(row, "%ld,%d", &ID, &withholds_r);
+    peer = create_peer_post_proc(ID, withholds_r);
+    peers = array_insert(peers, peer);
   }
 
-  fclose(csvPeer);
+  fclose(csv_peer);
 
-  csvChannelInfo = fopen(infoFile, "r");
-  if(csvChannelInfo==NULL) {
-    printf("ERROR cannot open file %s\n", infoFile);
+  csv_channel_info = fopen(info_file, "r");
+  if(csv_channel_info==NULL) {
+    printf("ERROR cannot open file %s\n", info_file);
     return;
   }
 
-  fgets(row, 256, csvChannelInfo);
-  while(fgets(row, 256, csvChannelInfo)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &ID, &direction1, &direction2, &peerID1, &peerID2, &capacity, &latency);
-    channelInfo = createChannelInfoPostProc(ID, direction1, direction2, peerID1, peerID2, capacity, latency);
-    //    hashTablePut(channelInfos, channelInfo->ID, channelInfo);
-    channelInfos = arrayInsert(channelInfos, channelInfo);
-    peer1 = arrayGet(peers, peerID1);
-    peer1->channel = arrayInsert(peer1->channel, &(channelInfo->channelDirection1));
-    peer2 = arrayGet(peers, peerID2);
-    peer2->channel = arrayInsert(peer2->channel, &(channelInfo->channelDirection2));
+  fgets(row, 256, csv_channel_info);
+  while(fgets(row, 256, csv_channel_info)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &ID, &direction1, &direction2, &peer_iD1, &peer_iD2, &capacity, &latency);
+    channel_info = create_channel_info_post_proc(ID, direction1, direction2, peer_iD1, peer_iD2, capacity, latency);
+    channel_infos = array_insert(channel_infos, channel_info);
+    peer1 = array_get(peers, peer_iD1);
+    peer1->channel = array_insert(peer1->channel, &(channel_info->channel_direction1));
+    peer2 = array_get(peers, peer_iD2);
+    peer2->channel = array_insert(peer2->channel, &(channel_info->channel_direction2));
   }
 
-  fclose(csvChannelInfo);
+  fclose(csv_channel_info);
 
-  csvChannel = fopen(channelFile, "r");
-  if(csvChannel==NULL) {
-    printf("ERROR cannot open file %s\n", channelFile);
+  csv_channel = fopen(channel_file, "r");
+  if(csv_channel==NULL) {
+    printf("ERROR cannot open file %s\n", channel_file);
     return;
   }
 
-  fgets(row, 256, csvChannel);
-  while(fgets(row, 256, csvChannel)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &ID, &channelInfoID, &otherDirection, &counterparty, &balance, &policy.feeBase, &policy.feeProportional, &policy.minHTLC, &policy.timelock);
-    channel = createChannelPostProc(ID, channelInfoID, otherDirection, counterparty, balance, policy);
-    //hashTablePut(channels, channel->ID, channel);
-    channels = arrayInsert(channels, channel);
+  fgets(row, 256, csv_channel);
+  while(fgets(row, 256, csv_channel)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &ID, &channel_info_iD, &other_direction, &counterparty, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_hTLC, &policy.timelock);
+    channel = create_channel_post_proc(ID, channel_info_iD, other_direction, counterparty, balance, policy);
+    channels = array_insert(channels, channel);
   }
 
-  fclose(csvChannel);
+  fclose(csv_channel);
 
 }
 
 
-/* void initializeTopology(long nPeers, long nChannels, double RWithholding, double gini) { */
-/*   long i, j, RWithholdingPeerID, nRWithholdingPeers, counterpartyID; */
-/*   Peer* peer, *counterparty; */
 
-/*   printf("inittopology\n"); */
-
-/*   for(i=0; i<nPeers; i++){ */
-/*     peer = createPeer(peerIndex, nChannels); */
-/*     //hashTablePut(peers, peer->ID, peer); */
-/*     peers = arrayInsert(peers, peer); */
-/*   } */
-
-
-/*   //  computePeersInitialFunds(gini); */
-
-
-
-/*   nRWithholdingPeers = nPeers*RWithholding; */
-/*   for(i=0; i < nRWithholdingPeers ;i++) { */
-/*     RWithholdingPeerID = gsl_rng_uniform_int(r,peerIndex); */
-/*     peer = arrayGet(peers, RWithholdingPeerID); */
-/*     peer->withholdsR = 1; */
-/*   } */
-
-
-/*   for(i=0; i<peerIndex; i++) { */
-/*     peer = arrayGet(peers, i); */
-/*     for(j=0; j<nChannels && (arrayLen(peer->channel) < nChannels); j++){ */
-
-/*       do { */
-/*         counterpartyID = gsl_rng_uniform_int(r,peerIndex); */
-/*       }while(counterpartyID==peer->ID); */
-
-/*       counterparty = arrayGet(peers, counterpartyID); */
-/*       if(arrayLen(counterparty->channel)>=nChannels) continue; */
-
-/*       connectPeers(peer->ID, counterparty->ID); */
-/*     } */
-
-
-
-/*   } */
-
-
-/* } */
-
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, long capacityPerChannel, unsigned int isPreproc) {
-  double beforeP[] = {pUncoopBefore, 1-pUncoopBefore};
-  double afterP[] = {pUncoopAfter, 1-pUncoopAfter};
-  /* double sigma=200, mean = nPeers/2; */
-  /* long i, outofrange=0, counts[1000]={0}, z; */
-
-  //  initializeFindRoute();
+void initialize_protocol_data(long n_peers, long n_channels, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc) {
+  double before_p[] = {p_uncoop_before, 1-p_uncoop_before};
+  double after_p[] = {p_uncoop_after, 1-p_uncoop_after};
 
   gsl_rng_env_setup();
   T = gsl_rng_default;
   r = gsl_rng_alloc (T);
 
-  uncoop_before_discrete = gsl_ran_discrete_preproc(2, beforeP);
-  uncoop_after_discrete = gsl_ran_discrete_preproc(2, afterP);
+  uncoop_before_discrete = gsl_ran_discrete_preproc(2, before_p);
+  uncoop_after_discrete = gsl_ran_discrete_preproc(2, after_p);
 
-  channelIndex = peerIndex = channelInfoIndex = paymentIndex = 0;
+  channel_index = peer_index = channel_info_index = payment_index = 0;
 
-  nDijkstra = 0;
+  n_dijkstra = 0;
 
-  peers = arrayInitialize(nPeers);
-  channels = arrayInitialize(nChannels*nPeers);
-  channelInfos = arrayInitialize(nChannels*nPeers);
+  peers = array_initialize(n_peers);
+  channels = array_initialize(n_channels*n_peers);
+  channel_infos = array_initialize(n_channels*n_peers);
 
 
-  if(isPreproc)
-    initializeTopologyPreproc(nPeers, nChannels, RWithholding, gini, sigma, capacityPerChannel);
+  if(is_preproc)
+    initialize_topology_preproc(n_peers, n_channels, RWithholding, gini, sigma, capacity_per_channel);
 
-  createTopologyFromCsv(isPreproc);
-  //initializeTopology(nPeers, nChannels, RWithholding, gini);
-
-  //printf("GINI: %lf\n", computeGini());
+  create_topology_from_csv(is_preproc);
 
 
 
 }
 
 
-int isPresent(long element, Array* longArray) {
+int is_present(long element, Array* long_array) {
   long i, *curr;
 
-  if(longArray==NULL) return 0;
+  if(long_array==NULL) return 0;
 
-  for(i=0; i<arrayLen(longArray); i++) {
-    curr = arrayGet(longArray, i);
+  for(i=0; i<array_len(long_array); i++) {
+    curr = array_get(long_array, i);
     if(*curr==element) return 1;
   }
 
@@ -679,65 +526,53 @@ int isPresent(long element, Array* longArray) {
 }
 
 
-int isEqual(long* a, long* b) {
+int is_equal(long* a, long* b) {
   return *a==*b;
 }
 
 
-void closeChannel(long channelInfoID) {
+void close_channel(long channel_info_iD) {
   long i;
   Peer *peer;
-  ChannelInfo *channelInfo;
+  Channel_info *channel_info;
   Channel* direction1, *direction2;
 
-  channelInfo = arrayGet(channelInfos, channelInfoID);
-  direction1 = arrayGet(channels, channelInfo->channelDirection1);
-  direction2 = arrayGet(channels, channelInfo->channelDirection2);
+  channel_info = array_get(channel_infos, channel_info_iD);
+  direction1 = array_get(channels, channel_info->channel_direction1);
+  direction2 = array_get(channels, channel_info->channel_direction2);
 
-  channelInfo->isClosed = 1;
-  direction1->isClosed = 1;
-  direction2->isClosed = 1;
+  channel_info->is_closed = 1;
+  direction1->is_closed = 1;
+  direction2->is_closed = 1;
 
-  printf("ChannelInfo %ld, ChannelDirection1 %ld, ChannelDirection2 %ld are now closed\n", channelInfo->ID, channelInfo->channelDirection1, channelInfo->channelDirection2);
+  printf("Channel_info %ld, Channel_direction1 %ld, Channel_direction2 %ld are now closed\n", channel_info->ID, channel_info->channel_direction1, channel_info->channel_direction2);
 
-  for(i = 0; i < peerIndex; i++) {
-    peer = arrayGet(peers, i);
-    arrayDelete(peer->channel, &(channelInfo->channelDirection1), isEqual);
-    arrayDelete(peer->channel, &(channelInfo->channelDirection2), isEqual);
+  for(i = 0; i < peer_index; i++) {
+    peer = array_get(peers, i);
+    array_delete(peer->channel, &(channel_info->channel_direction1), is_equal);
+    array_delete(peer->channel, &(channel_info->channel_direction2), is_equal);
   }
 }
 
-/*
-int isCooperativeBeforeLockTest(long peerID) {
-    return 1;
-}
 
-int isCooperativeAfterLockTest(long peerID) {
-  if(peerID == 3)
-    return 0;
-  else
-    return 1;
-}
-*/
-
-int isCooperativeBeforeLock() {
+int is_cooperative_before_lock() {
   return gsl_ran_discrete(r, uncoop_before_discrete);
 }
 
-int isCooperativeAfterLock() {
+int is_cooperative_after_lock() {
   return gsl_ran_discrete(r, uncoop_after_discrete);
 }
 
-uint64_t computeFee(uint64_t amountToForward, Policy policy) {
+uint64_t compute_fee(uint64_t amount_to_forward, Policy policy) {
   uint64_t fee;
-  fee = (policy.feeProportional*amountToForward) / 1000000;
-  return policy.feeBase + fee;
+  fee = (policy.fee_proportional*amount_to_forward) / 1000000;
+  return policy.fee_base + fee;
 }
 
-void* dijkstraThread(void*arg) {
+void* dijkstra_thread(void*arg) {
   Payment * payment;
   Array* hops;
-  long paymentID;
+  long payment_iD;
   int *index;
   Peer* peer;
 
@@ -745,195 +580,184 @@ void* dijkstraThread(void*arg) {
 
 
   while(1) {
-    pthread_mutex_lock(&jobsMutex);
-    jobs = pop(jobs, &paymentID);
-    pthread_mutex_unlock(&jobsMutex);
+    pthread_mutex_lock(&jobs_mutex);
+    jobs = pop(jobs, &payment_iD);
+    pthread_mutex_unlock(&jobs_mutex);
 
-    if(paymentID==-1) return NULL;
+    if(payment_iD==-1) return NULL;
 
-    pthread_mutex_lock(&peersMutex);
-    payment = arrayGet(payments, paymentID);
-    peer = arrayGet(peers, payment->sender);
-    pthread_mutex_unlock(&peersMutex);
+    pthread_mutex_lock(&peers_mutex);
+    payment = array_get(payments, payment_iD);
+    peer = array_get(peers, payment->sender);
+    pthread_mutex_unlock(&peers_mutex);
 
     printf("DIJKSTRA %ld\n", payment->ID);
 
-    hops = dijkstraP(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
-                     peer->ignoredChannels, *index);
+    hops = dijkstra_p(payment->sender, payment->receiver, payment->amount, peer->ignored_peers,
+                     peer->ignored_channels, *index);
 
-    //    printf("END DIJKSTRA %ld\n", payment->ID);
 
-    //    pthread_mutex_lock(&pathsMutex);
     paths[payment->ID] = hops;
-    //    pthread_mutex_unlock(&pathsMutex);
-
-    /* pthread_mutex_lock(&(condMutex[payment->ID])); */
-    /* condPaths[payment->ID] = 1; */
-    /* pthread_cond_signal(&(condVar[payment->ID])); */
-    /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
-
   }
 
   return NULL;
 
 }
 
-unsigned int isAnyChannelClosed(Array* hops) {
+unsigned int is_any_channel_closed(Array* hops) {
   int i;
   Channel* channel;
-  PathHop* hop;
+  Path_hop* hop;
 
-  for(i=0;i<arrayLen(hops);i++) {
-    hop = arrayGet(hops, i);
-    channel = arrayGet(channels, hop->channel);
-    if(channel->isClosed)
+  for(i=0;i<array_len(hops);i++) {
+    hop = array_get(hops, i);
+    channel = array_get(channels, hop->channel);
+    if(channel->is_closed)
       return 1;
   }
 
   return 0;
 }
 
-int isEqualIgnored(Ignored* a, Ignored* b){
+int is_equal_ignored(Ignored* a, Ignored* b){
   return a->ID == b->ID;
 }
 
-void checkIgnored(long senderID){
+void check_ignored(long sender_iD){
   Peer* sender;
-  Array* ignoredChannels;
+  Array* ignored_channels;
   Ignored* ignored;
   int i;
 
-  sender = arrayGet(peers, senderID);
-  ignoredChannels = sender->ignoredChannels;
+  sender = array_get(peers, sender_iD);
+  ignored_channels = sender->ignored_channels;
 
-  for(i=0; i<arrayLen(ignoredChannels); i++){
-    ignored = arrayGet(ignoredChannels, i);
+  for(i=0; i<array_len(ignored_channels); i++){
+    ignored = array_get(ignored_channels, i);
 
     //register time of newly added ignored channels
     if(ignored->time==0)
-      ignored->time = simulatorTime;
+      ignored->time = simulator_time;
 
     //remove decayed ignored channels
-    if(simulatorTime > 5000 + ignored->time){
-      arrayDelete(ignoredChannels, ignored, isEqualIgnored);
+    if(simulator_time > 5000 + ignored->time){
+      array_delete(ignored_channels, ignored, is_equal_ignored);
     }
   }
 }
 
 
-void findRoute(Event *event) {
+void find_route(Event *event) {
   Payment *payment;
   Peer* peer;
-  Array *pathHops;
+  Array *path_hops;
   Route* route;
-  int finalTimelock=9;
-  Event* sendEvent;
-  uint64_t nextEventTime;
+  int final_timelock=9;
+  Event* send_event;
+  uint64_t next_event_time;
 
-  printf("FINDROUTE %ld\n", event->paymentID);
+  printf("FINDROUTE %ld\n", event->payment_iD);
 
-  payment = arrayGet(payments, event->paymentID);
-  peer = arrayGet(peers, payment->sender);
+  payment = array_get(payments, event->payment_iD);
+  peer = array_get(peers, payment->sender);
 
   ++(payment->attempts);
 
-  if(payment->startTime < 1)
-    payment->startTime = simulatorTime;
+  if(payment->start_time < 1)
+    payment->start_time = simulator_time;
 
   /*
   // dijkstra version
-  pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                      payment->ignoredChannels);
+  path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_peers,
+                      payment->ignored_channels);
 */  
 
-  /* floydWarshall version
+  /* floyd_warshall version
   if(payment->attempts == 0) {
-    pathHops = getPath(payment->sender, payment->receiver);
+    path_hops = get_path(payment->sender, payment->receiver);
   }
   else {
-    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignoredPeers,
-                        payment->ignoredChannels);
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_peers,
+                        payment->ignored_channels);
                         }*/
 
   //dijkstra parallel OLD version
   /* if(payment->attempts > 0) */
-  /*   pthread_create(&tid, NULL, &dijkstraThread, payment); */
+  /*   pthread_create(&tid, NULL, &dijkstra_thread, payment); */
 
-  /* pthread_mutex_lock(&(condMutex[payment->ID])); */
-  /* while(!condPaths[payment->ID]) */
-  /*   pthread_cond_wait(&(condVar[payment->ID]), &(condMutex[payment->ID])); */
-  /* condPaths[payment->ID] = 0; */
-  /* pthread_mutex_unlock(&(condMutex[payment->ID])); */
+  /* pthread_mutex_lock(&(cond_mutex[payment->ID])); */
+  /* while(!cond_paths[payment->ID]) */
+  /*   pthread_cond_wait(&(cond_var[payment->ID]), &(cond_mutex[payment->ID])); */
+  /* cond_paths[payment->ID] = 0; */
+  /* pthread_mutex_unlock(&(cond_mutex[payment->ID])); */
 
-  if(simulatorTime > payment->startTime + 60000) {
-    payment->endTime = simulatorTime;
-    payment->isTimeout = 1;
+  if(simulator_time > payment->start_time + 60000) {
+    payment->end_time = simulator_time;
+    payment->is_timeout = 1;
     return;
   }
 
-  checkIgnored(payment->sender);
+  check_ignored(payment->sender);
 
   //dijkstra parallel NEW version
   if(payment->attempts==1) {
-    pathHops = paths[payment->ID];
-    if(pathHops!=NULL)
-      if(isAnyChannelClosed(pathHops)) {
-        pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
-                            peer->ignoredChannels);
-        nDijkstra++;
+    path_hops = paths[payment->ID];
+    if(path_hops!=NULL)
+      if(is_any_channel_closed(path_hops)) {
+        path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignored_peers,
+                            peer->ignored_channels);
+        n_dijkstra++;
       }
   }
   else {
-    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
-                        peer->ignoredChannels);
-    nDijkstra++;
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignored_peers,
+                        peer->ignored_channels);
+    n_dijkstra++;
   }
 
-  if(pathHops!=NULL)
-    if(isAnyChannelClosed(pathHops)) {
-    pathHops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignoredPeers,
-                                       peer->ignoredChannels);
-    paths[payment->ID] = pathHops;
+  if(path_hops!=NULL)
+    if(is_any_channel_closed(path_hops)) {
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, peer->ignored_peers,
+                                       peer->ignored_channels);
+    paths[payment->ID] = path_hops;
   }
   
 
 
-  if (pathHops == NULL) {
+  if (path_hops == NULL) {
     printf("No available path\n");
-    payment->endTime = simulatorTime;
-    //statsUpdatePayments(payment);
+    payment->end_time = simulator_time;
     return;
   }
 
-  route = transformPathIntoRoute(pathHops, payment->amount, finalTimelock);
+  route = transform_path_into_route(path_hops, payment->amount, final_timelock);
   if(route==NULL) {
     printf("No available route\n");
-    payment->endTime = simulatorTime;
-    //statsUpdatePayments(payment);
+    payment->end_time = simulator_time;
     return;
   }
 
   payment->route = route;
 
-  nextEventTime = simulatorTime;
-  sendEvent = createEvent(eventIndex, nextEventTime, SENDPAYMENT, payment->sender, event->paymentID );
-  events = heapInsert(events, sendEvent, compareEvent);
+  next_event_time = simulator_time;
+  send_event = create_event(event_index, next_event_time, SENDPAYMENT, payment->sender, event->payment_iD );
+  events = heap_insert(events, send_event, compare_event);
 
 }
 
-RouteHop *getRouteHop(long peerID, Array *routeHops, int isSender) {
-  RouteHop *routeHop;
+Route_hop *get_route_hop(long peer_iD, Array *route_hops, int is_sender) {
+  Route_hop *route_hop;
   long i, index = -1;
 
-  for (i = 0; i < arrayLen(routeHops); i++) {
-    routeHop = arrayGet(routeHops, i);
+  for (i = 0; i < array_len(route_hops); i++) {
+    route_hop = array_get(route_hops, i);
 
-    if (isSender && routeHop->pathHop->sender == peerID) {
+    if (is_sender && route_hop->path_hop->sender == peer_iD) {
       index = i;
       break;
     }
 
-    if (!isSender && routeHop->pathHop->receiver == peerID) {
+    if (!is_sender && route_hop->path_hop->receiver == peer_iD) {
       index = i;
       break;
     }
@@ -942,32 +766,32 @@ RouteHop *getRouteHop(long peerID, Array *routeHops, int isSender) {
   if (index == -1)
     return NULL;
 
-  return arrayGet(routeHops, index);
+  return array_get(route_hops, index);
 }
 
-int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
+int check_policy_forward( Route_hop* prev_hop, Route_hop* curr_hop) {
   Policy policy;
-  Channel* currChannel, *prevChannel;
+  Channel* curr_channel, *prev_channel;
   uint64_t fee;
 
-  currChannel = arrayGet(channels, currHop->pathHop->channel);
-  prevChannel = arrayGet(channels, prevHop->pathHop->channel);
+  curr_channel = array_get(channels, curr_hop->path_hop->channel);
+  prev_channel = array_get(channels, prev_hop->path_hop->channel);
 
 
 
-  fee = computeFee(currHop->amountToForward,currChannel->policy);
-  //the check should be: prevHop->amountToForward - fee != currHop->amountToForward
-  if(prevHop->amountToForward - fee != currHop->amountToForward) {
+  fee = compute_fee(curr_hop->amount_to_forward,curr_channel->policy);
+  //the check should be: prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward
+  if(prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward) {
     printf("ERROR: Fee not respected\n");
-    printf("PrevHopAmount %ld - fee %ld != CurrHopAmount %ld\n", prevHop->amountToForward, fee, currHop->amountToForward);
-    printHop(currHop);
+    printf("Prev_hop_amount %ld - fee %ld != Curr_hop_amount %ld\n", prev_hop->amount_to_forward, fee, curr_hop->amount_to_forward);
+    print_hop(curr_hop);
     return 0;
   }
 
-  if(prevHop->timelock - prevChannel->policy.timelock != currHop->timelock) {
+  if(prev_hop->timelock - prev_channel->policy.timelock != curr_hop->timelock) {
     printf("ERROR: Timelock not respected\n");
-    printf("PrevHopTimelock %d - policyTimelock %d != currHopTimelock %d \n",prevHop->timelock, policy.timelock, currHop->timelock);
-    printHop(currHop);
+    printf("Prev_hop_timelock %d - policy_timelock %d != curr_hop_timelock %d \n",prev_hop->timelock, policy.timelock, curr_hop->timelock);
+    print_hop(curr_hop);
     return 0;
   }
 
@@ -975,390 +799,328 @@ int checkPolicyForward( RouteHop* prevHop, RouteHop* currHop) {
 }
 
 
-void addIgnored(long peerID, long ignoredID){
+void add_ignored(long peer_iD, long ignored_iD){
   Ignored* ignored;
   Peer* peer;
 
   ignored = (Ignored*)malloc(sizeof(Ignored));
-  ignored->ID = ignoredID;
+  ignored->ID = ignored_iD;
   ignored->time = 0;
 
-  peer = arrayGet(peers, peerID);
-  peer->ignoredChannels = arrayInsert(peer->ignoredChannels, ignored);
+  peer = array_get(peers, peer_iD);
+  peer->ignored_channels = array_insert(peer->ignored_channels, ignored);
 }
 
 
-void sendPayment(Event* event) {
+void send_payment(Event* event) {
   Payment* payment;
-  uint64_t nextEventTime;
+  uint64_t next_event_time;
   Route* route;
-  RouteHop* firstRouteHop;
-  Channel* nextChannel;
-  ChannelInfo* channelInfo;
-  Event* nextEvent;
-  EventType eventType;
+  Route_hop* first_route_hop;
+  Channel* next_channel;
+  Channel_info* channel_info;
+  Event* next_event;
+  Event_type event_type;
   Peer* peer;
 
-  //  printf("SEND PAYMENT %ld\n", event->paymentID);
 
-  payment = arrayGet(payments, event->paymentID);
-  peer = arrayGet(peers, event->peerID);
+  payment = array_get(payments, event->payment_iD);
+  peer = array_get(peers, event->peer_iD);
   route = payment->route;
-  firstRouteHop = arrayGet(route->routeHops, 0);
-  nextChannel = arrayGet(channels, firstRouteHop->pathHop->channel);
-  channelInfo = arrayGet(channelInfos, nextChannel->channelInfoID);
+  first_route_hop = array_get(route->route_hops, 0);
+  next_channel = array_get(channels, first_route_hop->path_hop->channel);
+  channel_info = array_get(channel_infos, next_channel->channel_info_iD);
 
-  if(!isPresent(nextChannel->ID, peer->channel)) {
-    printf("Channel %ld has been closed\n", nextChannel->ID);
-    nextEventTime = simulatorTime;
-    nextEvent = createEvent(eventIndex, nextEventTime, FINDROUTE, event->peerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+  if(!is_present(next_channel->ID, peer->channel)) {
+    printf("Channel %ld has been closed\n", next_channel->ID);
+    next_event_time = simulator_time;
+    next_event = create_event(event_index, next_event_time, FINDROUTE, event->peer_iD, event->payment_iD );
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
 
-  if(firstRouteHop->amountToForward > nextChannel->balance) {
-    printf("Not enough balance in channel %ld\n", nextChannel->ID);
-    addIgnored(payment->sender, nextChannel->ID);
-    nextEventTime = simulatorTime;
-    nextEvent = createEvent(eventIndex, nextEventTime, FINDROUTE, event->peerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+  if(first_route_hop->amount_to_forward > next_channel->balance) {
+    printf("Not enough balance in channel %ld\n", next_channel->ID);
+    add_ignored(payment->sender, next_channel->ID);
+    next_event_time = simulator_time;
+    next_event = create_event(event_index, next_event_time, FINDROUTE, event->peer_iD, event->payment_iD );
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
-  nextChannel->balance -= firstRouteHop->amountToForward;
-
-  //  printf("Peer %ld, balance %lf\n", event->peerID, forwardChannel->balance);
+  next_channel->balance -= first_route_hop->amount_to_forward;
 
 
-  eventType = firstRouteHop->pathHop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  nextEventTime = simulatorTime + channelInfo->latency;
-  nextEvent = createEvent(eventIndex, nextEventTime, eventType, firstRouteHop->pathHop->receiver, event->paymentID );
-  events = heapInsert(events, nextEvent, compareEvent);
+  event_type = first_route_hop->path_hop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
+  next_event_time = simulator_time + channel_info->latency;
+  next_event = create_event(event_index, next_event_time, event_type, first_route_hop->path_hop->receiver, event->payment_iD );
+  events = heap_insert(events, next_event, compare_event);
 }
 
-void forwardPayment(Event *event) {
+void forward_payment(Event *event) {
   Payment* payment;
   Route* route;
-  RouteHop* nextRouteHop, *previousRouteHop;
-  long  nextPeerID, prevPeerID;
-  EventType eventType;
-  Event* nextEvent;
-  uint64_t nextEventTime;
-  ChannelInfo *prevChannelInfo, *nextChannelInfo;
-  Channel* prevChannel, *nextChannel;
-  int isPolicyRespected;
+  Route_hop* next_route_hop, *previous_route_hop;
+  long  next_peer_iD, prev_peer_iD;
+  Event_type event_type;
+  Event* next_event;
+  uint64_t next_event_time;
+  Channel_info *prev_channel_info, *next_channel_info;
+  Channel* prev_channel, *next_channel;
+  int is_policy_respected;
   Peer* peer;
 
-  //  printf("FORWARD PAYMENT %ld\n", event->paymentID);
-
-  payment = arrayGet(payments, event->paymentID);
-  peer = arrayGet(peers, event->peerID);
+  payment = array_get(payments, event->payment_iD);
+  peer = array_get(peers, event->peer_iD);
   route = payment->route;
-  nextRouteHop=getRouteHop(peer->ID, route->routeHops, 1);
-  previousRouteHop = getRouteHop(peer->ID, route->routeHops, 0);
-  prevChannel = arrayGet(channels, previousRouteHop->pathHop->channel);
-  nextChannel = arrayGet(channels, nextRouteHop->pathHop->channel);
-  prevChannelInfo = arrayGet(channelInfos, prevChannel->channelInfoID);
-  nextChannelInfo = arrayGet(channelInfos, nextChannel->channelInfoID);
+  next_route_hop=get_route_hop(peer->ID, route->route_hops, 1);
+  previous_route_hop = get_route_hop(peer->ID, route->route_hops, 0);
+  prev_channel = array_get(channels, previous_route_hop->path_hop->channel);
+  next_channel = array_get(channels, next_route_hop->path_hop->channel);
+  prev_channel_info = array_get(channel_infos, prev_channel->channel_info_iD);
+  next_channel_info = array_get(channel_infos, next_channel->channel_info_iD);
 
-  if(nextRouteHop == NULL || previousRouteHop == NULL) {
+  if(next_route_hop == NULL || previous_route_hop == NULL) {
     printf("ERROR: no route hop\n");
     return;
   }
 
-  if(!isPresent(nextRouteHop->pathHop->channel, peer->channel)) {
-    printf("Channel %ld has been closed\n", nextRouteHop->pathHop->channel);
-    prevPeerID = previousRouteHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevChannelInfo->latency;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
-    events = heapInsert(events, nextEvent, compareEvent);
+  if(!is_present(next_route_hop->path_hop->channel, peer->channel)) {
+    printf("Channel %ld has been closed\n", next_route_hop->path_hop->channel);
+    prev_peer_iD = previous_route_hop->path_hop->sender;
+    event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    next_event_time = simulator_time + prev_channel_info->latency;
+    next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD);
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
   
-  if(!isCooperativeBeforeLock()){
-    printf("Peer %ld is not cooperative before lock\n", event->peerID);
-    payment->uncoopBefore = 1;
-    addIgnored(payment->sender, prevChannel->ID);
-    //    payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
+  if(!is_cooperative_before_lock()){
+    printf("Peer %ld is not cooperative before lock\n", event->peer_iD);
+    payment->uncoop_before = 1;
+    add_ignored(payment->sender, prev_channel->ID);
 
-    prevPeerID = previousRouteHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevChannelInfo->latency + FAULTYLATENCY;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+    prev_peer_iD = previous_route_hop->path_hop->sender;
+    event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    next_event_time = simulator_time + prev_channel_info->latency + FAULTYLATENCY;
+    next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD );
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
 
-  if(!isCooperativeAfterLock()) {
-    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, prevChannel->ID);
-    payment->uncoopAfter = 1;
-    closeChannel(prevChannel->channelInfoID);
-    //    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(prevChannel->ID));
+  if(!is_cooperative_after_lock()) {
+    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peer_iD, prev_channel->ID);
+    payment->uncoop_after = 1;
+    close_channel(prev_channel->channel_info_iD);
 
-    //statsUpdateLockedFundCost(route->routeHops, previousRouteHop->pathHop->channel);
-
-    payment->isSuccess = 0;
-    payment->endTime = simulatorTime;
-    //statsUpdatePayments(payment);
-
-    /* prevPeerID = previousRouteHop->pathHop->sender; */
-    /* eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
-    /* nextEventTime =  simulatorTime + previousRouteHop->timelock*10*60000; //10 minutes (expressed in milliseconds) per block */
-    /* nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID ); */
-    /* events = heapInsert(events, nextEvent, compareEvent); */
+    payment->is_success = 0;
+    payment->end_time = simulator_time;
     return;
   }
 
 
 
-  isPolicyRespected = checkPolicyForward(previousRouteHop, nextRouteHop);
-  if(!isPolicyRespected) return;
+  is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop);
+  if(!is_policy_respected) return;
 
-  if(nextRouteHop->amountToForward > nextChannel->balance ) {
-    printf("Not enough balance in channel %ld\n", nextChannel->ID);
-    addIgnored(payment->sender, nextChannel->ID);
-    //    payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
+  if(next_route_hop->amount_to_forward > next_channel->balance ) {
+    printf("Not enough balance in channel %ld\n", next_channel->ID);
+    add_ignored(payment->sender, next_channel->ID);
 
-    prevPeerID = previousRouteHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevChannelInfo->latency;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+    prev_peer_iD = previous_route_hop->path_hop->sender;
+    event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    next_event_time = simulator_time + prev_channel_info->latency;
+    next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD );
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
-  nextChannel->balance -= nextRouteHop->amountToForward;
+  next_channel->balance -= next_route_hop->amount_to_forward;
 
-  //  printf("Peer %ld, balance %lf\n", peerID, forwardChannel->balance);
 
-  nextPeerID = nextRouteHop->pathHop->receiver;
-  eventType = nextPeerID == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  nextEventTime = simulatorTime + nextChannelInfo->latency;
-  nextEvent = createEvent(eventIndex, nextEventTime, eventType, nextPeerID, event->paymentID );
-  events = heapInsert(events, nextEvent, compareEvent);
+  next_peer_iD = next_route_hop->path_hop->receiver;
+  event_type = next_peer_iD == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
+  next_event_time = simulator_time + next_channel_info->latency;
+  next_event = create_event(event_index, next_event_time, event_type, next_peer_iD, event->payment_iD );
+  events = heap_insert(events, next_event, compare_event);
 
 }
 
-void receivePayment(Event* event ) {
-  long peerID, prevPeerID;
+void receive_payment(Event* event ) {
+  long peer_iD, prev_peer_iD;
   Route* route;
   Payment* payment;
-  RouteHop* lastRouteHop;
-  Channel* forwardChannel,*backwardChannel;
-  ChannelInfo* channelInfo;
-  Event* nextEvent;
-  EventType eventType;
-  uint64_t nextEventTime;
+  Route_hop* last_route_hop;
+  Channel* forward_channel,*backward_channel;
+  Channel_info* channel_info;
+  Event* next_event;
+  Event_type event_type;
+  uint64_t next_event_time;
   Peer* peer;
 
-  //  printf("RECEIVE PAYMENT %ld\n", event->paymentID);
-  peerID = event->peerID;
-  peer = arrayGet(peers, peerID);
-  payment = arrayGet(payments, event->paymentID);
+  peer_iD = event->peer_iD;
+  peer = array_get(peers, peer_iD);
+  payment = array_get(payments, event->payment_iD);
   route = payment->route;
 
-  lastRouteHop = arrayGet(route->routeHops, arrayLen(route->routeHops) - 1);
-  forwardChannel = arrayGet(channels, lastRouteHop->pathHop->channel);
-  backwardChannel = arrayGet(channels, forwardChannel->otherChannelDirectionID);
-  channelInfo = arrayGet(channelInfos, forwardChannel->channelInfoID);
+  last_route_hop = array_get(route->route_hops, array_len(route->route_hops) - 1);
+  forward_channel = array_get(channels, last_route_hop->path_hop->channel);
+  backward_channel = array_get(channels, forward_channel->other_channel_direction_iD);
+  channel_info = array_get(channel_infos, forward_channel->channel_info_iD);
 
-  backwardChannel->balance += lastRouteHop->amountToForward;
+  backward_channel->balance += last_route_hop->amount_to_forward;
 
-  if(!isCooperativeBeforeLock()){
-    printf("Peer %ld is not cooperative before lock\n", event->peerID);
-    payment->uncoopBefore = 1;
-    addIgnored(payment->sender, forwardChannel->ID);
-    //payment->ignoredPeers = arrayInsert(payment->ignoredPeers, &(event->peerID));
+  if(!is_cooperative_before_lock()){
+    printf("Peer %ld is not cooperative before lock\n", event->peer_iD);
+    payment->uncoop_before = 1;
+    add_ignored(payment->sender, forward_channel->ID);
 
-    prevPeerID = lastRouteHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + channelInfo->latency + FAULTYLATENCY;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID );
-    events = heapInsert(events, nextEvent, compareEvent);
+    prev_peer_iD = last_route_hop->path_hop->sender;
+    event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    next_event_time = simulator_time + channel_info->latency + FAULTYLATENCY;
+    next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD );
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
+  payment->is_success = 1;
 
-
-  /* if(peer->withholdsR) { */
-  /*   printf("Peer %ld withholds R on channel %ld\n", event->peerID, backwardChannel->ID); */
-  /*   payment->uncoopAfter = 1; */
-  /*   closeChannel(backwardChannel->channelInfoID); */
-  /*   payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(forwardChannel->ID)); */
-
-  /*   prevPeerID = lastRouteHop->pathHop->sender; */
-  /*   eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
-  /*   nextEventTime = simulatorTime + lastRouteHop->timelock*10*60000; */
-  /*   nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID ); */
-  /*   events = heapInsert(events, nextEvent, compareEvent); */
-  /*   return; */
-  /* } */
-
-
-
-  payment->isSuccess = 1;
-  //  printf("Peer %ld, balance %lf\n", peerID, backwardChannel->balance);
-
-  prevPeerID = lastRouteHop->pathHop->sender;
-  eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  nextEventTime = simulatorTime + channelInfo->latency;
-  nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
-  events = heapInsert(events, nextEvent, compareEvent);
+  prev_peer_iD = last_route_hop->path_hop->sender;
+  event_type = prev_peer_iD == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
+  next_event_time = simulator_time + channel_info->latency;
+  next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD);
+  events = heap_insert(events, next_event, compare_event);
 }
 
 
-void forwardSuccess(Event* event) {
-  RouteHop* prevHop, *nextHop;
+void forward_success(Event* event) {
+  Route_hop* prev_hop, *next_hop;
   Payment* payment;
-  Channel* forwardChannel, * backwardChannel, *nextChannel;
-  ChannelInfo *prevChannelInfo;
-  long prevPeerID;
-  Event* nextEvent;
-  EventType eventType;
+  Channel* forward_channel, * backward_channel, *next_channel;
+  Channel_info *prev_channel_info;
+  long prev_peer_iD;
+  Event* next_event;
+  Event_type event_type;
   Peer* peer;
-  uint64_t nextEventTime;
+  uint64_t next_event_time;
 
-  //  printf("FORWARD SUCCESS  %ld\n", event->paymentID);
 
-  payment = arrayGet(payments, event->paymentID);
-  prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
-  nextHop = getRouteHop(event->peerID, payment->route->routeHops, 1);
-  nextChannel = arrayGet(channels, nextHop->pathHop->channel);
-  forwardChannel = arrayGet(channels, prevHop->pathHop->channel);
-  backwardChannel = arrayGet(channels, forwardChannel->otherChannelDirectionID);
-  prevChannelInfo = arrayGet(channelInfos, forwardChannel->channelInfoID);
-  peer = arrayGet(peers, event->peerID);
+  payment = array_get(payments, event->payment_iD);
+  prev_hop = get_route_hop(event->peer_iD, payment->route->route_hops, 0);
+  next_hop = get_route_hop(event->peer_iD, payment->route->route_hops, 1);
+  next_channel = array_get(channels, next_hop->path_hop->channel);
+  forward_channel = array_get(channels, prev_hop->path_hop->channel);
+  backward_channel = array_get(channels, forward_channel->other_channel_direction_iD);
+  prev_channel_info = array_get(channel_infos, forward_channel->channel_info_iD);
+  peer = array_get(peers, event->peer_iD);
  
 
-  if(!isPresent(backwardChannel->ID, peer->channel)) {
-    printf("Channel %ld is not present\n", prevHop->pathHop->channel);
-    prevPeerID = prevHop->pathHop->sender;
-    eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    nextEventTime = simulatorTime + prevChannelInfo->latency;
-    nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
-    events = heapInsert(events, nextEvent, compareEvent);
+  if(!is_present(backward_channel->ID, peer->channel)) {
+    printf("Channel %ld is not present\n", prev_hop->path_hop->channel);
+    prev_peer_iD = prev_hop->path_hop->sender;
+    event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+    next_event_time = simulator_time + prev_channel_info->latency;
+    next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD);
+    events = heap_insert(events, next_event, compare_event);
     return;
   }
 
 
 
-  if(!isCooperativeAfterLock()) {
-    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peerID, nextChannel->ID);
-    payment->uncoopAfter = 1;
-    closeChannel(nextChannel->channelInfoID);
-    //payment->ignoredChannels = arrayInsert(payment->ignoredChannels, &(nextChannel->ID));
+  if(!is_cooperative_after_lock()) {
+    printf("Peer %ld is not cooperative after lock on channel %ld\n", event->peer_iD, next_channel->ID);
+    payment->uncoop_after = 1;
+    close_channel(next_channel->channel_info_iD);
 
-    payment->isSuccess = 0;
-    payment->endTime = simulatorTime;
-    //statsUpdatePayments(payment);
-
-
-    /* prevPeerID = prevHop->pathHop->sender; */
-    /* eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
-    /* nextEventTime = simulatorTime + prevHop->timelock*10*60000; */
-    /* nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID ); */
-    /* events = heapInsert(events, nextEvent, compareEvent); */
+    payment->is_success = 0;
+    payment->end_time = simulator_time;
 
     return;
   }
 
 
 
-  backwardChannel->balance += prevHop->amountToForward;
+  backward_channel->balance += prev_hop->amount_to_forward;
 
-  //  printf("Peer %ld, balance %lf\n", event->peerID, backwardChannel->balance);
 
-  prevPeerID = prevHop->pathHop->sender;
-  eventType = prevPeerID == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  nextEventTime = simulatorTime + prevChannelInfo->latency;
-  nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
-  events = heapInsert(events, nextEvent, compareEvent);
+  prev_peer_iD = prev_hop->path_hop->sender;
+  event_type = prev_peer_iD == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
+  next_event_time = simulator_time + prev_channel_info->latency;
+  next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD);
+  events = heap_insert(events, next_event, compare_event);
 }
 
-void receiveSuccess(Event* event){
+void receive_success(Event* event){
   Payment *payment;
-  printf("RECEIVE SUCCESS %ld\n", event->paymentID);
-  payment = arrayGet(payments, event->paymentID);
-  payment->endTime = simulatorTime;
-  //statsUpdatePayments(payment);
+  printf("RECEIVE SUCCESS %ld\n", event->payment_iD);
+  payment = array_get(payments, event->payment_iD);
+  payment->end_time = simulator_time;
 }
 
 
-void forwardFail(Event* event) {
+void forward_fail(Event* event) {
   Payment* payment;
-  RouteHop* nextHop, *prevHop;
-  Channel* nextChannel, *prevChannel;
-  ChannelInfo *prevChannelInfo;
-  long prevPeerID;
-  Event* nextEvent;
-  EventType eventType;
+  Route_hop* next_hop, *prev_hop;
+  Channel* next_channel, *prev_channel;
+  Channel_info *prev_channel_info;
+  long prev_peer_iD;
+  Event* next_event;
+  Event_type event_type;
   Peer* peer;
-  uint64_t nextEventTime;
+  uint64_t next_event_time;
 
-  //  printf("FORWARD FAIL %ld\n", event->paymentID);
+ 
+  peer = array_get(peers, event->peer_iD); 
+  payment = array_get(payments, event->payment_iD);
+  next_hop = get_route_hop(event->peer_iD, payment->route->route_hops, 1);
+  next_channel = array_get(channels, next_hop->path_hop->channel);
 
-  peer = arrayGet(peers, event->peerID); 
-  payment = arrayGet(payments, event->paymentID);
-  nextHop = getRouteHop(event->peerID, payment->route->routeHops, 1);
-  nextChannel = arrayGet(channels, nextHop->pathHop->channel);
-
-  if(isPresent(nextChannel->ID, peer->channel)) {
-    nextChannel->balance += nextHop->amountToForward;
+  if(is_present(next_channel->ID, peer->channel)) {
+    next_channel->balance += next_hop->amount_to_forward;
   }
   else
-    printf("Channel %ld is not present\n", nextHop->pathHop->channel);
+    printf("Channel %ld is not present\n", next_hop->path_hop->channel);
 
-  prevHop = getRouteHop(event->peerID, payment->route->routeHops, 0);
-  prevChannel = arrayGet(channels, prevHop->pathHop->channel);
-  prevChannelInfo = arrayGet(channelInfos, prevChannel->channelInfoID);
-  prevPeerID = prevHop->pathHop->sender;
-  eventType = prevPeerID == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-  nextEventTime = simulatorTime + prevChannelInfo->latency;
-  nextEvent = createEvent(eventIndex, nextEventTime, eventType, prevPeerID, event->paymentID);
-  events = heapInsert(events, nextEvent, compareEvent);
+  prev_hop = get_route_hop(event->peer_iD, payment->route->route_hops, 0);
+  prev_channel = array_get(channels, prev_hop->path_hop->channel);
+  prev_channel_info = array_get(channel_infos, prev_channel->channel_info_iD);
+  prev_peer_iD = prev_hop->path_hop->sender;
+  event_type = prev_peer_iD == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
+  next_event_time = simulator_time + prev_channel_info->latency;
+  next_event = create_event(event_index, next_event_time, event_type, prev_peer_iD, event->payment_iD);
+  events = heap_insert(events, next_event, compare_event);
 }
 
 
-void receiveFail(Event* event) {
+void receive_fail(Event* event) {
   Payment* payment;
-  RouteHop* firstHop;
-  Channel* nextChannel;
-  Event* nextEvent;
+  Route_hop* first_hop;
+  Channel* next_channel;
+  Event* next_event;
   Peer* peer;
-  uint64_t nextEventTime;
+  uint64_t next_event_time;
 
-  printf("RECEIVE FAIL %ld\n", event->paymentID);
+  printf("RECEIVE FAIL %ld\n", event->payment_iD);
 
-  payment = arrayGet(payments, event->paymentID);
-  firstHop = arrayGet(payment->route->routeHops, 0);
-  nextChannel = arrayGet(channels, firstHop->pathHop->channel);
-  peer = arrayGet(peers, event->peerID);
+  payment = array_get(payments, event->payment_iD);
+  first_hop = array_get(payment->route->route_hops, 0);
+  next_channel = array_get(channels, first_hop->path_hop->channel);
+  peer = array_get(peers, event->peer_iD);
 
-  if(isPresent(nextChannel->ID, peer->channel))
-    nextChannel->balance += firstHop->amountToForward;
+  if(is_present(next_channel->ID, peer->channel))
+    next_channel->balance += first_hop->amount_to_forward;
   else
-    printf("Channel %ld is not present\n", nextChannel->ID);
+    printf("Channel %ld is not present\n", next_channel->ID);
 
-  if(payment->isSuccess == 1 ) {
-    payment->endTime = simulatorTime;
-    //statsUpdatePayments(payment);
+  if(payment->is_success == 1 ) {
+    payment->end_time = simulator_time;
     return; //it means that money actually arrived to the destination but a peer was not cooperative when forwarding the success
   }
 
-  nextEventTime = simulatorTime;
-  nextEvent = createEvent(eventIndex, nextEventTime, FINDROUTE, payment->sender, payment->ID);
-  events = heapInsert(events, nextEvent, compareEvent);
+  next_event_time = simulator_time;
+  next_event = create_event(event_index, next_event_time, FINDROUTE, payment->sender, payment->ID);
+  events = heap_insert(events, next_event, compare_event);
 }
 
-/*
-  long getChannelIndex(Peer* peer) {
-  long index=-1, i;
-  for(i=0; i<peer->channelSize; i++) {
-  if(peer->channel[i]==-1) return i;
-  }
-  return -1;
-  }
-*/

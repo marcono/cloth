@@ -5,24 +5,24 @@
 //#include "../gc-7.2/include/gc.h"
 #include "event.h"
 
-Event* createEvent(long ID, uint64_t time, EventType type, long peerID, long paymentID) {
+Event* create_event(long ID, uint64_t time, Event_type type, long peer_iD, long payment_iD) {
   Event* e;
 
   e = malloc(sizeof(Event));
   e->ID = ID;
   e->time = time;
   e->type = type;
-  e->peerID = peerID;
-  e->paymentID = paymentID;
+  e->peer_iD = peer_iD;
+  e->payment_iD = payment_iD;
 
-  eventIndex++;
+  event_index++;
 
   return e;
 
 }
 
 
-int compareEvent(Event *e1, Event *e2) {
+int compare_event(Event *e1, Event *e2) {
   uint64_t time1, time2;
 
   time1=e1->time;
@@ -37,6 +37,6 @@ int compareEvent(Event *e1, Event *e2) {
 }
 
 
-void printEvent(Event* e){
+void print_event(Event* e){
   printf("%ld, %ld\n", e->ID, e->time);
 }

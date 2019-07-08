@@ -5,14 +5,14 @@
 #include "gsl_rng.h"
 #include <stdint.h>
 
-extern uint64_t simulatorTime; //milliseconds
+extern uint64_t simulator_time; //milliseconds
 extern Array* payments;
-FILE* csvPayment;
+FILE* csv_payment;
 
-void initializeSimulatorData(long nPayments, double paymentMean, double sameDest, double sigmaAmount, unsigned int isPreproc);
+void initialize_simulator_data(long n_payments, double payment_mean, double same_dest, double sigma_amount, unsigned int is_preproc);
 
 void initialize();
 
-void createPaymentsFromCsv(unsigned int isPreproc);
+void create_payments_from_csv(unsigned int is_preproc);
 
 #endif

@@ -1,16 +1,16 @@
 
 {
-  "PaymentMean":0.001000,
-  "NPayments":10000,
-  "NPeers":10000,
-  "NChannels":5,
-  "PUncooperativeBeforeLock":0.0,
-  "PUncooperativeAfterLock":0.0,
-  "PercentageRWithholding":0.0,
-  "Gini":1,
-  "Sigma":-1,
-  "PercentageSameDest":0.0,
-    "SigmaAmount":8.0,
-  "Capacity":3e8
+  "payment_mean":0.001000,
+  "n_payments":1000,
+  "n_peers":10000,
+  "n_channels":5,
+  "p_uncooperative_before_lock":0.0,
+  "p_uncooperative_after_lock":0.0,
+  "percentage_r_withholding":0.0,
+  "gini":1,
+  "sigma":-1,
+  "percentage_same_dest":0.0,
+  "sigma_amount":1.0,
+  "capacity":3e8
 }
 

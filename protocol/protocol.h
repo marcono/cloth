@@ -2,29 +2,26 @@
 #define PROTOCOL_H
 
 #include "../utils/array.h"
-#include "findRoute.h"
-#include "../utils/hashTable.h"
+#include "routing.h"
+//#include "../utils/hash_table.h"
 #include "../simulator/event.h"
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 #include <stdint.h>
 #include <pthread.h>
 
-extern long channelIndex, peerIndex, channelInfoIndex, paymentIndex;
-/* extern HashTable* peers; */
-/* extern HashTable* channels; */
-/* extern HashTable* channelInfos; */
-extern double pUncoopBeforeLock, pUncoopAfterLock;
+extern long channel_index, peer_index, channel_info_index, payment_index;
+extern double p_uncoop_before_lock, p_uncoop_after_lock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
-FILE *csvPeer, *csvChannel, *csvChannelInfo;
-extern long nDijkstra;
+FILE *csv_peer, *csv_channel, *csv_channel_info;
+extern long n_dijkstra;
 
 typedef struct policy {
-  uint32_t feeBase;
-  uint32_t feeProportional;
-  uint32_t minHTLC;
+  uint32_t fee_base;
+  uint32_t fee_proportional;
+  uint32_t min_hTLC;
   uint16_t timelock;
 } Policy;
 
@@ -35,33 +32,33 @@ typedef struct ignored{
 
 typedef struct peer {
   long ID;
-  int withholdsR;
-  uint64_t initialFunds;
-  uint64_t remainingFunds;
+  int withholds_r;
+  uint64_t initial_funds;
+  uint64_t remaining_funds;
   Array* channel;
-  Array* ignoredPeers;
-  Array* ignoredChannels;
+  Array* ignored_peers;
+  Array* ignored_channels;
 } Peer;
 
-typedef struct channelInfo {
+typedef struct channel_info {
   long ID;
   long peer1;
   long peer2;
-  long channelDirection1;
-  long channelDirection2;
+  long channel_direction1;
+  long channel_direction2;
   uint64_t capacity;
   uint32_t latency;
-  unsigned int isClosed;
-} ChannelInfo;
+  unsigned int is_closed;
+} Channel_info;
 
 typedef struct channel {
   long ID;
-  long channelInfoID;
+  long channel_info_iD;
   long counterparty;
-  long otherChannelDirectionID;
+  long other_channel_direction_iD;
   Policy policy;
   uint64_t balance;
-  unsigned int isClosed;
+  unsigned int is_closed;
 } Channel;
 
 typedef struct payment{
@@ -70,79 +67,63 @@ typedef struct payment{
   long receiver;
   uint64_t amount; //millisatoshis
   Route* route;
-  int isSuccess;
-  int uncoopAfter;
-  int uncoopBefore;
-  int isTimeout;
-  uint64_t startTime;
-  uint64_t endTime;
+  int is_success;
+  int uncoop_after;
+  int uncoop_before;
+  int is_timeout;
+  uint64_t start_time;
+  uint64_t end_time;
   int attempts;
 } Payment;
 
 extern Array* peers;
 extern Array* channels;
-extern Array* channelInfos;
+extern Array* channel_infos;
 
-/*
-typedef struct peer {
-  long ID;
-  Array* node;
-  Array* channel;
-} Peer;
+void initialize_protocol_data(long n_peers, long n_channels, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc);
 
-typedef struct channel{
-  long ID;
-  long counterparty;
-  double capacity;
-  double balance;
-  Policy policy;
-} Channel;
-*/
+Peer* create_peer(long ID, long channels_size);
 
-void initializeProtocolData(long nPeers, long nChannels, double pUncoopBefore, double pUncoopAfter, double RWithholding, int gini, int sigma, long capacityPerChannel, unsigned int isPreproc);
+Peer* create_peer_post_proc(long ID, int withholds_r);
 
-Peer* createPeer(long ID, long channelsSize);
+Channel_info* create_channel_info(long ID, long peer1, long peer2, uint32_t latency);
 
-Peer* createPeerPostProc(long ID, int withholdsR);
+Channel_info* create_channel_info_post_proc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
 
-ChannelInfo* createChannelInfo(long ID, long peer1, long peer2, uint32_t latency);
+Channel* create_channel(long ID, long channel_info_iD, long counterparty, Policy policy);
 
-ChannelInfo* createChannelInfoPostProc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
+Channel* create_channel_post_proc(long ID, long channel_info_iD, long other_direction, long counterparty, uint64_t balance, Policy policy);
 
-Channel* createChannel(long ID, long channelInfoID, long counterparty, Policy policy);
+Payment* create_payment(long ID, long sender, long receiver, uint64_t amount);
 
-Channel* createChannelPostProc(long ID, long channelInfoID, long otherDirection, long counterparty, uint64_t balance, Policy policy);
+void connect_peers(long peer1, long peer2);
 
-Payment* createPayment(long ID, long sender, long receiver, uint64_t amount);
+void create_topology_from_csv(unsigned int is_preproc);
 
-void connectPeers(long peer1, long peer2);
+int is_present(long element, Array* long_array);
 
-void createTopologyFromCsv(unsigned int isPreproc);
+int is_equal(long *a, long *b);
 
-int isPresent(long element, Array* longArray);
+uint64_t compute_fee(uint64_t amount_to_forward, Policy policy);
 
-int isEqual(long *a, long *b);
+void find_route(Event* event);
 
-uint64_t computeFee(uint64_t amountToForward, Policy policy);
+void send_payment(Event* event);
 
-void findRoute(Event* event);
+void forward_payment(Event* event);
 
-void sendPayment(Event* event);
+void receive_payment(Event* event);
 
-void forwardPayment(Event* event);
+void forward_success(Event* event);
 
-void receivePayment(Event* event);
+void receive_success(Event* event);
 
-void forwardSuccess(Event* event);
+void forward_fail(Event* event);
 
-void receiveSuccess(Event* event);
+void receive_fail(Event* event);
 
-void forwardFail(Event* event);
+void* dijkstra_thread(void*arg);
 
-void receiveFail(Event* event);
-
-void* dijkstraThread(void*arg);
-
-long getEdgeIndex(Peer*n);
+long get_edge_index(Peer*n);
 
 #endif

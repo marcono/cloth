@@ -3,7 +3,7 @@
 #include "array.h"
 //#include "../gc-7.2/include/gc.h"
 
-Array* resizeArray(Array* a) {
+Array* resize_array(Array* a) {
   Array* new;
   long i;
 
@@ -19,7 +19,7 @@ Array* resizeArray(Array* a) {
   return new;
 }
 
-Array* arrayInitialize(long size) {
+Array* array_initialize(long size) {
   Array* a;
 
   a = malloc(sizeof(Array));
@@ -31,9 +31,9 @@ Array* arrayInitialize(long size) {
 }
 
 
-Array* arrayInsert(Array* a, void* data) {
+Array* array_insert(Array* a, void* data) {
   if(a->index >= a->size)
-    a = resizeArray(a);
+    a = resize_array(a);
 
   a->element[a->index]=data;
   (a->index)++;
@@ -41,20 +41,20 @@ Array* arrayInsert(Array* a, void* data) {
   return a;
 }
 
-void* arrayGet(Array* a,long i) {
+void* array_get(Array* a,long i) {
   if(i>=a->size || i>=a->index) return NULL;
   return a->element[i];
 }
 
-long arrayLen(Array *a) {
+long array_len(Array *a) {
   return a->index;
 }
 
-void arrayReverse(Array *a) {
+void array_reverse(Array *a) {
   long i, n;
   void*tmp;
 
-  n = arrayLen(a);
+  n = array_len(a);
 
   for(i=0; i<n/2; i++) {
     tmp = a->element[i];
@@ -63,24 +63,24 @@ void arrayReverse(Array *a) {
   }
 }
 
-void deleteElement(Array *a, long elementIndex) {
+void delete_element(Array *a, long element_index) {
   long i;
 
   (a->index)--;
 
-  for(i = elementIndex; i < a->index ; i++)
+  for(i = element_index; i < a->index ; i++)
     a->element[i] = a->element[i+1];
 }
 
-void arrayDelete(Array* a, void* element,  int(*isEqual)()) {
+void array_delete(Array* a, void* element,  int(*is_equal)()) {
   long i;
 
-  for(i = 0; i < arrayLen(a); i++) {
-    if(isEqual(a->element[i], element))
-      deleteElement(a, i);
+  for(i = 0; i < array_len(a); i++) {
+    if(is_equal(a->element[i], element))
+      delete_element(a, i);
   }
 }
 
-void arrayDeleteAll(Array* a) {
+void array_delete_all(Array* a) {
   a->index = 0;
 }
