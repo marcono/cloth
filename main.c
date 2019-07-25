@@ -26,8 +26,8 @@
 void csv_write_output() {
   FILE* csv_channel_info_output, *csv_channel_output, *csv_payment_output, *csv_peer_output;
   long i,j, *id;
-  Channel_info* channel_info;
-  Channel* channel;
+  Channel* channel_info;
+  Edge* channel;
   Payment* payment;
   Peer* peer;
   Route* route;
@@ -57,7 +57,7 @@ void csv_write_output() {
 
   for(i=0; i<channel_index; i++) {
     channel = array_get(channels, i);
-    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", channel->ID, channel->channel_info_iD, channel->other_channel_direction_iD, channel->counterparty, channel->balance, channel->policy.fee_base, channel->policy.fee_proportional, channel->policy.min_hTLC, channel->policy.timelock, channel->is_closed);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", channel->ID, channel->channel_info_id, channel->other_channel_direction_id, channel->counterparty, channel->balance, channel->policy.fee_base, channel->policy.fee_proportional, channel->policy.min_hTLC, channel->policy.timelock, channel->is_closed);
   }
 
   fclose(csv_channel_output);
@@ -268,8 +268,8 @@ uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
 int main(int argc, char* argv[]) {
   Event* event;
   //  Peer* peer;
-  //Channel_info* channel_info;
-  //Channel* channel;
+  //Channel* channel_info;
+  //Edge* channel;
   //Payment* payment;
   clock_t  begin, end;
   double time_spent=0.0;
@@ -348,7 +348,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
 
   n_p = 5;
@@ -461,7 +461,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
 
   n_p = 4;
@@ -545,7 +545,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
   
   n_p = 4;
@@ -638,7 +638,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
   
   n_p = 7;
@@ -679,7 +679,7 @@ int main() {
   event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
   events = heap_insert(events, event, compare_event);
 
-  // succeeded payment but uncoop node in forwardsuccess (uncoop if payment_iD==2 && peer_iD==1) 
+  // succeeded payment but uncoop node in forwardsuccess (uncoop if payment_id==2 && peer_id==1) 
   sender = 0;
   receiver = 3;
   amount = 0.1;
@@ -688,7 +688,7 @@ int main() {
   event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
   events = heap_insert(events, event, compare_event);
 
-  //failed payment due to uncoop node in forwardpayment (uncoop if payment_iD==3 and peer_iD==2)
+  //failed payment due to uncoop node in forwardpayment (uncoop if payment_id==3 and peer_id==2)
   sender = 0;
   receiver = 3;
   amount = 0.1;
@@ -750,7 +750,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
   
   n_p = 5;
@@ -926,7 +926,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
   //test peer 2 not cooperative before/after lock
   n_p = 6;
@@ -1013,7 +1013,7 @@ int main() {
   Payment *payment;
   Event *event;
   double amount;
-  Channel* channel;
+  Edge* channel;
 
 
   n_p = 5;
@@ -1196,8 +1196,8 @@ int main() {
   Array* route_hops, *path_hops;
   Route_hop* route_hop;
   Peer* peer;
-  Channel* channel;
-  Channel_info * channel_info;
+  Edge* channel;
+  Channel * channel_info;
 
   ignored = array_initialize(1);
   ignored = array_insert(ignored, &fake_ignored);
@@ -1229,7 +1229,7 @@ int main() {
     route_hop = array_get(route->route_hops, i);
     path_hop = route_hop->path_hop;
     printf("HOP %ld\n", i);
-    printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld)\n", path_hop->sender, path_hop->receiver, path_hop->channel);
+    printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld)\n", path_hop->sender, path_hop->receiver, path_hop->channel);
     printf("Amount to forward: %lf\n", route_hop->amount_to_forward);
     printf("Timelock: %d\n\n", route_hop->timelock);
   }
@@ -1253,8 +1253,8 @@ int main() {
   Path_hop* hop;
   long i, j;
   Peer* peer;
-  Channel* channel;
-  Channel_info * channel_info;
+  Edge* channel;
+  Channel * channel_info;
 
   peers = hash_table_initialize(2);
   channels = hash_table_initialize(2);
@@ -1287,17 +1287,17 @@ int main() {
 
 
 
-  long *curr_channel_iD;
+  long *curr_channel_id;
   for(i=0; i<n_peers; i++) {
     peer = array_get(peers, i);
     //    printf("%ld ", array_len(peer->channel));
     for(j=0; j<array_len(peer->channel); j++) {
-      curr_channel_iD=array_get(peer->channel, j);
-      if(curr_channel_iD==NULL) {
+      curr_channel_id=array_get(peer->channel, j);
+      if(curr_channel_id==NULL) {
         printf("null\n");
         continue;
       }
-      channel = array_get(channels, *curr_channel_iD);
+      channel = array_get(channels, *curr_channel_id);
       printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
       }
   }
@@ -1312,7 +1312,7 @@ int main() {
      path = array_get(paths, i);
      for(j=0;j<array_len(path); j++) {
        hop = array_get(path, j);
-       printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+       printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
      }
   }
 
@@ -1329,8 +1329,8 @@ int main() {
 /*   long i, sender, receiver; */
 /*   long fake_ignored = -1; */
 /*   Peer* peer[3]; */
-/*   Channel_info* channel_info; */
-/*   Channel* channel; */
+/*   Channel* channel_info; */
+/*   Edge* channel; */
 /*   Policy policy; */
 
 
@@ -1384,7 +1384,7 @@ int main() {
 /*   if(hops!=NULL){ */
 /*     for(i=0; i<array_len(hops); i++) { */
 /*       hop = array_get(hops, i); */
-/*       printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
+/*       printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
 /*     } */
 /*   } */
 /*   else  */
@@ -1396,7 +1396,7 @@ int main() {
 /*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
 /*   /\* for(i=0; i<array_len(hops); i++) { *\/ */
 /*   /\*   hop = array_get(hops, i); *\/ */
-/*   /\*   printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\*   printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\* } *\/ */
 /*   /\* printf("\n"); *\/ */
 
@@ -1407,7 +1407,7 @@ int main() {
 /*   /\* if(hops != NULL) { *\/ */
 /*   /\*   for(i=0; i<array_len(hops); i++) { *\/ */
 /*   /\*     hop = array_get(hops, i); *\/ */
-/*   /\*     printf("(Sender, Receiver, Channel) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\*     printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\*   } *\/ */
 /*   /\* } *\/ */
 /*   /\* printf("\n"); *\/ */

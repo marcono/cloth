@@ -49,17 +49,17 @@ typedef struct channel_info {
   uint64_t capacity;
   uint32_t latency;
   unsigned int is_closed;
-} Channel_info;
+} Channel;
 
 typedef struct channel {
   long ID;
-  long channel_info_iD;
+  long channel_info_id;
   long counterparty;
-  long other_channel_direction_iD;
+  long other_channel_direction_id;
   Policy policy;
   uint64_t balance;
   unsigned int is_closed;
-} Channel;
+} Edge;
 
 typedef struct payment{
   long ID;
@@ -86,13 +86,13 @@ Peer* create_peer(long ID, long channels_size);
 
 Peer* create_peer_post_proc(long ID, int withholds_r);
 
-Channel_info* create_channel_info(long ID, long peer1, long peer2, uint32_t latency);
+Channel* create_channel_info(long ID, long peer1, long peer2, uint32_t latency);
 
-Channel_info* create_channel_info_post_proc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
+Channel* create_channel_info_post_proc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
 
-Channel* create_channel(long ID, long channel_info_iD, long counterparty, Policy policy);
+Edge* create_channel(long ID, long channel_info_id, long counterparty, Policy policy);
 
-Channel* create_channel_post_proc(long ID, long channel_info_iD, long other_direction, long counterparty, uint64_t balance, Policy policy);
+Edge* create_channel_post_proc(long ID, long channel_info_id, long other_direction, long counterparty, uint64_t balance, Policy policy);
 
 Payment* create_payment(long ID, long sender, long receiver, uint64_t amount);
 

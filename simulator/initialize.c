@@ -24,7 +24,7 @@ uint64_t simulator_time;
 Array *payments;
 
 void initialize_events(long n_payments, double payment_mean) {
-  long i, sender_iD, receiver_iD;
+  long i, sender_id, receiver_id;
   uint64_t  payment_amount=0, event_time=0 ;
   uint32_t next_event_interval;
   unsigned int payment_class;
@@ -40,9 +40,9 @@ void initialize_events(long n_payments, double payment_mean) {
 
 
     do{
-      sender_iD = gsl_rng_uniform_int(r,peer_index);
-      receiver_iD = gsl_rng_uniform_int(r, peer_index);
-    } while(sender_iD==receiver_iD);
+      sender_id = gsl_rng_uniform_int(r,peer_index);
+      receiver_id = gsl_rng_uniform_int(r, peer_index);
+    } while(sender_id==receiver_id);
 
 
     payment_class = gsl_ran_discrete(r, discrete);
@@ -61,25 +61,25 @@ void initialize_events(long n_payments, double payment_mean) {
       payment_amount = random_double*gsl_pow_uint(10, gsl_rng_uniform_int(r, 3) + 9);
       break;
     }
-    payment = create_payment(payment_index, sender_iD, receiver_iD, payment_amount);
+    payment = create_payment(payment_index, sender_id, receiver_id, payment_amount);
     array_insert(payments, payment);
 
     next_event_interval = 1000*gsl_ran_exponential(r, payment_mean);
     event_time += next_event_interval;
-    event = create_event(event_index, event_time, FINDROUTE, sender_iD, payment->ID);
+    event = create_event(event_index, event_time, FINDROUTE, sender_id, payment->ID);
     events = heap_insert(events, event, compare_event);
   }
 
 }
 
 void initialize_events_preproc(long n_payments, double payment_mean, double same_dest, double sigma_amount) {
-  long i, sender_iD, receiver_iD;
+  long i, sender_id, receiver_id;
   uint64_t  payment_amount=0, event_time=0 ;
   uint32_t next_event_interval;
   unsigned int payment_class;
   double payment_class_p[]= {0.7, 0.2, 0.1, 0.0}, same_dest_p[] = {1-same_dest, same_dest}, random_double;
   gsl_ran_discrete_t* discrete_amount, *discrete_dest;
-  long payment_iDIndex=0;
+  long payment_idIndex=0;
   int base, exp;
   int npay[8]={0};
 
@@ -98,12 +98,12 @@ void initialize_events_preproc(long n_payments, double payment_mean, double same
 
 
     do{
-      sender_iD = gsl_rng_uniform_int(r,peer_index);
+      sender_id = gsl_rng_uniform_int(r,peer_index);
       if(gsl_ran_discrete(r, discrete_dest))
-        receiver_iD = 500;
+        receiver_id = 500;
       else
-        receiver_iD = gsl_rng_uniform_int(r, peer_index);
-    } while(sender_iD==receiver_iD);
+        receiver_id = gsl_rng_uniform_int(r, peer_index);
+    } while(sender_id==receiver_id);
 
 
 
@@ -120,7 +120,7 @@ void initialize_events_preproc(long n_payments, double payment_mean, double same
     next_event_interval = 1000*gsl_ran_exponential(r, payment_mean);
     event_time += next_event_interval;
 
-    fprintf(csv_payment, "%ld,%ld,%ld,%ld,%ld\n", payment_iDIndex++, sender_iD, receiver_iD, payment_amount, event_time );
+    fprintf(csv_payment, "%ld,%ld,%ld,%ld,%ld\n", payment_idIndex++, sender_id, receiver_id, payment_amount, event_time );
 
   }
 

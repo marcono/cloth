@@ -46,10 +46,10 @@ with open(pay_file_path, 'rb') as csv_pay:#, open(stats_file_path, 'wb') as stat
      ## FIND TRANSIENT
      panda_reader = pd.read_csv(csv_pay)
 
-     end_time = panda_reader['Time'].max()
+     end_time = panda_reader['time'].max()
      print 'end_time: ', end_time
 
-     for x in range(3000, end_time):
+     for x in range(300, end_time):
           if (end_time-x)%n_batches == 0:
                transient = x
                break
@@ -232,7 +232,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      variances['Succeeded'] = float(variances['Succeeded'])/(n_batches-1)
 
 
-    ## COMPUTE BATCH CONFIDENCE MIN
+    ## COMPUTE BATCH CONFidENCE MIN
 
      confidence_min['Total'] = means['Total'] - percentile*sqrt( (variances['Total']**2)/n_batches ) 
      confidence_min['FailedNoBalance'] = means['FailedNoBalance'] - percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches )
@@ -252,7 +252,7 @@ with open(pay_file_path, 'rb') as csv_pay, open(stats_file_path, 'wb') as stats_
      confidence_min['Succeeded'] = means['Succeeded'] - percentile*sqrt( (variances['Succeeded']**2)/n_batches )
 
 
-     ## COMPUTE BATCH CONFIDENCE MAX
+     ## COMPUTE BATCH CONFidENCE MAX
 
      confidence_max['Total'] = means['Total'] + percentile*sqrt( (variances['Total']**2)/n_batches )
      confidence_max['FailedNoBalance'] = means['FailedNoBalance'] + percentile*sqrt( (variances['FailedNoBalance']**2)/n_batches )

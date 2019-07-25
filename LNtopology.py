@@ -11,7 +11,7 @@ with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_chan
     data = json.load(input)
     peer_writer = csv.writer(csv_peer)
 
-    peer_writer.writerow(['ID', 'WithholdsR'])
+    peer_writer.writerow(['id', 'WithholdsR'])
 
     edges = list(data["edges"])
     connected_nodes = []
@@ -33,10 +33,10 @@ with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_chan
     json.dump(map_nodes, map_file, indent=2)
 
     info_writer = csv.writer(csv_info)
-    info_writer.writerow(['ID', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])
+    info_writer.writerow(['id', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])
 
     channel_writer = csv.writer(csv_channel)
-    channel_writer.writerow(['ID', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'MinHTLC', 'Timelock'])
+    channel_writer.writerow(['id', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'MinHTLC', 'Timelock'])
 
 
     info_id = 0

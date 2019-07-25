@@ -5,15 +5,15 @@
 //#include "../gc-7.2/include/gc.h"
 #include "event.h"
 
-Event* create_event(long ID, uint64_t time, Event_type type, long peer_iD, long payment_iD) {
+Event* create_event(long ID, uint64_t time, Event_type type, long peer_id, long payment_id) {
   Event* e;
 
   e = malloc(sizeof(Event));
   e->ID = ID;
   e->time = time;
   e->type = type;
-  e->peer_iD = peer_iD;
-  e->payment_iD = payment_iD;
+  e->peer_id = peer_id;
+  e->payment_id = payment_id;
 
   event_index++;
 

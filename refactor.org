@@ -1,8 +1,8 @@
-* eliminare variabili globali
+* TODO eliminare variabili globali
 - usando variabili statiche
 - oppure passando parametri, definiti nel main (magari creare una struct network con tutti i nodi e i canali)
 - vedi https://stackoverflow.com/questions/3208531/c-program-structure-avoiding-global-variables-includes-etc
-* input e output
+* TODO input e output
 ** configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
@@ -10,7 +10,7 @@
 - usare i for per calcolare le varie misure
 - vedere se ci sono funzioni di numpy che direttamente calcolano varianza, media etc.
 ** fare script che esegure direttamente cloth e batch-means.py
-* organizzare i file
+* TODO organizzare i file
 ** fare due cartelle: src, include
 ** fare file initialization.c dove vengono messi tutti gli initialize 
 ** fare file network.c dove ci sono i vari create_channel create_node
@@ -18,13 +18,19 @@
 ** il file protocol.c diventa htlc.c
 - cosi quando si vuole aggiungere nuovo protocollo si crea file separato new-protoco.c
 ** global.h diventa thread.h
-* usa watts strogatz per connessione nodi
+* TODO connessione nodi
+- usa algoritmo descritto qui https://medium.com/blockstream/letting-a-million-channels-bloom-985bdb28660b
 * cambio nomi variabili
 ** DONE camel case to snake case
 ** TODO channelInfo -> channel, channel->edge
-** TODO peer->node, Node-> (chi e' questo Node in global.h?)
+*** DONE tipi
+*** TODO nomi variabili
+- provare con
+ sed -i 's/channel/edge/g' main.c global.h simulator/* protocol/* utils/*
+ sed -i 's/edge_info/channel/g' main.c global.h simulator/* protocol/* utils/*
+** TODO peer->node, Node -> elemento della lista
 ** TODO togliere typedef e lasciare struct x
-* minor
+* TODO minor
 ** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)
 - fai search di parola chiave "ERROR"
 ** rimuovere withholds R

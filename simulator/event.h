@@ -30,11 +30,11 @@ typedef struct event {
   long ID;
   uint64_t time;
   Event_type type;
-  long peer_iD;
-  long payment_iD;
+  long peer_id;
+  long payment_id;
 } Event;
 
-Event* create_event(long ID, uint64_t time, Event_type type, long peer_iD, long payment_iD);
+Event* create_event(long ID, uint64_t time, Event_type type, long peer_id, long payment_id);
 
 int compare_event(Event* e1, Event *e2);
 

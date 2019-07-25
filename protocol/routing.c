@@ -81,10 +81,10 @@ int is_ignored(long ID, Array* ignored){
 
 Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels, long p) {
   Distance *d=NULL, to_node_dist;
-  long i, best_peer_iD, j,channel_iD, *other_channel_iD=NULL, prev_peer_iD, curr;
+  long i, best_peer_id, j,channel_id, *other_channel_id=NULL, prev_peer_id, curr;
   Peer* best_peer=NULL;
-  Channel* channel=NULL, *other_channel=NULL;
-  Channel_info* channel_info=NULL;
+  Edge* channel=NULL, *other_channel=NULL;
+  Channel* channel_info=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
   Array* hops=NULL;
   Path_hop* hop=NULL;
@@ -113,37 +113,37 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
 
   while(heap_len(distance_heap[p])!=0) {
     d = heap_pop(distance_heap[p], compare_distance);
-    best_peer_iD = d->peer;
-    if(best_peer_iD==source) break;
+    best_peer_id = d->peer;
+    if(best_peer_id==source) break;
 
-    best_peer = array_get(peers, best_peer_iD);
+    best_peer = array_get(peers, best_peer_id);
 
     for(j=0; j<array_len(best_peer->channel); j++) {
       // need to get other direction of the channel as search is performed from target to source
-      other_channel_iD = array_get(best_peer->channel, j);
-      if(other_channel_iD==NULL) continue;
-      other_channel = array_get(channels, *other_channel_iD);
-      channel = array_get(channels, other_channel->other_channel_direction_iD);
+      other_channel_id = array_get(best_peer->channel, j);
+      if(other_channel_id==NULL) continue;
+      other_channel = array_get(channels, *other_channel_id);
+      channel = array_get(channels, other_channel->other_channel_direction_id);
 
-      prev_peer_iD = other_channel->counterparty;
-      channel_iD = channel->ID;
+      prev_peer_id = other_channel->counterparty;
+      channel_id = channel->ID;
 
-      if(is_ignored(prev_peer_iD, ignored_peers)) continue;
-      if(is_ignored(channel_iD, ignored_channels)) continue;
+      if(is_ignored(prev_peer_id, ignored_peers)) continue;
+      if(is_ignored(channel_id, ignored_channels)) continue;
 
-      to_node_dist = distance[p][best_peer_iD];
+      to_node_dist = distance[p][best_peer_id];
       amt_to_send = to_node_dist.amt_to_receive;
 
-      if(prev_peer_iD==source)
+      if(prev_peer_id==source)
         capacity = channel->balance;
       else{
-        channel_info = array_get(channel_infos, channel->channel_info_iD);
+        channel_info = array_get(channel_infos, channel->channel_info_id);
         capacity = channel_info->capacity;
       }
 
       if(amt_to_send > capacity || amt_to_send < channel->policy.min_hTLC) continue;
 
-      if(prev_peer_iD==source)
+      if(prev_peer_id==source)
         fee = 0;
       else
         fee = compute_fee(amt_to_send, channel->policy);
@@ -154,16 +154,16 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
 
       tmp_dist = weight + to_node_dist.distance;
 
-      if(tmp_dist < distance[p][prev_peer_iD].distance) {
-        distance[p][prev_peer_iD].peer = prev_peer_iD;
-        distance[p][prev_peer_iD].distance = tmp_dist;
-        distance[p][prev_peer_iD].amt_to_receive = new_amt_to_receive;
-        distance[p][prev_peer_iD].fee = fee;
+      if(tmp_dist < distance[p][prev_peer_id].distance) {
+        distance[p][prev_peer_id].peer = prev_peer_id;
+        distance[p][prev_peer_id].distance = tmp_dist;
+        distance[p][prev_peer_id].amt_to_receive = new_amt_to_receive;
+        distance[p][prev_peer_id].fee = fee;
 
-        next_peer[p][prev_peer_iD].channel = channel_iD;
-        next_peer[p][prev_peer_iD].peer = best_peer_iD;
+        next_peer[p][prev_peer_id].channel = channel_id;
+        next_peer[p][prev_peer_id].peer = best_peer_id;
 
-        distance_heap[p] = heap_insert(distance_heap[p], &distance[p][prev_peer_iD], compare_distance);
+        distance_heap[p] = heap_insert(distance_heap[p], &distance[p][prev_peer_id], compare_distance);
       }
       }
 
@@ -199,10 +199,10 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
 
 Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels) {
   Distance *d=NULL, to_node_dist;
-  long i, best_peer_iD, j,channel_iD, *other_channel_iD=NULL, prev_peer_iD, curr;
+  long i, best_peer_id, j,channel_id, *other_channel_id=NULL, prev_peer_id, curr;
   Peer* best_peer=NULL;
-  Channel* channel=NULL, *other_channel=NULL;
-  Channel_info* channel_info=NULL;
+  Edge* channel=NULL, *other_channel=NULL;
+  Channel* channel_info=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
   Array* hops=NULL;
   Path_hop* hop=NULL;
@@ -232,37 +232,37 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
 
   while(heap_len(distance_heap[0])!=0) {
     d = heap_pop(distance_heap[0], compare_distance);
-    best_peer_iD = d->peer;
-    if(best_peer_iD==source) break;
+    best_peer_id = d->peer;
+    if(best_peer_id==source) break;
 
-    best_peer = array_get(peers, best_peer_iD);
+    best_peer = array_get(peers, best_peer_id);
 
     for(j=0; j<array_len(best_peer->channel); j++) {
       // need to get other direction of the channel as search is performed from target to source
-      other_channel_iD = array_get(best_peer->channel, j);
-      if(other_channel_iD==NULL) continue;
-      other_channel = array_get(channels, *other_channel_iD);
-      channel = array_get(channels, other_channel->other_channel_direction_iD);
+      other_channel_id = array_get(best_peer->channel, j);
+      if(other_channel_id==NULL) continue;
+      other_channel = array_get(channels, *other_channel_id);
+      channel = array_get(channels, other_channel->other_channel_direction_id);
 
-      prev_peer_iD = other_channel->counterparty;
-      channel_iD = channel->ID;
+      prev_peer_id = other_channel->counterparty;
+      channel_id = channel->ID;
 
-      if(is_ignored(prev_peer_iD, ignored_peers)) continue;
-      if(is_ignored(channel_iD, ignored_channels)) continue;
+      if(is_ignored(prev_peer_id, ignored_peers)) continue;
+      if(is_ignored(channel_id, ignored_channels)) continue;
 
-      to_node_dist = distance[0][best_peer_iD];
+      to_node_dist = distance[0][best_peer_id];
       amt_to_send = to_node_dist.amt_to_receive;
 
-      if(prev_peer_iD==source)
+      if(prev_peer_id==source)
         capacity = channel->balance;
       else{
-        channel_info = array_get(channel_infos, channel->channel_info_iD);
+        channel_info = array_get(channel_infos, channel->channel_info_id);
         capacity = channel_info->capacity;
       }
 
       if(amt_to_send > capacity || amt_to_send < channel->policy.min_hTLC) continue;
 
-      if(prev_peer_iD==source)
+      if(prev_peer_id==source)
         fee = 0;
       else
         fee = compute_fee(amt_to_send, channel->policy);
@@ -274,16 +274,16 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
       tmp_dist = weight + to_node_dist.distance;
 
 
-      if(tmp_dist < distance[0][prev_peer_iD].distance) {
-        distance[0][prev_peer_iD].peer = prev_peer_iD;
-        distance[0][prev_peer_iD].distance = tmp_dist;
-        distance[0][prev_peer_iD].amt_to_receive = new_amt_to_receive;
-        distance[0][prev_peer_iD].fee = fee;
+      if(tmp_dist < distance[0][prev_peer_id].distance) {
+        distance[0][prev_peer_id].peer = prev_peer_id;
+        distance[0][prev_peer_id].distance = tmp_dist;
+        distance[0][prev_peer_id].amt_to_receive = new_amt_to_receive;
+        distance[0][prev_peer_id].fee = fee;
 
-        next_peer[0][prev_peer_iD].channel = channel_iD;
-        next_peer[0][prev_peer_iD].peer = best_peer_iD;
+        next_peer[0][prev_peer_id].channel = channel_id;
+        next_peer[0][prev_peer_id].peer = best_peer_id;
 
-        distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_peer_iD], compare_distance);
+        distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_peer_id], compare_distance);
       }
       }
 
@@ -362,9 +362,9 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
   Route *route;
   long n_hops, i;
   uint64_t fee, current_channel_capacity;
-  Channel* channel;
+  Edge* channel;
   Policy current_channel_policy, next_channel_policy;
-  Channel_info* channel_info;
+  Channel* channel_info;
 
   n_hops = array_len(path_hops);
   route = route_initialize(n_hops);
@@ -374,7 +374,7 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
 
     channel = array_get(channels, path_hop->channel);
     current_channel_policy = channel->policy;
-    channel_info = array_get(channel_infos,channel->channel_info_iD);
+    channel_info = array_get(channel_infos,channel->channel_info_id);
     current_channel_capacity = channel_info->capacity;
 
     route_hop = malloc(sizeof(Route_hop));
@@ -419,14 +419,14 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
 
 
 void print_hop(Route_hop* hop){
-  printf("Sender %ld, Receiver %ld, Channel %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->channel);
+  printf("Sender %ld, Receiver %ld, Edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->channel);
 }
 
 /* version for not all peers (doesn't work)
 void floyd_warshall() {
   long i, j, k, p;
-  Channel_info* channel_info;
-  Channel* direction1, *direction2;
+  Channel* channel_info;
+  Edge* direction1, *direction2;
   Path_hop *hop1, *hop2;
   uint16_t* d, *newd, dij, dik, dkj;
   Payment* payment;
@@ -547,8 +547,8 @@ Array* get_path(long source, long destination) {
 /*
 void floyd_warshall() {
   long i, j, k;
-  Channel_info* channel_info;
-  Channel* direction1, *direction2;
+  Channel* channel_info;
+  Edge* direction1, *direction2;
 
   dist = malloc(sizeof(uint32_t*)*peer_index);
   next = malloc(sizeof(Path_hop*)*peer_index);
@@ -647,10 +647,10 @@ Array* get_path(long source, long destination) {
 
 /* Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels, long p) { */
 /*   Distance *d=NULL; */
-/*   long i, best_peer_iD, j,*channel_iD=NULL, next_peer_iD, prev; */
+/*   long i, best_peer_id, j,*channel_id=NULL, next_peer_id, prev; */
 /*   Peer* best_peer=NULL; */
-/*   Channel* channel=NULL; */
-/*   Channel_info* channel_info=NULL; */
+/*   Edge* channel=NULL; */
+/*   Channel* channel_info=NULL; */
 /*   uint32_t tmp_dist; */
 /*   uint64_t capacity; */
 /*   Path_hop* hop=NULL; */
@@ -678,36 +678,36 @@ Array* get_path(long source, long destination) {
 /*     i++; */
 /*     d = heap_pop(distance_heap[p], compare_distance); */
 
-/*     best_peer_iD = d->peer; */
-/*     if(best_peer_iD==target) break; */
+/*     best_peer_id = d->peer; */
+/*     if(best_peer_id==target) break; */
 
-/*     best_peer = array_get(peers, best_peer_iD); */
+/*     best_peer = array_get(peers, best_peer_id); */
 
 /*     for(j=0; j<array_len(best_peer->channel); j++) { */
-/*       channel_iD = array_get(best_peer->channel, j); */
-/*       if(channel_iD==NULL) continue; */
+/*       channel_id = array_get(best_peer->channel, j); */
+/*       if(channel_id==NULL) continue; */
 
-/*       channel = array_get(channels, *channel_iD); */
+/*       channel = array_get(channels, *channel_id); */
 
-/*       next_peer_iD = channel->counterparty; */
+/*       next_peer_id = channel->counterparty; */
 
-/*       if(is_present(next_peer_iD, ignored_peers)) continue; */
-/*       if(is_present(*channel_iD, ignored_channels)) continue; */
+/*       if(is_present(next_peer_id, ignored_peers)) continue; */
+/*       if(is_present(*channel_id, ignored_channels)) continue; */
 
-/*       tmp_dist = distance[p][best_peer_iD].distance + channel->policy.timelock; */
+/*       tmp_dist = distance[p][best_peer_id].distance + channel->policy.timelock; */
 
-/*       channel_info = array_get(channel_infos, channel->channel_info_iD); */
+/*       channel_info = array_get(channel_infos, channel->channel_info_id); */
 
 /*       capacity = channel_info->capacity; */
 
-/*       if(tmp_dist < distance[p][next_peer_iD].distance && amount<=capacity && amount >= channel->policy.min_hTLC) { */
-/*         distance[p][next_peer_iD].peer = next_peer_iD; */
-/*         distance[p][next_peer_iD].distance = tmp_dist; */
+/*       if(tmp_dist < distance[p][next_peer_id].distance && amount<=capacity && amount >= channel->policy.min_hTLC) { */
+/*         distance[p][next_peer_id].peer = next_peer_id; */
+/*         distance[p][next_peer_id].distance = tmp_dist; */
 
-/*         previous_peer[p][next_peer_iD].channel = *channel_iD; */
-/*         previous_peer[p][next_peer_iD].peer = best_peer_iD; */
+/*         previous_peer[p][next_peer_id].channel = *channel_id; */
+/*         previous_peer[p][next_peer_id].peer = best_peer_id; */
 
-/*         distance_heap[p] = heap_insert(distance_heap[p], &distance[p][next_peer_iD], compare_distance); */
+/*         distance_heap[p] = heap_insert(distance_heap[p], &distance[p][next_peer_id], compare_distance); */
 /*       } */
 /*       } */
 
@@ -752,10 +752,10 @@ Array* get_path(long source, long destination) {
 
 /* Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels) { */
 /*   Distance *d=NULL; */
-/*   long i, best_peer_iD, j,*channel_iD=NULL, next_peer_iD, prev; */
+/*   long i, best_peer_id, j,*channel_id=NULL, next_peer_id, prev; */
 /*   Peer* best_peer=NULL; */
-/*   Channel* channel=NULL; */
-/*   Channel_info* channel_info=NULL; */
+/*   Edge* channel=NULL; */
+/*   Channel* channel_info=NULL; */
 /*   uint32_t tmp_dist; */
 /*   uint64_t capacity; */
 /*   Array* hops=NULL; */
@@ -780,36 +780,36 @@ Array* get_path(long source, long destination) {
 
 /*   while(heap_len(distance_heap[0])!=0) { */
 /*     d = heap_pop(distance_heap[0], compare_distance); */
-/*     best_peer_iD = d->peer; */
-/*     if(best_peer_iD==target) break; */
+/*     best_peer_id = d->peer; */
+/*     if(best_peer_id==target) break; */
 
-/*     best_peer = array_get(peers, best_peer_iD); */
+/*     best_peer = array_get(peers, best_peer_id); */
 
 /*     for(j=0; j<array_len(best_peer->channel); j++) { */
-/*       channel_iD = array_get(best_peer->channel, j); */
-/*       if(channel_iD==NULL) continue; */
+/*       channel_id = array_get(best_peer->channel, j); */
+/*       if(channel_id==NULL) continue; */
 
-/*       channel = array_get(channels, *channel_iD); */
+/*       channel = array_get(channels, *channel_id); */
 
-/*       next_peer_iD = channel->counterparty; */
+/*       next_peer_id = channel->counterparty; */
 
-/*       if(is_present(next_peer_iD, ignored_peers)) continue; */
-/*       if(is_present(*channel_iD, ignored_channels)) continue; */
+/*       if(is_present(next_peer_id, ignored_peers)) continue; */
+/*       if(is_present(*channel_id, ignored_channels)) continue; */
 
-/*       tmp_dist = distance[0][best_peer_iD].distance + channel->policy.timelock; */
+/*       tmp_dist = distance[0][best_peer_id].distance + channel->policy.timelock; */
 
-/*       channel_info = array_get(channel_infos, channel->channel_info_iD); */
+/*       channel_info = array_get(channel_infos, channel->channel_info_id); */
 
 /*       capacity = channel_info->capacity; */
 
-/*       if(tmp_dist < distance[0][next_peer_iD].distance && amount<=capacity) { */
-/*         distance[0][next_peer_iD].peer = next_peer_iD; */
-/*         distance[0][next_peer_iD].distance = tmp_dist; */
+/*       if(tmp_dist < distance[0][next_peer_id].distance && amount<=capacity) { */
+/*         distance[0][next_peer_id].peer = next_peer_id; */
+/*         distance[0][next_peer_id].distance = tmp_dist; */
 
-/*         previous_peer[0][next_peer_iD].channel = *channel_iD; */
-/*         previous_peer[0][next_peer_iD].peer = best_peer_iD; */
+/*         previous_peer[0][next_peer_id].channel = *channel_id; */
+/*         previous_peer[0][next_peer_id].peer = best_peer_id; */
 
-/*         distance_heap[0] = heap_insert(distance_heap[0], &distance[0][next_peer_iD], compare_distance); */
+/*         distance_heap[0] = heap_insert(distance_heap[0], &distance[0][next_peer_id], compare_distance); */
 /*       } */
 /*       } */
 
