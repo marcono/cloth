@@ -6,7 +6,7 @@
 #define PARALLEL 4
 
 extern pthread_mutex_t paths_mutex;
-extern pthread_mutex_t peers_mutex;
+extern pthread_mutex_t nodes_mutex;
 extern pthread_mutex_t jobs_mutex;
 extern struct array** paths;
 extern struct element* jobs;

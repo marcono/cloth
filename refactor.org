@@ -29,7 +29,7 @@
  sed -i 's/channel/edge/g' main.c global.h simulator/* protocol/* utils/*
  sed -i 's/edge_info/channel/g' main.c global.h simulator/* protocol/* utils/*
 ** TODO peer->node, Node -> elemento della lista
-** TODO togliere typedef e lasciare struct x
+** DONE togliere typedef e lasciare struct x
 * TODO other
 ** TODO latency non come attributo di channel ma come numero randomico
 ** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)

@@ -45,8 +45,8 @@ int compare_distance(struct distance* a, struct distance* b) {
 
 
 struct distance **distance;
-struct dijkstra_hop ** next_peer;
-//struct dijkstra_hop ** previous_peer;
+struct dijkstra_hop ** next_node;
+//struct dijkstra_hop ** previous_node;
 struct heap** distance_heap;
 //struct array** hops;
 
@@ -54,12 +54,12 @@ void initialize_dijkstra() {
   int i;
 
   distance = malloc(sizeof(struct distance*)*PARALLEL);
-  next_peer = malloc(sizeof(struct dijkstra_hop*)*PARALLEL);
+  next_node = malloc(sizeof(struct dijkstra_hop*)*PARALLEL);
   distance_heap = malloc(sizeof(struct heap*)*PARALLEL);
 
   for(i=0; i<PARALLEL; i++) {
-    distance[i] = malloc(sizeof(struct distance)*peer_index);
-     next_peer[i] = malloc(sizeof(struct dijkstra_hop)*peer_index);
+    distance[i] = malloc(sizeof(struct distance)*node_index);
+     next_node[i] = malloc(sizeof(struct dijkstra_hop)*node_index);
     distance_heap[i] = heap_initialize(edge_index);
   }
 
@@ -79,10 +79,10 @@ int is_ignored(long id, struct array* ignored){
   return 0;
 }
 
-struct array* dijkstra_p(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges, long p) {
+struct array* dijkstra_p(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p) {
   struct distance *d=NULL, to_node_dist;
-  long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
-  struct peer* best_peer=NULL;
+  long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
+  struct node* best_node=NULL;
   struct edge* edge=NULL, *other_edge=NULL;
   struct channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
@@ -93,16 +93,16 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
   while(heap_len(distance_heap[p])!=0)
     heap_pop(distance_heap[p], compare_distance);
 
-  for(i=0; i<peer_index; i++){
-    distance[p][i].peer = i;
+  for(i=0; i<node_index; i++){
+    distance[p][i].node = i;
     distance[p][i].distance = INF;
     distance[p][i].fee = 0;
     distance[p][i].amt_to_receive = 0;
-    next_peer[p][i].edge = -1;
-    next_peer[p][i].peer = -1;
+    next_node[p][i].edge = -1;
+    next_node[p][i].node = -1;
   }
 
-  distance[p][target].peer = target;
+  distance[p][target].node = target;
   distance[p][target].amt_to_receive = amount;
   distance[p][target].fee = 0;
   distance[p][target].distance = 0;
@@ -113,28 +113,28 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 
   while(heap_len(distance_heap[p])!=0) {
     d = heap_pop(distance_heap[p], compare_distance);
-    best_peer_id = d->peer;
-    if(best_peer_id==source) break;
+    best_node_id = d->node;
+    if(best_node_id==source) break;
 
-    best_peer = array_get(peers, best_peer_id);
+    best_node = array_get(nodes, best_node_id);
 
-    for(j=0; j<array_len(best_peer->edge); j++) {
+    for(j=0; j<array_len(best_node->edge); j++) {
       // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_peer->edge, j);
+      other_edge_id = array_get(best_node->edge, j);
       if(other_edge_id==NULL) continue;
       other_edge = array_get(edges, *other_edge_id);
       edge = array_get(edges, other_edge->other_edge_direction_id);
 
-      prev_peer_id = other_edge->counterparty;
+      prev_node_id = other_edge->counterparty;
       edge_id = edge->id;
 
-      if(is_ignored(prev_peer_id, ignored_peers)) continue;
+      if(is_ignored(prev_node_id, ignored_nodes)) continue;
       if(is_ignored(edge_id, ignored_edges)) continue;
 
-      to_node_dist = distance[p][best_peer_id];
+      to_node_dist = distance[p][best_node_id];
       amt_to_send = to_node_dist.amt_to_receive;
 
-      if(prev_peer_id==source)
+      if(prev_node_id==source)
         capacity = edge->balance;
       else{
         channel = array_get(channels, edge->channel_id);
@@ -143,7 +143,7 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 
       if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
 
-      if(prev_peer_id==source)
+      if(prev_node_id==source)
         fee = 0;
       else
         fee = compute_fee(amt_to_send, edge->policy);
@@ -154,23 +154,23 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 
       tmp_dist = weight + to_node_dist.distance;
 
-      if(tmp_dist < distance[p][prev_peer_id].distance) {
-        distance[p][prev_peer_id].peer = prev_peer_id;
-        distance[p][prev_peer_id].distance = tmp_dist;
-        distance[p][prev_peer_id].amt_to_receive = new_amt_to_receive;
-        distance[p][prev_peer_id].fee = fee;
+      if(tmp_dist < distance[p][prev_node_id].distance) {
+        distance[p][prev_node_id].node = prev_node_id;
+        distance[p][prev_node_id].distance = tmp_dist;
+        distance[p][prev_node_id].amt_to_receive = new_amt_to_receive;
+        distance[p][prev_node_id].fee = fee;
 
-        next_peer[p][prev_peer_id].edge = edge_id;
-        next_peer[p][prev_peer_id].peer = best_peer_id;
+        next_node[p][prev_node_id].edge = edge_id;
+        next_node[p][prev_node_id].node = best_node_id;
 
-        distance_heap[p] = heap_insert(distance_heap[p], &distance[p][prev_peer_id], compare_distance);
+        distance_heap[p] = heap_insert(distance_heap[p], &distance[p][prev_node_id], compare_distance);
       }
       }
 
     }
 
 
-  if(next_peer[p][source].peer == -1) {
+  if(next_node[p][source].node == -1) {
     return NULL;
   }
 
@@ -180,11 +180,11 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
   while(curr!=target) {
     hop = malloc(sizeof(struct path_hop));
     hop->sender = curr;
-    hop->edge = next_peer[p][curr].edge;
-    hop->receiver = next_peer[p][curr].peer;
+    hop->edge = next_node[p][curr].edge;
+    hop->receiver = next_node[p][curr].node;
     hops=array_insert(hops, hop);
 
-    curr = next_peer[p][curr].peer;
+    curr = next_node[p][curr].node;
   }
 
 
@@ -197,10 +197,10 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 
 
 
-struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges) {
+struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges) {
   struct distance *d=NULL, to_node_dist;
-  long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
-  struct peer* best_peer=NULL;
+  long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
+  struct node* best_node=NULL;
   struct edge* edge=NULL, *other_edge=NULL;
   struct channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
@@ -212,16 +212,16 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   while(heap_len(distance_heap[0])!=0)
     heap_pop(distance_heap[0], compare_distance);
 
-  for(i=0; i<peer_index; i++){
-    distance[0][i].peer = i;
+  for(i=0; i<node_index; i++){
+    distance[0][i].node = i;
     distance[0][i].distance = INF;
     distance[0][i].fee = 0;
     distance[0][i].amt_to_receive = 0;
-    next_peer[0][i].edge = -1;
-    next_peer[0][i].peer = -1;
+    next_node[0][i].edge = -1;
+    next_node[0][i].node = -1;
   }
 
-  distance[0][target].peer = target;
+  distance[0][target].node = target;
   distance[0][target].amt_to_receive = amount;
   distance[0][target].fee = 0;
   distance[0][target].distance = 0;
@@ -232,28 +232,28 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
 
   while(heap_len(distance_heap[0])!=0) {
     d = heap_pop(distance_heap[0], compare_distance);
-    best_peer_id = d->peer;
-    if(best_peer_id==source) break;
+    best_node_id = d->node;
+    if(best_node_id==source) break;
 
-    best_peer = array_get(peers, best_peer_id);
+    best_node = array_get(nodes, best_node_id);
 
-    for(j=0; j<array_len(best_peer->edge); j++) {
+    for(j=0; j<array_len(best_node->edge); j++) {
       // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_peer->edge, j);
+      other_edge_id = array_get(best_node->edge, j);
       if(other_edge_id==NULL) continue;
       other_edge = array_get(edges, *other_edge_id);
       edge = array_get(edges, other_edge->other_edge_direction_id);
 
-      prev_peer_id = other_edge->counterparty;
+      prev_node_id = other_edge->counterparty;
       edge_id = edge->id;
 
-      if(is_ignored(prev_peer_id, ignored_peers)) continue;
+      if(is_ignored(prev_node_id, ignored_nodes)) continue;
       if(is_ignored(edge_id, ignored_edges)) continue;
 
-      to_node_dist = distance[0][best_peer_id];
+      to_node_dist = distance[0][best_node_id];
       amt_to_send = to_node_dist.amt_to_receive;
 
-      if(prev_peer_id==source)
+      if(prev_node_id==source)
         capacity = edge->balance;
       else{
         channel = array_get(channels, edge->channel_id);
@@ -262,7 +262,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
 
       if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
 
-      if(prev_peer_id==source)
+      if(prev_node_id==source)
         fee = 0;
       else
         fee = compute_fee(amt_to_send, edge->policy);
@@ -274,23 +274,23 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
       tmp_dist = weight + to_node_dist.distance;
 
 
-      if(tmp_dist < distance[0][prev_peer_id].distance) {
-        distance[0][prev_peer_id].peer = prev_peer_id;
-        distance[0][prev_peer_id].distance = tmp_dist;
-        distance[0][prev_peer_id].amt_to_receive = new_amt_to_receive;
-        distance[0][prev_peer_id].fee = fee;
+      if(tmp_dist < distance[0][prev_node_id].distance) {
+        distance[0][prev_node_id].node = prev_node_id;
+        distance[0][prev_node_id].distance = tmp_dist;
+        distance[0][prev_node_id].amt_to_receive = new_amt_to_receive;
+        distance[0][prev_node_id].fee = fee;
 
-        next_peer[0][prev_peer_id].edge = edge_id;
-        next_peer[0][prev_peer_id].peer = best_peer_id;
+        next_node[0][prev_node_id].edge = edge_id;
+        next_node[0][prev_node_id].node = best_node_id;
 
-        distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_peer_id], compare_distance);
+        distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_node_id], compare_distance);
       }
       }
 
     }
 
 
-  if(next_peer[0][source].peer == -1) {
+  if(next_node[0][source].node == -1) {
     return NULL;
   }
 
@@ -300,11 +300,11 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   while(curr!=target) {
     hop = malloc(sizeof(struct path_hop));
     hop->sender = curr;
-    hop->edge = next_peer[0][curr].edge;
-    hop->receiver = next_peer[0][curr].peer;
+    hop->edge = next_node[0][curr].edge;
+    hop->receiver = next_node[0][curr].node;
     hops=array_insert(hops, hop);
 
-    curr = next_peer[0][curr].peer;
+    curr = next_node[0][curr].node;
   }
 
 

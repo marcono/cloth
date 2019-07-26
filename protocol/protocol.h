@@ -10,12 +10,12 @@
 #include <stdint.h>
 #include <pthread.h>
 
-extern long edge_index, peer_index, channel_index, payment_index;
+extern long edge_index, node_index, channel_index, payment_index;
 extern double p_uncoop_before_lock, p_uncoop_after_lock;
 extern gsl_rng *r;
 extern const gsl_rng_type * T;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
-FILE *csv_peer, *csv_edge, *csv_channel;
+FILE *csv_node, *csv_edge, *csv_channel;
 extern long n_dijkstra;
 
 struct policy {
@@ -30,20 +30,20 @@ struct ignored{
   uint64_t time;
 };
 
-struct peer {
+struct node {
   long id;
   int withholds_r;
   uint64_t initial_funds;
   uint64_t remaining_funds;
   struct array* edge;
-  struct array* ignored_peers;
+  struct array* ignored_nodes;
   struct array* ignored_edges;
 };
 
 struct channel {
   long id;
-  long peer1;
-  long peer2;
+  long node1;
+  long node2;
   long edge_direction1;
   long edge_direction2;
   uint64_t capacity;
@@ -76,19 +76,19 @@ struct payment {
   int attempts;
 };
 
-extern struct array* peers;
+extern struct array* nodes;
 extern struct array* edges;
 extern struct array* channels;
 
-void initialize_protocol_data(long n_peers, long n_edges, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc);
+void initialize_protocol_data(long n_nodes, long n_edges, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc);
 
-struct peer* create_peer(long id, long edges_size);
+struct node* create_node(long id, long edges_size);
 
-struct peer* create_peer_post_proc(long id, int withholds_r);
+struct node* create_node_post_proc(long id, int withholds_r);
 
-struct channel* create_channel(long id, long peer1, long peer2, uint32_t latency);
+struct channel* create_channel(long id, long node1, long node2, uint32_t latency);
 
-struct channel* create_channel_post_proc(long id, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
+struct channel* create_channel_post_proc(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity, uint32_t latency);
 
 struct edge* create_edge(long id, long channel_id, long counterparty, struct policy policy);
 
@@ -96,7 +96,7 @@ struct edge* create_edge_post_proc(long id, long channel_id, long other_directio
 
 struct payment* create_payment(long id, long sender, long receiver, uint64_t amount);
 
-void connect_peers(long peer1, long peer2);
+void connect_nodes(long node1, long node2);
 
 void create_topology_from_csv(unsigned int is_preproc);
 
@@ -123,7 +123,5 @@ void forward_fail(struct event* event);
 void receive_fail(struct event* event);
 
 void* dijkstra_thread(void*arg);
-
-long get_edge_index(struct peer*n);
 
 #endif

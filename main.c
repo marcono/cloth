@@ -24,12 +24,12 @@
 
 
 void csv_write_output() {
-  FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_peer_output;
+  FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
   long i,j, *id;
   struct channel* channel;
   struct edge* edge;
   struct payment* payment;
-  struct peer* peer;
+  struct node* node;
   struct route* route;
   struct array* hops;
   struct route_hop* hop;
@@ -39,11 +39,11 @@ void csv_write_output() {
     printf("ERROR cannot open channel_output.csv\n");
     return;
   }
-  fprintf(csv_channel_output, "id,direction1,direction2,peer1,peer2,capacity,latency,is_closed\n");
+  fprintf(csv_channel_output, "id,direction1,direction2,node1,node2,capacity,latency,is_closed\n");
 
   for(i=0; i<channel_index; i++) {
     channel = array_get(channels, i);
-    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge_direction1, channel->edge_direction2, channel->peer1, channel->peer2, channel->capacity, channel->latency, channel->is_closed);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge_direction1, channel->edge_direction2, channel->node1, channel->node2, channel->capacity, channel->latency, channel->is_closed);
   }
 
   fclose(csv_channel_output);
@@ -93,67 +93,67 @@ void csv_write_output() {
   fclose(csv_payment_output);
 
 
-  csv_peer_output = fopen("peer_output.csv", "w");
+  csv_node_output = fopen("node_output.csv", "w");
   if(csv_channel_output  == NULL) {
-    printf("ERROR cannot open peer_output.csv\n");
+    printf("ERROR cannot open node_output.csv\n");
     return;
   }
-  fprintf(csv_peer_output, "id,open_edges,ignored_peers,ignored_edges\n");
+  fprintf(csv_node_output, "id,open_edges,ignored_nodes,ignored_edges\n");
 
-  for(i=0; i<peer_index; i++) {
-    peer = array_get(peers, i);
+  for(i=0; i<node_index; i++) {
+    node = array_get(nodes, i);
 
-    fprintf(csv_peer_output, "%ld,", peer->id);
+    fprintf(csv_node_output, "%ld,", node->id);
 
-    if(array_len(peer->edge)==0)
-      fprintf(csv_peer_output, "-1");
+    if(array_len(node->edge)==0)
+      fprintf(csv_node_output, "-1");
     else {
-      for(j=0; j<array_len(peer->edge); j++) {
-        id = array_get(peer->edge, j);
-        if(j==array_len(peer->edge)-1)
-          fprintf(csv_peer_output,"%ld",*id);
+      for(j=0; j<array_len(node->edge); j++) {
+        id = array_get(node->edge, j);
+        if(j==array_len(node->edge)-1)
+          fprintf(csv_node_output,"%ld",*id);
         else
-          fprintf(csv_peer_output,"%ld-",*id);
+          fprintf(csv_node_output,"%ld-",*id);
       }
     }
-    fprintf(csv_peer_output,",");
+    fprintf(csv_node_output,",");
 
-    if(array_len(peer->ignored_peers)==0)
-      fprintf(csv_peer_output, "-1");
+    if(array_len(node->ignored_nodes)==0)
+      fprintf(csv_node_output, "-1");
     else {
-      for(j=0; j<array_len(peer->ignored_peers); j++) {
-        id = array_get(peer->ignored_peers, j);
-        if(j==array_len(peer->ignored_peers)-1)
-          fprintf(csv_peer_output,"%ld",*id);
+      for(j=0; j<array_len(node->ignored_nodes); j++) {
+        id = array_get(node->ignored_nodes, j);
+        if(j==array_len(node->ignored_nodes)-1)
+          fprintf(csv_node_output,"%ld",*id);
         else
-          fprintf(csv_peer_output,"%ld-",*id);
+          fprintf(csv_node_output,"%ld-",*id);
       }
     }
-    fprintf(csv_peer_output,",");
+    fprintf(csv_node_output,",");
 
-    if(array_len(peer->ignored_edges)==0)
-      fprintf(csv_peer_output, "-1");
+    if(array_len(node->ignored_edges)==0)
+      fprintf(csv_node_output, "-1");
     else {
-      for(j=0; j<array_len(peer->ignored_edges); j++) {
-        id = array_get(peer->ignored_edges, j);
-        if(j==array_len(peer->ignored_edges)-1)
-          fprintf(csv_peer_output,"%ld",*id);
+      for(j=0; j<array_len(node->ignored_edges); j++) {
+        id = array_get(node->ignored_edges, j);
+        if(j==array_len(node->ignored_edges)-1)
+          fprintf(csv_node_output,"%ld",*id);
         else
-          fprintf(csv_peer_output,"%ld-",*id);
+          fprintf(csv_node_output,"%ld-",*id);
       }
     }
-    fprintf(csv_peer_output,"\n");
+    fprintf(csv_node_output,"\n");
   
   }
 
-  fclose(csv_peer_output);
+  fclose(csv_node_output);
 
 }
 
 
 
 pthread_mutex_t paths_mutex;
-pthread_mutex_t peers_mutex;
+pthread_mutex_t nodes_mutex;
 pthread_mutex_t jobs_mutex;
 struct array** paths;
 struct element* jobs=NULL;
@@ -165,7 +165,7 @@ void initialize_threads() {
   pthread_t tid[PARALLEL];
   int data_index[PARALLEL];
 
-  pthread_mutex_init(&peers_mutex, NULL);
+  pthread_mutex_init(&nodes_mutex, NULL);
   pthread_mutex_init(&jobs_mutex, NULL);
   pthread_mutex_init(&paths_mutex, NULL);
 
@@ -189,7 +189,7 @@ void initialize_threads() {
 }
 
 uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
-  long n_payments, n_peers, n_channels, capacity_per_channel;
+  long n_payments, n_nodes, n_channels, capacity_per_channel;
   double payment_mean, p_uncoop_before, p_uncoop_after, RWithholding, same_dest;
   struct json_object* jpreinput, *jobj;
   unsigned int is_preproc_payments=1;
@@ -208,8 +208,8 @@ uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
   payment_mean = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "n_payments");
   n_payments = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "n_peers");
-  n_peers = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "n_nodes");
+  n_nodes = json_object_get_int64(jobj);
   jobj = json_object_object_get(jpreinput, "n_channels");
   n_channels = json_object_get_int64(jobj);
   jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
@@ -235,7 +235,7 @@ uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
 
   begin = clock();
 
-  initialize_protocol_data(n_peers, n_channels, p_uncoop_before, p_uncoop_after, RWithholding, gini, sigma_topology, capacity_per_channel, is_preproc_topology);
+  initialize_protocol_data(n_nodes, n_channels, p_uncoop_before, p_uncoop_after, RWithholding, gini, sigma_topology, capacity_per_channel, is_preproc_topology);
   initialize_simulator_data(n_payments, payment_mean, same_dest, sigma_amount, is_preproc_payments);
 
 
@@ -267,10 +267,6 @@ uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
 
 int main(int argc, char* argv[]) {
   struct event* event;
-  //  struct peer* peer;
-  //struct channel* channel_info;
-  //struct edge* channel;
-  //struct payment* payment;
   clock_t  begin, end;
   double time_spent=0.0;
   uint64_t end_time;

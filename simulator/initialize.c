@@ -40,8 +40,8 @@ void initialize_events(long n_payments, double payment_mean) {
 
 
     do{
-      sender_id = gsl_rng_uniform_int(r,peer_index);
-      receiver_id = gsl_rng_uniform_int(r, peer_index);
+      sender_id = gsl_rng_uniform_int(r,node_index);
+      receiver_id = gsl_rng_uniform_int(r, node_index);
     } while(sender_id==receiver_id);
 
 
@@ -98,11 +98,11 @@ void initialize_events_preproc(long n_payments, double payment_mean, double same
 
 
     do{
-      sender_id = gsl_rng_uniform_int(r,peer_index);
+      sender_id = gsl_rng_uniform_int(r,node_index);
       if(gsl_ran_discrete(r, discrete_dest))
         receiver_id = 500;
       else
-        receiver_id = gsl_rng_uniform_int(r, peer_index);
+        receiver_id = gsl_rng_uniform_int(r, node_index);
     } while(sender_id==receiver_id);
 
 

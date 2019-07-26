@@ -6,14 +6,14 @@
 
 
 struct distance{
-  long peer;
+  long node;
   uint64_t distance;
   uint64_t amt_to_receive;
   uint64_t fee;
 };
 
 struct dijkstra_hop {
-  long peer;
+  long node;
   long edge;
 };
 
@@ -47,9 +47,9 @@ void initialize_dijkstra();
 struct array* get_path(long source, long destination);
 
 
-struct array* dijkstra_p(long source, long destination, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges, long p);
+struct array* dijkstra_p(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p);
 
-struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges);
 
 struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock);
 

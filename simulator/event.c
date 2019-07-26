@@ -5,14 +5,14 @@
 //#include "../gc-7.2/include/gc.h"
 #include "event.h"
 
-struct event* create_event(long id, uint64_t time, enum event_type type, long peer_id, long payment_id) {
+struct event* create_event(long id, uint64_t time, enum event_type type, long node_id, long payment_id) {
   struct event* e;
 
   e = malloc(sizeof(struct event));
   e->id = id;
   e->time = time;
   e->type = type;
-  e->peer_id = peer_id;
+  e->node_id = node_id;
   e->payment_id = payment_id;
 
   event_index++;

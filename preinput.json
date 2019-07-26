@@ -2,7 +2,7 @@
 {
   "payment_mean":0.001000,
   "n_payments":1000,
-  "n_peers":10000,
+  "n_nodes":10000,
   "n_channels":5,
   "p_uncooperative_before_lock":0.0,
   "p_uncooperative_after_lock":0.0,

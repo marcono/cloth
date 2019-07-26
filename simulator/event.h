@@ -30,11 +30,11 @@ struct event {
   long id;
   uint64_t time;
   enum event_type type;
-  long peer_id;
+  long node_id;
   long payment_id;
 };
 
-struct event* create_event(long id, uint64_t time, enum event_type type, long peer_id, long payment_id);
+struct event* create_event(long id, uint64_t time, enum event_type type, long node_id, long payment_id);
 
 int compare_event(struct event* e1, struct event *e2);
 
