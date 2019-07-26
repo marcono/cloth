@@ -118,12 +118,12 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 
     best_node = array_get(nodes, best_node_id);
 
-    for(j=0; j<array_len(best_node->edge); j++) {
+    for(j=0; j<array_len(best_node->open_edges); j++) {
       // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_node->edge, j);
+      other_edge_id = array_get(best_node->open_edges, j);
       if(other_edge_id==NULL) continue;
       other_edge = array_get(edges, *other_edge_id);
-      edge = array_get(edges, other_edge->other_edge_direction_id);
+      edge = array_get(edges, other_edge->other_edge_id);
 
       prev_node_id = other_edge->counterparty;
       edge_id = edge->id;
@@ -237,12 +237,12 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
 
     best_node = array_get(nodes, best_node_id);
 
-    for(j=0; j<array_len(best_node->edge); j++) {
+    for(j=0; j<array_len(best_node->open_edges); j++) {
       // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_node->edge, j);
+      other_edge_id = array_get(best_node->open_edges, j);
       if(other_edge_id==NULL) continue;
       other_edge = array_get(edges, *other_edge_id);
-      edge = array_get(edges, other_edge->other_edge_direction_id);
+      edge = array_get(edges, other_edge->other_edge_id);
 
       prev_node_id = other_edge->counterparty;
       edge_id = edge->id;

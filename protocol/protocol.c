@@ -49,11 +49,8 @@ struct node* create_node(long id, long edges_size) {
 
   node = malloc(sizeof(struct node));
   node->id=id;
-  node->edge = array_initialize(edges_size);
-  node->initial_funds = 0;
-  node->remaining_funds = 0;
-  node->withholds_r = 0;
-
+  node->open_edges = array_initialize(edges_size);
+ 
   node_index++;
 
   return node;
@@ -114,15 +111,12 @@ struct payment* create_payment(long id, long sender, long receiver, uint64_t amo
   return p;
 }
 
-struct node* create_node_post_proc(long id, int withholds_r) {
+struct node* create_node_post_proc(long id) {
   struct node* node;
 
   node = malloc(sizeof(struct node));
   node->id=id;
-  node->edge = array_initialize(5);
-  node->initial_funds = 0;
-  node->remaining_funds = 0;
-  node->withholds_r = withholds_r;
+  node->open_edges = array_initialize(5);
   node->ignored_edges = array_initialize(10);
   node->ignored_nodes = array_initialize(1);
 
@@ -136,8 +130,8 @@ struct channel* create_channel_post_proc(long id, long direction1, long directio
 
   channel = malloc(sizeof(struct channel));
   channel->id = id;
-  channel->edge_direction1 = direction1;
-  channel->edge_direction2 = direction2;
+  channel->edge1 = direction1;
+  channel->edge2 = direction2;
   channel->node1 = node1;
   channel->node2 = node2;
   channel->latency = latency;
@@ -156,7 +150,7 @@ struct edge* create_edge_post_proc(long id, long channel_id, long other_directio
   edge->id = id;
   edge->channel_id = channel_id;
   edge->counterparty = counterparty;
-  edge->other_edge_direction_id = other_direction;
+  edge->other_edge_id = other_direction;
   edge->policy = policy;
   edge->balance = balance;
   edge->is_closed = 0;
@@ -426,7 +420,7 @@ void create_topology_from_csv(unsigned int is_preproc) {
   fgets(row, 256, csv_node);
   while(fgets(row, 256, csv_node)!=NULL) {
     sscanf(row, "%ld,%d", &id, &withholds_r);
-    node = create_node_post_proc(id, withholds_r);
+    node = create_node_post_proc(id);
     nodes = array_insert(nodes, node);
   }
 
@@ -444,9 +438,9 @@ void create_topology_from_csv(unsigned int is_preproc) {
     channel = create_channel_post_proc(id, direction1, direction2, node_id1, node_id2, capacity, latency);
     channels = array_insert(channels, channel);
     node1 = array_get(nodes, node_id1);
-    node1->edge = array_insert(node1->edge, &(channel->edge_direction1));
+    node1->open_edges = array_insert(node1->open_edges, &(channel->edge1));
     node2 = array_get(nodes, node_id2);
-    node2->edge = array_insert(node2->edge, &(channel->edge_direction2));
+    node2->open_edges = array_insert(node2->open_edges, &(channel->edge2));
   }
 
   fclose(csv_channel);
@@ -526,19 +520,19 @@ void close_channel(long channel_id) {
   struct edge* direction1, *direction2;
 
   channel = array_get(channels, channel_id);
-  direction1 = array_get(edges, channel->edge_direction1);
-  direction2 = array_get(edges, channel->edge_direction2);
+  direction1 = array_get(edges, channel->edge1);
+  direction2 = array_get(edges, channel->edge2);
 
   channel->is_closed = 1;
   direction1->is_closed = 1;
   direction2->is_closed = 1;
 
-  printf("struct channel %ld, struct edge_direction1 %ld, struct edge_direction2 %ld are now closed\n", channel->id, channel->edge_direction1, channel->edge_direction2);
+  printf("struct channel %ld, struct edge_direction1 %ld, struct edge_direction2 %ld are now closed\n", channel->id, channel->edge1, channel->edge2);
 
   for(i = 0; i < node_index; i++) {
     node = array_get(nodes, i);
-    array_delete(node->edge, &(channel->edge_direction1), is_equal);
-    array_delete(node->edge, &(channel->edge_direction2), is_equal);
+    array_delete(node->open_edges, &(channel->edge1), is_equal);
+    array_delete(node->open_edges, &(channel->edge2), is_equal);
   }
 }
 
@@ -819,7 +813,7 @@ void send_payment(struct event* event) {
   next_edge = array_get(edges, first_route_hop->path_hop->edge);
   channel = array_get(channels, next_edge->channel_id);
 
-  if(!is_present(next_edge->id, node->edge)) {
+  if(!is_present(next_edge->id, node->open_edges)) {
     printf("struct edge %ld has been closed\n", next_edge->id);
     next_event_time = simulator_time;
     next_event = create_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
@@ -874,7 +868,7 @@ void forward_payment(struct event *event) {
     return;
   }
 
-  if(!is_present(next_route_hop->path_hop->edge, node->edge)) {
+  if(!is_present(next_route_hop->path_hop->edge, node->open_edges)) {
     printf("struct edge %ld has been closed\n", next_route_hop->path_hop->edge);
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -955,7 +949,7 @@ void receive_payment(struct event* event ) {
 
   last_route_hop = array_get(route->route_hops, array_len(route->route_hops) - 1);
   forward_edge = array_get(edges, last_route_hop->path_hop->edge);
-  backward_edge = array_get(edges, forward_edge->other_edge_direction_id);
+  backward_edge = array_get(edges, forward_edge->other_edge_id);
   channel = array_get(channels, forward_edge->channel_id);
 
   backward_edge->balance += last_route_hop->amount_to_forward;
@@ -1000,12 +994,12 @@ void forward_success(struct event* event) {
   next_hop = get_route_hop(event->node_id, payment->route->route_hops, 1);
   next_edge = array_get(edges, next_hop->path_hop->edge);
   forward_edge = array_get(edges, prev_hop->path_hop->edge);
-  backward_edge = array_get(edges, forward_edge->other_edge_direction_id);
+  backward_edge = array_get(edges, forward_edge->other_edge_id);
   prev_channel = array_get(channels, forward_edge->channel_id);
   node = array_get(nodes, event->node_id);
  
 
-  if(!is_present(backward_edge->id, node->edge)) {
+  if(!is_present(backward_edge->id, node->open_edges)) {
     printf("struct edge %ld is not present\n", prev_hop->path_hop->edge);
     prev_node_id = prev_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -1065,7 +1059,7 @@ void forward_fail(struct event* event) {
   next_hop = get_route_hop(event->node_id, payment->route->route_hops, 1);
   next_edge = array_get(edges, next_hop->path_hop->edge);
 
-  if(is_present(next_edge->id, node->edge)) {
+  if(is_present(next_edge->id, node->open_edges)) {
     next_edge->balance += next_hop->amount_to_forward;
   }
   else
@@ -1097,7 +1091,7 @@ void receive_fail(struct event* event) {
   next_edge = array_get(edges, first_hop->path_hop->edge);
   node = array_get(nodes, event->node_id);
 
-  if(is_present(next_edge->id, node->edge))
+  if(is_present(next_edge->id, node->open_edges))
     next_edge->balance += first_hop->amount_to_forward;
   else
     printf("struct edge %ld is not present\n", next_edge->id);

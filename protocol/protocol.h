@@ -32,10 +32,7 @@ struct ignored{
 
 struct node {
   long id;
-  int withholds_r;
-  uint64_t initial_funds;
-  uint64_t remaining_funds;
-  struct array* edge;
+  struct array* open_edges;
   struct array* ignored_nodes;
   struct array* ignored_edges;
 };
@@ -44,8 +41,8 @@ struct channel {
   long id;
   long node1;
   long node2;
-  long edge_direction1;
-  long edge_direction2;
+  long edge1;
+  long edge2;
   uint64_t capacity;
   uint32_t latency;
   unsigned int is_closed;
@@ -55,7 +52,7 @@ struct edge {
   long id;
   long channel_id;
   long counterparty;
-  long other_edge_direction_id;
+  long other_edge_id;
   struct policy policy;
   uint64_t balance;
   unsigned int is_closed;
@@ -67,10 +64,10 @@ struct payment {
   long receiver;
   uint64_t amount; //millisatoshis
   struct route* route;
-  int is_success;
-  int uncoop_after;
-  int uncoop_before;
-  int is_timeout;
+  unsigned int is_success;
+  unsigned int uncoop_after;
+  unsigned int uncoop_before;
+  unsigned int is_timeout;
   uint64_t start_time;
   uint64_t end_time;
   int attempts;
@@ -84,7 +81,7 @@ void initialize_protocol_data(long n_nodes, long n_edges, double p_uncoop_before
 
 struct node* create_node(long id, long edges_size);
 
-struct node* create_node_post_proc(long id, int withholds_r);
+struct node* create_node_post_proc(long id);
 
 struct channel* create_channel(long id, long node1, long node2, uint32_t latency);
 

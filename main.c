@@ -43,7 +43,7 @@ void csv_write_output() {
 
   for(i=0; i<channel_index; i++) {
     channel = array_get(channels, i);
-    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge_direction1, channel->edge_direction2, channel->node1, channel->node2, channel->capacity, channel->latency, channel->is_closed);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->latency, channel->is_closed);
   }
 
   fclose(csv_channel_output);
@@ -57,7 +57,7 @@ void csv_write_output() {
 
   for(i=0; i<edge_index; i++) {
     edge = array_get(edges, i);
-    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_direction_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed);
+    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed);
   }
 
   fclose(csv_edge_output);
@@ -105,12 +105,12 @@ void csv_write_output() {
 
     fprintf(csv_node_output, "%ld,", node->id);
 
-    if(array_len(node->edge)==0)
+    if(array_len(node->open_edges)==0)
       fprintf(csv_node_output, "-1");
     else {
-      for(j=0; j<array_len(node->edge); j++) {
-        id = array_get(node->edge, j);
-        if(j==array_len(node->edge)-1)
+      for(j=0; j<array_len(node->open_edges); j++) {
+        id = array_get(node->open_edges, j);
+        if(j==array_len(node->open_edges)-1)
           fprintf(csv_node_output,"%ld",*id);
         else
           fprintf(csv_node_output,"%ld-",*id);
