@@ -66,13 +66,13 @@ void initialize_dijkstra() {
 }
 
 
-int is_ignored(long ID, Array* ignored){
+int is_ignored(long id, Array* ignored){
   int i;
   Ignored* curr;
 
   for(i=0; i<array_len(ignored); i++) {
     curr = array_get(ignored, i);
-    if(curr->ID==ID)
+    if(curr->id==id)
       return 1;
   }
 
@@ -126,7 +126,7 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
       edge = array_get(edges, other_edge->other_edge_direction_id);
 
       prev_peer_id = other_edge->counterparty;
-      edge_id = edge->ID;
+      edge_id = edge->id;
 
       if(is_ignored(prev_peer_id, ignored_peers)) continue;
       if(is_ignored(edge_id, ignored_edges)) continue;
@@ -141,7 +141,7 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
         capacity = channel->capacity;
       }
 
-      if(amt_to_send > capacity || amt_to_send < edge->policy.min_hTLC) continue;
+      if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
 
       if(prev_peer_id==source)
         fee = 0;
@@ -245,7 +245,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
       edge = array_get(edges, other_edge->other_edge_direction_id);
 
       prev_peer_id = other_edge->counterparty;
-      edge_id = edge->ID;
+      edge_id = edge->id;
 
       if(is_ignored(prev_peer_id, ignored_peers)) continue;
       if(is_ignored(edge_id, ignored_edges)) continue;
@@ -260,7 +260,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
         capacity = channel->capacity;
       }
 
-      if(amt_to_send > capacity || amt_to_send < edge->policy.min_hTLC) continue;
+      if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
 
       if(prev_peer_id==source)
         fee = 0;
@@ -700,7 +700,7 @@ Array* get_path(long source, long destination) {
 
 /*       capacity = channel_info->capacity; */
 
-/*       if(tmp_dist < distance[p][next_peer_id].distance && amount<=capacity && amount >= channel->policy.min_hTLC) { */
+/*       if(tmp_dist < distance[p][next_peer_id].distance && amount<=capacity && amount >= channel->policy.min_htlc) { */
 /*         distance[p][next_peer_id].peer = next_peer_id; */
 /*         distance[p][next_peer_id].distance = tmp_dist; */
 

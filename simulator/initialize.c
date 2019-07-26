@@ -66,7 +66,7 @@ void initialize_events(long n_payments, double payment_mean) {
 
     next_event_interval = 1000*gsl_ran_exponential(r, payment_mean);
     event_time += next_event_interval;
-    event = create_event(event_index, event_time, FINDROUTE, sender_id, payment->ID);
+    event = create_event(event_index, event_time, FINDROUTE, sender_id, payment->id);
     events = heap_insert(events, event, compare_event);
   }
 
@@ -141,7 +141,7 @@ void create_payments_from_csv(unsigned int is_preproc) {
   Payment* payment;
   Event* event;
   char row[256], file_payment[64];
-  long ID, sender, receiver;
+  long id, sender, receiver;
   uint64_t amount, time;
   if(is_preproc)
     strcpy(file_payment, "payment.csv");
@@ -156,10 +156,10 @@ void create_payments_from_csv(unsigned int is_preproc) {
 
   fgets(row, 256, csv_payment);
   while(fgets(row, 256, csv_payment) != NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld", &ID, &sender, &receiver, &amount, &time);
-    payment = create_payment(ID, sender, receiver, amount);
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld", &id, &sender, &receiver, &amount, &time);
+    payment = create_payment(id, sender, receiver, amount);
     array_insert(payments, payment);
-    event = create_event(event_index, time, FINDROUTE, sender, payment->ID);
+    event = create_event(event_index, time, FINDROUTE, sender, payment->id);
     events = heap_insert(events, event, compare_event);
   }
 

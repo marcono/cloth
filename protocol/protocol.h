@@ -21,17 +21,17 @@ extern long n_dijkstra;
 typedef struct policy {
   uint32_t fee_base;
   uint32_t fee_proportional;
-  uint32_t min_hTLC;
+  uint32_t min_htlc;
   uint16_t timelock;
 } Policy;
 
 typedef struct ignored{
-  long ID;
+  long id;
   uint64_t time;
 } Ignored;
 
 typedef struct peer {
-  long ID;
+  long id;
   int withholds_r;
   uint64_t initial_funds;
   uint64_t remaining_funds;
@@ -41,7 +41,7 @@ typedef struct peer {
 } Peer;
 
 typedef struct channel {
-  long ID;
+  long id;
   long peer1;
   long peer2;
   long edge_direction1;
@@ -52,7 +52,7 @@ typedef struct channel {
 } Channel;
 
 typedef struct edge {
-  long ID;
+  long id;
   long channel_id;
   long counterparty;
   long other_edge_direction_id;
@@ -62,7 +62,7 @@ typedef struct edge {
 } Edge;
 
 typedef struct payment{
-  long ID;
+  long id;
   long sender;
   long receiver;
   uint64_t amount; //millisatoshis
@@ -82,19 +82,19 @@ extern Array* channels;
 
 void initialize_protocol_data(long n_peers, long n_edges, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc);
 
-Peer* create_peer(long ID, long edges_size);
+Peer* create_peer(long id, long edges_size);
 
-Peer* create_peer_post_proc(long ID, int withholds_r);
+Peer* create_peer_post_proc(long id, int withholds_r);
 
-Channel* create_channel(long ID, long peer1, long peer2, uint32_t latency);
+Channel* create_channel(long id, long peer1, long peer2, uint32_t latency);
 
-Channel* create_channel_post_proc(long ID, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
+Channel* create_channel_post_proc(long id, long direction1, long direction2, long peer1, long peer2, uint64_t capacity, uint32_t latency);
 
-Edge* create_edge(long ID, long channel_id, long counterparty, Policy policy);
+Edge* create_edge(long id, long channel_id, long counterparty, Policy policy);
 
-Edge* create_edge_post_proc(long ID, long channel_id, long other_direction, long counterparty, uint64_t balance, Policy policy);
+Edge* create_edge_post_proc(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, Policy policy);
 
-Payment* create_payment(long ID, long sender, long receiver, uint64_t amount);
+Payment* create_payment(long id, long sender, long receiver, uint64_t amount);
 
 void connect_peers(long peer1, long peer2);
 

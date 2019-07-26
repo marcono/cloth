@@ -27,14 +27,14 @@ typedef enum event_type {
 } Event_type;
 
 typedef struct event {
-  long ID;
+  long id;
   uint64_t time;
   Event_type type;
   long peer_id;
   long payment_id;
 } Event;
 
-Event* create_event(long ID, uint64_t time, Event_type type, long peer_id, long payment_id);
+Event* create_event(long id, uint64_t time, Event_type type, long peer_id, long payment_id);
 
 int compare_event(Event* e1, Event *e2);
 

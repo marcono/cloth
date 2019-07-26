@@ -43,7 +43,7 @@ void csv_write_output() {
 
   for(i=0; i<channel_index; i++) {
     channel = array_get(channels, i);
-    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->ID, channel->edge_direction1, channel->edge_direction2, channel->peer1, channel->peer2, channel->capacity, channel->latency, channel->is_closed);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge_direction1, channel->edge_direction2, channel->peer1, channel->peer2, channel->capacity, channel->latency, channel->is_closed);
   }
 
   fclose(csv_channel_output);
@@ -57,7 +57,7 @@ void csv_write_output() {
 
   for(i=0; i<edge_index; i++) {
     edge = array_get(edges, i);
-    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->ID, edge->channel_id, edge->other_edge_direction_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_hTLC, edge->policy.timelock, edge->is_closed);
+    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_direction_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed);
   }
 
   fclose(csv_edge_output);
@@ -71,7 +71,7 @@ void csv_write_output() {
 
   for(i=0; i<payment_index; i++)  {
     payment = array_get(payments, i);
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->ID, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
@@ -103,7 +103,7 @@ void csv_write_output() {
   for(i=0; i<peer_index; i++) {
     peer = array_get(peers, i);
 
-    fprintf(csv_peer_output, "%ld,", peer->ID);
+    fprintf(csv_peer_output, "%ld,", peer->id);
 
     if(array_len(peer->edge)==0)
       fprintf(csv_peer_output, "-1");
@@ -174,7 +174,7 @@ void initialize_threads() {
   for(i=0; i<payment_index ;i++){
     paths[i] = NULL;
     payment = array_get(payments, i);
-    jobs = push(jobs, payment->ID);
+    jobs = push(jobs, payment->id);
   }
 
   for(i=0; i<PARALLEL; i++) {
@@ -360,7 +360,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -375,16 +375,16 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   sender = 0;
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   //this payment fails for peer 2 non cooperative
@@ -392,8 +392,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   //this payment fails for peer 1 non cooperative
@@ -401,8 +401,8 @@ int main() {
   receiver = 4;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
 
@@ -473,7 +473,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -487,8 +487,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
 
@@ -557,7 +557,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -571,8 +571,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   // failed payment for peer 2 non cooperative in forward_payment
@@ -580,8 +580,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
 
@@ -650,7 +650,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -666,8 +666,8 @@ int main() {
   receiver = 5;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   // failed payment for no path
@@ -675,8 +675,8 @@ int main() {
   receiver = 6;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   // succeeded payment but uncoop node in forwardsuccess (uncoop if payment_id==2 && peer_id==1) 
@@ -684,8 +684,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   //failed payment due to uncoop node in forwardpayment (uncoop if payment_id==3 and peer_id==2)
@@ -693,8 +693,8 @@ int main() {
   receiver = 3;
   amount = 0.1;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
 
@@ -761,7 +761,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -780,8 +780,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   //for this payment only peer 1 must be not cooperative
@@ -790,8 +790,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.05;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   // end test is!Present in forward_success
 
@@ -808,8 +808,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   //for this payment only peer 1 must be not cooperative
@@ -818,8 +818,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.05;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   // end test is!Present in forward_fail
 
@@ -834,8 +834,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   
@@ -844,8 +844,8 @@ int main() {
   amount = 0.1;
   //  simulator_time = 0.2;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.1, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.1, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   // end test is!Present in forward_payment
 
@@ -859,8 +859,8 @@ int main() {
   amount = 0.1;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.0, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   
@@ -869,8 +869,8 @@ int main() {
   amount = 0.1;
   //  simulator_time = 0.2;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, 0.2, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, 0.2, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   // end test is!Present in receive_fail
   
@@ -937,7 +937,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -957,8 +957,8 @@ int main() {
   amount = 1.0;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
 
@@ -1024,7 +1024,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(peer_index,5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
 
@@ -1067,8 +1067,8 @@ int main() {
   amount = 1.0;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   //end test full payment
 
@@ -1080,8 +1080,8 @@ int main() {
   amount = 1.0;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   sender = 4;
@@ -1089,8 +1089,8 @@ int main() {
   amount = 4.0;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   //end test two payments
   
@@ -1102,8 +1102,8 @@ int main() {
   amount = 1.0;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   //end test payment without hops
   
@@ -1115,8 +1115,8 @@ int main() {
   amount = 0.3;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
   
   sender = 0;
@@ -1124,8 +1124,8 @@ int main() {
   amount = 0.3;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
 
   sender = 0;
@@ -1133,8 +1133,8 @@ int main() {
   amount = 0.3;
   simulator_time = 0.0;
   payment = create_payment(payment_index, sender, receiver, amount);
-  hash_table_put(payments, payment->ID, payment);
-  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->ID);
+  hash_table_put(payments, payment->id, payment);
+  event = create_event(event_index, simulator_time, FINDROUTE, sender, payment->id);
   events = heap_insert(events, event, compare_event);
    //end test more payments from same source
    
@@ -1210,7 +1210,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
       peer = create_peer(5);
-      hash_table_put(peers, peer->ID, peer);
+      hash_table_put(peers, peer->id, peer);
     }
 
     for(i=1; i<5; i++) {
@@ -1266,7 +1266,7 @@ int main() {
 
   for(i=0; i<n_peers; i++) {
     peer = create_peer(5);
-    hash_table_put(peers, peer->ID, peer);
+    hash_table_put(peers, peer->id, peer);
   }
 
   Policy policy;
@@ -1298,7 +1298,7 @@ int main() {
         continue;
       }
       channel = array_get(channels, *curr_channel_id);
-      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->ID);
+      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->id);
       }
   }
 
@@ -1354,24 +1354,24 @@ int main() {
 
 /*   policy.fee_base = 1; */
 /*   policy.fee_proportional =1; */
-/*   policy.min_hTLC = 0; */
+/*   policy.min_htlc = 0; */
 /*   policy.timelock = 1; */
 
 /*   channel = create_channel_post_proc(0, 0, 1, 1, 50, policy); */
 /*   channels = array_insert(channels, channel); */
-/*   peer[0]->channel = array_insert(peer[0]->channel, &channel->ID); */
+/*   peer[0]->channel = array_insert(peer[0]->channel, &channel->id); */
 
 /*   channel = create_channel_post_proc(1, 0, 0, 0, 50, policy); */
 /*   channels = array_insert(channels, channel); */
-/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->ID); */
+/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->id); */
 
 /*   channel = create_channel_post_proc(2, 1, 3, 2, 50, policy); */
 /*   channels = array_insert(channels, channel); */
-/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->ID); */
+/*   peer[1]->channel = array_insert(peer[1]->channel, &channel->id); */
 
 /*   channel = create_channel_post_proc(3, 1, 2, 1, 50, policy); */
 /*   channels = array_insert(channels, channel); */
-/*   peer[2]->channel = array_insert(peer[2]->channel, &channel->ID); */
+/*   peer[2]->channel = array_insert(peer[2]->channel, &channel->id); */
 
 
 /*   initialize_dijkstra(); */
@@ -1452,10 +1452,10 @@ int main() {
   for(i=0; i<N; i++) {
     e = malloc(sizeof(Event));
     e->time=0.0;
-    e->ID=i;
+    e->id=i;
     strcpy(e->type, "Send");
 
-    put(ht, e->ID, e);
+    put(ht, e->id, e);
 
 }
 
