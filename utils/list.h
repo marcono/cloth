@@ -2,13 +2,13 @@
 #define list_h
 
 
-typedef struct node {
-	struct node* next;
+struct element {
+	struct element* next;
 	long data;
-} Node;
+};
 
-Node* push(Node* head, long data);
+struct element* push(struct element* head, long data);
 
-Node* pop(Node* head, long* data);
+struct element* pop(struct element* head, long* data);
 
 #endif

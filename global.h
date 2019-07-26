@@ -8,7 +8,7 @@
 extern pthread_mutex_t paths_mutex;
 extern pthread_mutex_t peers_mutex;
 extern pthread_mutex_t jobs_mutex;
-extern Array** paths;
-extern Node* jobs;
+extern struct array** paths;
+extern struct element* jobs;
 
 #endif

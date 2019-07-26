@@ -3,11 +3,11 @@
 #include "array.h"
 //#include "../gc-7.2/include/gc.h"
 
-Array* resize_array(Array* a) {
-  Array* new;
+struct array* resize_array(struct array* a) {
+  struct array* new;
   long i;
 
-  new=malloc(sizeof(Array));
+  new=malloc(sizeof(struct array));
   new->size = a->size*2;
   new->index = a->index;
   new->element = malloc(new->size*sizeof(void*));
@@ -19,10 +19,10 @@ Array* resize_array(Array* a) {
   return new;
 }
 
-Array* array_initialize(long size) {
-  Array* a;
+struct array* array_initialize(long size) {
+  struct array* a;
 
-  a = malloc(sizeof(Array));
+  a = malloc(sizeof(struct array));
   a->size = size;
   a->index = 0;
   a->element = malloc(a->size*sizeof(void*));
@@ -31,7 +31,7 @@ Array* array_initialize(long size) {
 }
 
 
-Array* array_insert(Array* a, void* data) {
+struct array* array_insert(struct array* a, void* data) {
   if(a->index >= a->size)
     a = resize_array(a);
 
@@ -41,16 +41,16 @@ Array* array_insert(Array* a, void* data) {
   return a;
 }
 
-void* array_get(Array* a,long i) {
+void* array_get(struct array* a,long i) {
   if(i>=a->size || i>=a->index) return NULL;
   return a->element[i];
 }
 
-long array_len(Array *a) {
+long array_len(struct array *a) {
   return a->index;
 }
 
-void array_reverse(Array *a) {
+void array_reverse(struct array *a) {
   long i, n;
   void*tmp;
 
@@ -63,7 +63,7 @@ void array_reverse(Array *a) {
   }
 }
 
-void delete_element(Array *a, long element_index) {
+void delete_element(struct array *a, long element_index) {
   long i;
 
   (a->index)--;
@@ -72,7 +72,7 @@ void delete_element(Array *a, long element_index) {
     a->element[i] = a->element[i+1];
 }
 
-void array_delete(Array* a, void* element,  int(*is_equal)()) {
+void array_delete(struct array* a, void* element,  int(*is_equal)()) {
   long i;
 
   for(i = 0; i < array_len(a); i++) {
@@ -81,6 +81,6 @@ void array_delete(Array* a, void* element,  int(*is_equal)()) {
   }
 }
 
-void array_delete_all(Array* a) {
+void array_delete_all(struct array* a) {
   a->index = 0;
 }

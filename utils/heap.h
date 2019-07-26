@@ -2,21 +2,21 @@
 #define heap_h
 
 
-typedef struct heap {
+struct heap {
   long size;
   long index;
   void** data;
-} Heap;
+};
 
 
-Heap* heap_initialize(long size);
+struct heap* heap_initialize(long size);
 
-Heap* heap_insert(Heap *h, void* data, int(*compare)());
+struct heap* heap_insert(struct heap *h, void* data, int(*compare)());
 
-void* heap_pop(Heap* h, int(*compare)());
+void* heap_pop(struct heap* h, int(*compare)());
 
-long heap_len(Heap*h);
+long heap_len(struct heap*h);
 
-void heap_free(Heap* h);
+void heap_free(struct heap* h);
 
 #endif

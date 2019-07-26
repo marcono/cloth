@@ -5,17 +5,17 @@
 
 /*
 typedef struct payment {
-  Peer sender;
-  Peer receiver;
+  struct peer sender;
+  struct peer receiver;
   double amount;
   List route;
-} Payment;
+} struct payment;
 */
 
 extern long event_index;
-extern Heap* events;
+extern struct heap* events;
 
-typedef enum event_type {
+enum event_type {
   FINDROUTE,
   SENDPAYMENT,
   FORWARDPAYMENT,
@@ -24,21 +24,21 @@ typedef enum event_type {
   FORWARDFAIL,
   RECEIVESUCCESS,
   RECEIVEFAIL
-} Event_type;
+};
 
-typedef struct event {
+struct event {
   long id;
   uint64_t time;
-  Event_type type;
+  enum event_type type;
   long peer_id;
   long payment_id;
-} Event;
+};
 
-Event* create_event(long id, uint64_t time, Event_type type, long peer_id, long payment_id);
+struct event* create_event(long id, uint64_t time, enum event_type type, long peer_id, long payment_id);
 
-int compare_event(Event* e1, Event *e2);
+int compare_event(struct event* e1, struct event *e2);
 
-void print_event(Event*e);
+void print_event(struct event*e);
 
 
 #endif

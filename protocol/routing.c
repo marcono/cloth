@@ -15,13 +15,13 @@
 
 char error[100];
 uint32_t** dist;
-Path_hop** next;
+struct path_hop** next;
 
 
 
 int present(long i) {
   long p;
-  Payment *payment;
+  struct payment *payment;
 
   for(p=0; p<payment_index; p++) {
     payment = array_get(payments, p);
@@ -31,7 +31,7 @@ int present(long i) {
   return 0;
 }
 
-int compare_distance(Distance* a, Distance* b) {
+int compare_distance(struct distance* a, struct distance* b) {
   uint64_t d1, d2;
   d1=a->distance;
   d2=b->distance;
@@ -44,31 +44,31 @@ int compare_distance(Distance* a, Distance* b) {
 }
 
 
-Distance **distance;
-Dijkstra_hop ** next_peer;
-//Dijkstra_hop ** previous_peer;
-Heap** distance_heap;
-//Array** hops;
+struct distance **distance;
+struct dijkstra_hop ** next_peer;
+//struct dijkstra_hop ** previous_peer;
+struct heap** distance_heap;
+//struct array** hops;
 
 void initialize_dijkstra() {
   int i;
 
-  distance = malloc(sizeof(Distance*)*PARALLEL);
-  next_peer = malloc(sizeof(Dijkstra_hop*)*PARALLEL);
-  distance_heap = malloc(sizeof(Heap*)*PARALLEL);
+  distance = malloc(sizeof(struct distance*)*PARALLEL);
+  next_peer = malloc(sizeof(struct dijkstra_hop*)*PARALLEL);
+  distance_heap = malloc(sizeof(struct heap*)*PARALLEL);
 
   for(i=0; i<PARALLEL; i++) {
-    distance[i] = malloc(sizeof(Distance)*peer_index);
-     next_peer[i] = malloc(sizeof(Dijkstra_hop)*peer_index);
+    distance[i] = malloc(sizeof(struct distance)*peer_index);
+     next_peer[i] = malloc(sizeof(struct dijkstra_hop)*peer_index);
     distance_heap[i] = heap_initialize(edge_index);
   }
 
 }
 
 
-int is_ignored(long id, Array* ignored){
+int is_ignored(long id, struct array* ignored){
   int i;
-  Ignored* curr;
+  struct ignored* curr;
 
   for(i=0; i<array_len(ignored); i++) {
     curr = array_get(ignored, i);
@@ -79,15 +79,15 @@ int is_ignored(long id, Array* ignored){
   return 0;
 }
 
-Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_edges, long p) {
-  Distance *d=NULL, to_node_dist;
+struct array* dijkstra_p(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges, long p) {
+  struct distance *d=NULL, to_node_dist;
   long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
-  Peer* best_peer=NULL;
-  Edge* edge=NULL, *other_edge=NULL;
-  Channel* channel=NULL;
+  struct peer* best_peer=NULL;
+  struct edge* edge=NULL, *other_edge=NULL;
+  struct channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
-  Array* hops=NULL;
-  Path_hop* hop=NULL;
+  struct array* hops=NULL;
+  struct path_hop* hop=NULL;
 
 
   while(heap_len(distance_heap[p])!=0)
@@ -178,7 +178,7 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
   hops = array_initialize(HOPSLIMIT);
   curr = source;
   while(curr!=target) {
-    hop = malloc(sizeof(Path_hop));
+    hop = malloc(sizeof(struct path_hop));
     hop->sender = curr;
     hop->edge = next_peer[p][curr].edge;
     hop->receiver = next_peer[p][curr].peer;
@@ -197,15 +197,15 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
 
 
 
-Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_edges) {
-  Distance *d=NULL, to_node_dist;
+struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges) {
+  struct distance *d=NULL, to_node_dist;
   long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
-  Peer* best_peer=NULL;
-  Edge* edge=NULL, *other_edge=NULL;
-  Channel* channel=NULL;
+  struct peer* best_peer=NULL;
+  struct edge* edge=NULL, *other_edge=NULL;
+  struct channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
-  Array* hops=NULL;
-  Path_hop* hop=NULL;
+  struct array* hops=NULL;
+  struct path_hop* hop=NULL;
 
   printf("DIJKSTRA\n");
 
@@ -298,7 +298,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
   hops = array_initialize(HOPSLIMIT);
   curr = source;
   while(curr!=target) {
-    hop = malloc(sizeof(Path_hop));
+    hop = malloc(sizeof(struct path_hop));
     hop->sender = curr;
     hop->edge = next_peer[0][curr].edge;
     hop->receiver = next_peer[0][curr].peer;
@@ -317,9 +317,9 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
 }
 
 
-int is_same_path(Array*root_path, Array*path) {
+int is_same_path(struct array*root_path, struct array*path) {
   long i;
-  Path_hop* hop1, *hop2;
+  struct path_hop* hop1, *hop2;
 
   for(i=0; i<array_len(root_path); i++) {
     hop1=array_get(root_path, i);
@@ -331,7 +331,7 @@ int is_same_path(Array*root_path, Array*path) {
   return 1;
 }
 
-int compare_path(Array* path1, Array* path2){
+int compare_path(struct array* path1, struct array* path2){
   long len1, len2;
   len1 = array_len(path1);
   len2=array_len(path2);
@@ -343,10 +343,10 @@ int compare_path(Array* path1, Array* path2){
 
 
 
-Route* route_initialize(long n_hops) {
-  Route* r;
+struct route* route_initialize(long n_hops) {
+  struct route* r;
 
-  r = malloc(sizeof(Route));
+  r = malloc(sizeof(struct route));
   r->route_hops = array_initialize(n_hops);
   r->total_amount = 0.0;
   r->total_fee = 0.0;
@@ -356,15 +356,15 @@ Route* route_initialize(long n_hops) {
 }
 
 
-Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int final_timelock) {
-  Path_hop *path_hop;
-  Route_hop *route_hop, *next_route_hop;
-  Route *route;
+struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock) {
+  struct path_hop *path_hop;
+  struct route_hop *route_hop, *next_route_hop;
+  struct route *route;
   long n_hops, i;
   uint64_t fee, current_channel_capacity;
-  Edge* edge;
-  Policy current_edge_policy, next_edge_policy;
-  Channel* channel;
+  struct edge* edge;
+  struct policy current_edge_policy, next_edge_policy;
+  struct channel* channel;
 
   n_hops = array_len(path_hops);
   route = route_initialize(n_hops);
@@ -377,7 +377,7 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
     channel = array_get(channels,edge->channel_id);
     current_channel_capacity = channel->capacity;
 
-    route_hop = malloc(sizeof(Route_hop));
+    route_hop = malloc(sizeof(struct route_hop));
     route_hop->path_hop = path_hop;
 
     if(i == array_len(path_hops)-1) {
@@ -418,18 +418,18 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
   }
 
 
-void print_hop(Route_hop* hop){
-  printf("Sender %ld, Receiver %ld, Edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->edge);
+void print_hop(struct route_hop* hop){
+  printf("Sender %ld, Receiver %ld, struct edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->edge);
 }
 
 /* version for not all peers (doesn't work)
 void floyd_warshall() {
   long i, j, k, p;
-  Channel* channel_info;
-  Edge* direction1, *direction2;
-  Path_hop *hop1, *hop2;
+  struct channel* channel_info;
+  struct edge* direction1, *direction2;
+  struct path_hop *hop1, *hop2;
   uint16_t* d, *newd, dij, dik, dkj;
-  Payment* payment;
+  struct payment* payment;
 
 
   distht = hash_table_initialize(peer_index);
@@ -443,13 +443,13 @@ void floyd_warshall() {
     hash_table_matrix_put(distht, channel_info->peer1, channel_info->peer2, &(direction1->policy.timelock));
     hash_table_matrix_put(distht, channel_info->peer2, channel_info->peer1, &(direction2->policy.timelock));
 
-    hop1 = malloc(sizeof(Path_hop));
+    hop1 = malloc(sizeof(struct path_hop));
     hop1->sender = channel_info->peer1;
     hop1->receiver = channel_info->peer2;
     hop1->channel = channel_info->channel_direction1;
     hash_table_matrix_put(nextht, channel_info->peer1, channel_info->peer2, hop1);
 
-    hop2 = malloc(sizeof(Path_hop));
+    hop2 = malloc(sizeof(struct path_hop));
     hop2->sender = channel_info->peer2;
     hop2->receiver = channel_info->peer1;
     hop2->channel = channel_info->channel_direction2;
@@ -516,10 +516,10 @@ void floyd_warshall() {
 }
 
 
-Array* get_path(long source, long destination) {
-  Array* path;
+struct array* get_path(long source, long destination) {
+  struct array* path;
   long next_peer;
-  Path_hop* hop;
+  struct path_hop* hop;
 
   hop = hash_table_matrix_get(nextht, source, destination);
 
@@ -547,16 +547,16 @@ Array* get_path(long source, long destination) {
 /*
 void floyd_warshall() {
   long i, j, k;
-  Channel* channel_info;
-  Edge* direction1, *direction2;
+  struct channel* channel_info;
+  struct edge* direction1, *direction2;
 
   dist = malloc(sizeof(uint32_t*)*peer_index);
-  next = malloc(sizeof(Path_hop*)*peer_index);
-  //  paths = malloc(sizeof(Array**)*peer_index);
+  next = malloc(sizeof(struct path_hop*)*peer_index);
+  //  paths = malloc(sizeof(struct array**)*peer_index);
   for(i=0; i<peer_index; i++) {
     dist[i] = malloc(sizeof(uint32_t)*peer_index);
-    next[i] = malloc(sizeof(Path_hop)*peer_index);
-    //paths[i] = malloc(sizeof(Array*)*peer_index);
+    next[i] = malloc(sizeof(struct path_hop)*peer_index);
+    //paths[i] = malloc(sizeof(struct array*)*peer_index);
   }
 
 
@@ -620,8 +620,8 @@ void floyd_warshall() {
 
 }
 
-Array* get_path(long source, long destination) {
-  Array* path;
+struct array* get_path(long source, long destination) {
+  struct array* path;
   long next_peer;
 
   if(next[source][destination].channel==-1) {
@@ -645,16 +645,16 @@ Array* get_path(long source, long destination) {
 
 // OLD ROUTING VERSIONS (before lnd-0.5-beta)
 
-/* Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels, long p) { */
-/*   Distance *d=NULL; */
+/* struct array* dijkstra_p(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_channels, long p) { */
+/*   struct distance *d=NULL; */
 /*   long i, best_peer_id, j,*channel_id=NULL, next_peer_id, prev; */
-/*   Peer* best_peer=NULL; */
-/*   Edge* channel=NULL; */
-/*   Channel* channel_info=NULL; */
+/*   struct peer* best_peer=NULL; */
+/*   struct edge* channel=NULL; */
+/*   struct channel* channel_info=NULL; */
 /*   uint32_t tmp_dist; */
 /*   uint64_t capacity; */
-/*   Path_hop* hop=NULL; */
-/*   Array* hops=NULL; */
+/*   struct path_hop* hop=NULL; */
+/*   struct array* hops=NULL; */
 
 /*   while(heap_len(distance_heap[p])!=0) { */
 /*     heap_pop(distance_heap[p], compare_distance); */
@@ -726,7 +726,7 @@ Array* get_path(long source, long destination) {
 /*   while(prev!=source) { */
 /*     channel = array_get(channels, previous_peer[p][prev].channel); */
 
-/*     hop = malloc(sizeof(Path_hop)); */
+/*     hop = malloc(sizeof(struct path_hop)); */
 
 /*     hop->channel = previous_peer[p][prev].channel; */
 /*     hop->sender = previous_peer[p][prev].peer; */
@@ -750,16 +750,16 @@ Array* get_path(long source, long destination) {
 /* } */
 
 
-/* Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers, Array* ignored_channels) { */
-/*   Distance *d=NULL; */
+/* struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_peers, struct array* ignored_channels) { */
+/*   struct distance *d=NULL; */
 /*   long i, best_peer_id, j,*channel_id=NULL, next_peer_id, prev; */
-/*   Peer* best_peer=NULL; */
-/*   Edge* channel=NULL; */
-/*   Channel* channel_info=NULL; */
+/*   struct peer* best_peer=NULL; */
+/*   struct edge* channel=NULL; */
+/*   struct channel* channel_info=NULL; */
 /*   uint32_t tmp_dist; */
 /*   uint64_t capacity; */
-/*   Array* hops=NULL; */
-/*   Path_hop* hop=NULL; */
+/*   struct array* hops=NULL; */
+/*   struct path_hop* hop=NULL; */
 
 /*   printf("DIJKSTRA\n"); */
 
@@ -824,7 +824,7 @@ Array* get_path(long source, long destination) {
 /*   hops=array_initialize(HOPSLIMIT); */
 /*   prev=target; */
 /*   while(prev!=source) { */
-/*     hop = malloc(sizeof(Path_hop)); */
+/*     hop = malloc(sizeof(struct path_hop)); */
 /*     hop->channel = previous_peer[0][prev].channel; */
 /*     hop->sender = previous_peer[0][prev].peer; */
 
@@ -847,13 +847,13 @@ Array* get_path(long source, long destination) {
 
 
 
-/* Array* find_paths(long source, long target, double amount){ */
-/*   Array* starting_path, *first_path, *prev_shortest, *root_path, *path, *spur_path, *new_path, *next_shortest_path; */
-/*   Array* ignored_channels, *ignored_peers; */
-/*  Path_hop *hop; */
+/* struct array* find_paths(long source, long target, double amount){ */
+/*   struct array* starting_path, *first_path, *prev_shortest, *root_path, *path, *spur_path, *new_path, *next_shortest_path; */
+/*   struct array* ignored_channels, *ignored_peers; */
+/*  struct path_hop *hop; */
 /*   long i, k, j, spur_node, new_path_len; */
-/*   Array* shortest_paths; */
-/*   Heap* candidate_paths; */
+/*   struct array* shortest_paths; */
+/*   struct heap* candidate_paths; */
 
 /*   candidate_paths = heap_initialize(100); */
 
@@ -866,7 +866,7 @@ Array* get_path(long source, long destination) {
 /*   if(starting_path==NULL) return NULL; */
 
 /*   first_path = array_initialize(array_len(starting_path)+1); */
-/*   hop = malloc(sizeof(Path_hop)); */
+/*   hop = malloc(sizeof(struct path_hop)); */
 /*   hop->receiver = source; */
 /*   first_path=array_insert(first_path, hop); */
 /*   for(i=0; i<array_len(starting_path); i++) { */

@@ -5,61 +5,61 @@
 #include "../utils/heap.h"
 
 
-typedef struct distance{
+struct distance{
   long peer;
   uint64_t distance;
   uint64_t amt_to_receive;
   uint64_t fee;
-} Distance;
+};
 
-typedef struct dijkstra_hop {
+struct dijkstra_hop {
   long peer;
   long edge;
-} Dijkstra_hop;
+};
 
-typedef struct path_hop{
+struct path_hop{
   long sender;
   long receiver;
   long edge;
-} Path_hop;
+};
 
-typedef struct route_hop {
-  Path_hop* path_hop;
+struct route_hop {
+  struct path_hop* path_hop;
   uint64_t amount_to_forward;
   uint16_t timelock;
-} Route_hop;
+};
 
 
-typedef struct route {
+struct route {
   uint64_t total_amount;
   uint32_t total_timelock;
   uint64_t total_fee;
-  Array *route_hops;
-} Route;
+  struct array *route_hops;
+};
 
 
 extern uint32_t** dist;
-extern Path_hop** next;
+extern struct path_hop** next;
 
 void initialize_dijkstra();
 
 
-Array* get_path(long source, long destination);
+struct array* get_path(long source, long destination);
 
 
-Array* dijkstra_p(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_edges, long p);
+struct array* dijkstra_p(long source, long destination, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges, long p);
 
-Array* dijkstra(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_edges);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_peers, struct array* ignored_edges);
 
-Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int final_timelock);
+struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock);
 
-void print_hop(Route_hop* hop);
+void print_hop(struct route_hop* hop);
 
-int compare_distance(Distance* a, Distance* b);
+int compare_distance(struct distance* a, struct distance* b);
 
-//Array* find_paths(long source, long destination, double amount);
+//struct array* find_paths(long source, long destination, double amount);
 
-//Array* find_paths(long source, long destination, double amount);
+//struct array* find_paths(long source, long destination, double amount);
 
 
 #endif

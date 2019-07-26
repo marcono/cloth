@@ -19,9 +19,9 @@
 #define MINMEDIUM 1E8
 
 long event_index;
-Heap* events;
+struct heap* events;
 uint64_t simulator_time;
-Array *payments;
+struct array *payments;
 
 void initialize_events(long n_payments, double payment_mean) {
   long i, sender_id, receiver_id;
@@ -30,8 +30,8 @@ void initialize_events(long n_payments, double payment_mean) {
   unsigned int payment_class;
   double payment_class_p[]= {0.65, 0.2, 0.1, 0.05}, random_double;
   gsl_ran_discrete_t* discrete;
-  Payment *payment;
-  Event* event;
+  struct payment *payment;
+  struct event* event;
 
   discrete = gsl_ran_discrete_preproc(4, payment_class_p);
 
@@ -138,8 +138,8 @@ void initialize_events_preproc(long n_payments, double payment_mean, double same
 }
 
 void create_payments_from_csv(unsigned int is_preproc) {
-  Payment* payment;
-  Event* event;
+  struct payment* payment;
+  struct event* event;
   char row[256], file_payment[64];
   long id, sender, receiver;
   uint64_t amount, time;

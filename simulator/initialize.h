@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 extern uint64_t simulator_time; //milliseconds
-extern Array* payments;
+extern struct array* payments;
 FILE* csv_payment;
 
 void initialize_simulator_data(long n_payments, double payment_mean, double same_dest, double sigma_amount, unsigned int is_preproc);

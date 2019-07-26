@@ -1,24 +1,24 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
-typedef struct array {
+struct array {
   void **element;
   long size;
   long index;
-} Array;
+};
 
-Array* array_initialize(long size);
+struct array* array_initialize(long size);
 
-Array*  array_insert(Array* a, void* data);
+struct array*  array_insert(struct array* a, void* data);
 
-void* array_get(Array* a,long i);
+void* array_get(struct array* a,long i);
 
-long array_len(Array* a);
+long array_len(struct array* a);
 
-void array_reverse(Array* a);
+void array_reverse(struct array* a);
 
-void array_delete(Array* a, void* element,  int(*is_equal)());
+void array_delete(struct array* a, void* element,  int(*is_equal)());
 
-void array_delete_all(Array* a);
+void array_delete_all(struct array* a);
 
 #endif

@@ -26,13 +26,13 @@
 void csv_write_output() {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_peer_output;
   long i,j, *id;
-  Channel* channel;
-  Edge* edge;
-  Payment* payment;
-  Peer* peer;
-  Route* route;
-  Array* hops;
-  Route_hop* hop;
+  struct channel* channel;
+  struct edge* edge;
+  struct payment* payment;
+  struct peer* peer;
+  struct route* route;
+  struct array* hops;
+  struct route_hop* hop;
 
   csv_channel_output = fopen("channel_output.csv", "w");
   if(csv_channel_output  == NULL) {
@@ -155,13 +155,13 @@ void csv_write_output() {
 pthread_mutex_t paths_mutex;
 pthread_mutex_t peers_mutex;
 pthread_mutex_t jobs_mutex;
-Array** paths;
-Node* jobs=NULL;
+struct array** paths;
+struct element* jobs=NULL;
 
 
 void initialize_threads() {
   long i;
-  Payment *payment;
+  struct payment *payment;
   pthread_t tid[PARALLEL];
   int data_index[PARALLEL];
 
@@ -169,7 +169,7 @@ void initialize_threads() {
   pthread_mutex_init(&jobs_mutex, NULL);
   pthread_mutex_init(&paths_mutex, NULL);
 
-  paths = malloc(sizeof(Array*)*payment_index);
+  paths = malloc(sizeof(struct array*)*payment_index);
 
   for(i=0; i<payment_index ;i++){
     paths[i] = NULL;
@@ -266,11 +266,11 @@ uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
 
 
 int main(int argc, char* argv[]) {
-  Event* event;
-  //  Peer* peer;
-  //Channel* channel_info;
-  //Edge* channel;
-  //Payment* payment;
+  struct event* event;
+  //  struct peer* peer;
+  //struct channel* channel_info;
+  //struct edge* channel;
+  //struct payment* payment;
   clock_t  begin, end;
   double time_spent=0.0;
   uint64_t end_time;
@@ -343,12 +343,12 @@ int main(int argc, char* argv[]) {
 // test json writer
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
 
   n_p = 5;
@@ -456,12 +456,12 @@ int main() {
 //test stats_update_locked_fund_cost 
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
 
   n_p = 4;
@@ -540,12 +540,12 @@ int main() {
 //test stats_compute_payment_time 
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
   
   n_p = 4;
@@ -633,12 +633,12 @@ int main() {
 //test stats_update_payments 
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
   
   n_p = 7;
@@ -745,12 +745,12 @@ int main() {
 //test channels not present 
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
   
   n_p = 5;
@@ -921,12 +921,12 @@ int main() {
 //test peer not cooperatives
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
   //test peer 2 not cooperative before/after lock
   n_p = 6;
@@ -1008,12 +1008,12 @@ int main() {
 
 int main() {
   long i, n_p, n_c;
-  Peer* peer;
+  struct peer* peer;
   long sender, receiver;
-  Payment *payment;
-  Event *event;
+  struct payment *payment;
+  struct event *event;
   double amount;
-  Edge* channel;
+  struct edge* channel;
 
 
   n_p = 5;
@@ -1188,16 +1188,16 @@ long n_peers, n_channels;
  
 //test trasform_path_into_route
 int main() {
-  Path_hop* path_hop;
-  Array *ignored;
+  struct path_hop* path_hop;
+  struct array *ignored;
   long i, sender, receiver;
   long fake_ignored = -1;
-  Route* route;
-  Array* route_hops, *path_hops;
-  Route_hop* route_hop;
-  Peer* peer;
-  Edge* channel;
-  Channel * channel_info;
+  struct route* route;
+  struct array* route_hops, *path_hops;
+  struct route_hop* route_hop;
+  struct peer* peer;
+  struct edge* channel;
+  struct channel * channel_info;
 
   ignored = array_initialize(1);
   ignored = array_insert(ignored, &fake_ignored);
@@ -1219,7 +1219,7 @@ int main() {
 
     path_hops=dijkstra(0, 4, 1.0, ignored, ignored );
     route = transform_path_into_route(path_hops, 1.0, 5);
-    printf("Route/n");
+    printf("struct route/n");
     if(route==NULL) {
       printf("Null route/n");
       return 0;
@@ -1229,7 +1229,7 @@ int main() {
     route_hop = array_get(route->route_hops, i);
     path_hop = route_hop->path_hop;
     printf("HOP %ld\n", i);
-    printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld)\n", path_hop->sender, path_hop->receiver, path_hop->channel);
+    printf("(Sender, Receiver, struct edge) = (%ld, %ld, %ld)\n", path_hop->sender, path_hop->receiver, path_hop->channel);
     printf("Amount to forward: %lf\n", route_hop->amount_to_forward);
     printf("Timelock: %d\n\n", route_hop->timelock);
   }
@@ -1248,13 +1248,13 @@ Hash_table* peers, *channels, *channel_infos;
 long n_peers, n_channels;
 
 int main() {
-  Array *paths;
-  Array* path;
-  Path_hop* hop;
+  struct array *paths;
+  struct array* path;
+  struct path_hop* hop;
   long i, j;
-  Peer* peer;
-  Edge* channel;
-  Channel * channel_info;
+  struct peer* peer;
+  struct edge* channel;
+  struct channel * channel_info;
 
   peers = hash_table_initialize(2);
   channels = hash_table_initialize(2);
@@ -1269,7 +1269,7 @@ int main() {
     hash_table_put(peers, peer->id, peer);
   }
 
-  Policy policy;
+  struct policy policy;
   policy.fee=0.0;
   policy.timelock=1.0;
 
@@ -1298,7 +1298,7 @@ int main() {
         continue;
       }
       channel = array_get(channels, *curr_channel_id);
-      printf("Peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->id);
+      printf("struct peer %ld is connected to peer %ld through channel %ld\n", i, channel->counterparty, channel->id);
       }
   }
 
@@ -1312,7 +1312,7 @@ int main() {
      path = array_get(paths, i);
      for(j=0;j<array_len(path); j++) {
        hop = array_get(path, j);
-       printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
+       printf("(Sender, Receiver, struct edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel);
      }
   }
 
@@ -1323,15 +1323,15 @@ int main() {
 
 //test dijkstra
 /* int main() { */
-/*   Array *hops; */
-/*   Path_hop* hop; */
-/*   Array *ignored; */
+/*   struct array *hops; */
+/*   struct path_hop* hop; */
+/*   struct array *ignored; */
 /*   long i, sender, receiver; */
 /*   long fake_ignored = -1; */
-/*   Peer* peer[3]; */
-/*   Channel* channel_info; */
-/*   Edge* channel; */
-/*   Policy policy; */
+/*   struct peer* peer[3]; */
+/*   struct channel* channel_info; */
+/*   struct edge* channel; */
+/*   struct policy policy; */
 
 
 /*   ignored = array_initialize(1); */
@@ -1384,7 +1384,7 @@ int main() {
 /*   if(hops!=NULL){ */
 /*     for(i=0; i<array_len(hops); i++) { */
 /*       hop = array_get(hops, i); */
-/*       printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
+/*       printf("(Sender, Receiver, struct edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); */
 /*     } */
 /*   } */
 /*   else  */
@@ -1396,7 +1396,7 @@ int main() {
 /*   /\* printf("From node %ld to node %ld\n", sender, receiver); *\/ */
 /*   /\* for(i=0; i<array_len(hops); i++) { *\/ */
 /*   /\*   hop = array_get(hops, i); *\/ */
-/*   /\*   printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\*   printf("(Sender, Receiver, struct edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\* } *\/ */
 /*   /\* printf("\n"); *\/ */
 
@@ -1407,7 +1407,7 @@ int main() {
 /*   /\* if(hops != NULL) { *\/ */
 /*   /\*   for(i=0; i<array_len(hops); i++) { *\/ */
 /*   /\*     hop = array_get(hops, i); *\/ */
-/*   /\*     printf("(Sender, Receiver, Edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
+/*   /\*     printf("(Sender, Receiver, struct edge) = (%ld, %ld, %ld) ", hop->sender, hop->receiver, hop->channel); *\/ */
 /*   /\*   } *\/ */
 /*   /\* } *\/ */
 /*   /\* printf("\n"); *\/ */
@@ -1418,7 +1418,7 @@ int main() {
 
 /*
 int main() {
-  Array *a;
+  struct array *a;
   long i, *data;
 
   a=array_initialize(10);
@@ -1444,13 +1444,13 @@ int main() {
 int main() {
   Hash_table *ht;
   long i;
-  Event *e;
+  struct event *e;
   long N=100000;
 
   ht = initialize_hash_table(10);
 
   for(i=0; i<N; i++) {
-    e = malloc(sizeof(Event));
+    e = malloc(sizeof(struct event));
     e->time=0.0;
     e->id=i;
     strcpy(e->type, "Send");

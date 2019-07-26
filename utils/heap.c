@@ -23,10 +23,10 @@ void swap(void** a, void** b) {
   *b=tmp;
 }
 
-Heap* resize_heap(Heap* h) {
-  Heap* new;
+struct heap* resize_heap(struct heap* h) {
+  struct heap* new;
   long i;
-  new=malloc(sizeof(Heap));
+  new=malloc(sizeof(struct heap));
   new->size = h->size*2;
   new->index = h->index;
   new->data = malloc(new->size*sizeof(void*));
@@ -35,7 +35,7 @@ Heap* resize_heap(Heap* h) {
   return new;
 }
 
-void heapify(Heap* h, long i, int(*compare)() ){
+void heapify(struct heap* h, long i, int(*compare)() ){
   long left_child, right_child, smallest;
   int comp_res;
 
@@ -59,16 +59,16 @@ void heapify(Heap* h, long i, int(*compare)() ){
 }
 
 
-Heap* heap_initialize(long size) {
-  Heap *h;
-  h=malloc(sizeof(Heap));
+struct heap* heap_initialize(long size) {
+  struct heap *h;
+  h=malloc(sizeof(struct heap));
   h->data = malloc(size*sizeof(void*));
   h->size = size;
   h->index = 0;
   return h;
 }
 
-Heap* heap_insert(Heap *h, void* data, int(*compare)()) {
+struct heap* heap_insert(struct heap *h, void* data, int(*compare)()) {
   int i, parent, comp_res;
 
   if(h->index>=h->size) {
@@ -91,7 +91,7 @@ Heap* heap_insert(Heap *h, void* data, int(*compare)()) {
   return h;
 }
 
-void* heap_pop(Heap* h, int(*compare)()) {
+void* heap_pop(struct heap* h, int(*compare)()) {
   void* min;
 
   if(h->index==0) return NULL;
@@ -106,11 +106,11 @@ void* heap_pop(Heap* h, int(*compare)()) {
   return min;
 }
 
-long heap_len(Heap*h){
+long heap_len(struct heap*h){
   return h->index;
 }
 
-void heap_free(Heap *h) {
+void heap_free(struct heap *h) {
   long i;
 
   //  for(i=0; i<h->size; i++)
@@ -121,7 +121,7 @@ void heap_free(Heap *h) {
 }
 
 /*
-  void heapify(Heap* h, int i, int(*compare)() ){
+  void heapify(struct heap* h, int i, int(*compare)() ){
   int left_child, right_child, comp_res_l, comp_res_r;
   void* tmp;
 
