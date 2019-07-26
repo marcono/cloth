@@ -14,13 +14,13 @@ typedef struct distance{
 
 typedef struct dijkstra_hop {
   long peer;
-  long channel;
+  long edge;
 } Dijkstra_hop;
 
 typedef struct path_hop{
   long sender;
   long receiver;
-  long channel;
+  long edge;
 } Path_hop;
 
 typedef struct route_hop {
@@ -47,9 +47,9 @@ void initialize_dijkstra();
 Array* get_path(long source, long destination);
 
 
-Array* dijkstra_p(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_channels, long p);
+Array* dijkstra_p(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_edges, long p);
 
-Array* dijkstra(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_channels);
+Array* dijkstra(long source, long destination, uint64_t amount, Array* ignored_peers, Array* ignored_edges);
 
 Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int final_timelock);
 
