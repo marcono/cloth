@@ -84,7 +84,7 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
   long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
   Peer* best_peer=NULL;
   Edge* edge=NULL, *other_edge=NULL;
-  Channel* edge_info=NULL;
+  Channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
   Array* hops=NULL;
   Path_hop* hop=NULL;
@@ -137,8 +137,8 @@ Array* dijkstra_p(long source, long target, uint64_t amount, Array* ignored_peer
       if(prev_peer_id==source)
         capacity = edge->balance;
       else{
-        edge_info = array_get(edge_infos, edge->edge_info_id);
-        capacity = edge_info->capacity;
+        channel = array_get(channels, edge->channel_id);
+        capacity = channel->capacity;
       }
 
       if(amt_to_send > capacity || amt_to_send < edge->policy.min_hTLC) continue;
@@ -202,7 +202,7 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
   long i, best_peer_id, j,edge_id, *other_edge_id=NULL, prev_peer_id, curr;
   Peer* best_peer=NULL;
   Edge* edge=NULL, *other_edge=NULL;
-  Channel* edge_info=NULL;
+  Channel* channel=NULL;
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
   Array* hops=NULL;
   Path_hop* hop=NULL;
@@ -256,8 +256,8 @@ Array* dijkstra(long source, long target, uint64_t amount, Array* ignored_peers,
       if(prev_peer_id==source)
         capacity = edge->balance;
       else{
-        edge_info = array_get(edge_infos, edge->edge_info_id);
-        capacity = edge_info->capacity;
+        channel = array_get(channels, edge->channel_id);
+        capacity = channel->capacity;
       }
 
       if(amt_to_send > capacity || amt_to_send < edge->policy.min_hTLC) continue;
@@ -364,7 +364,7 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
   uint64_t fee, current_channel_capacity;
   Edge* edge;
   Policy current_edge_policy, next_edge_policy;
-  Channel* edge_info;
+  Channel* channel;
 
   n_hops = array_len(path_hops);
   route = route_initialize(n_hops);
@@ -374,8 +374,8 @@ Route* transform_path_into_route(Array* path_hops, uint64_t amount_to_send, int 
 
     edge = array_get(edges, path_hop->edge);
     current_edge_policy = edge->policy;
-    edge_info = array_get(edge_infos,edge->edge_info_id);
-    current_channel_capacity = edge_info->capacity;
+    channel = array_get(channels,edge->channel_id);
+    current_channel_capacity = channel->capacity;
 
     route_hop = malloc(sizeof(Route_hop));
     route_hop->path_hop = path_hop;

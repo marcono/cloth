@@ -24,9 +24,9 @@
 
 
 void csv_write_output() {
-  FILE* csv_edge_info_output, *csv_edge_output, *csv_payment_output, *csv_peer_output;
+  FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_peer_output;
   long i,j, *id;
-  Channel* edge_info;
+  Channel* channel;
   Edge* edge;
   Payment* payment;
   Peer* peer;
@@ -34,36 +34,36 @@ void csv_write_output() {
   Array* hops;
   Route_hop* hop;
 
-  csv_edge_info_output = fopen("edge_info_output.csv", "w");
-  if(csv_edge_info_output  == NULL) {
-    printf("ERROR cannot open edge_info_output.csv\n");
+  csv_channel_output = fopen("channel_output.csv", "w");
+  if(csv_channel_output  == NULL) {
+    printf("ERROR cannot open channel_output.csv\n");
     return;
   }
-  fprintf(csv_edge_info_output, "id,direction1,direction2,peer1,peer2,capacity,latency,is_closed\n");
+  fprintf(csv_channel_output, "id,direction1,direction2,peer1,peer2,capacity,latency,is_closed\n");
 
-  for(i=0; i<edge_info_index; i++) {
-    edge_info = array_get(edge_infos, i);
-    fprintf(csv_edge_info_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", edge_info->ID, edge_info->edge_direction1, edge_info->edge_direction2, edge_info->peer1, edge_info->peer2, edge_info->capacity, edge_info->latency, edge_info->is_closed);
+  for(i=0; i<channel_index; i++) {
+    channel = array_get(channels, i);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->ID, channel->edge_direction1, channel->edge_direction2, channel->peer1, channel->peer2, channel->capacity, channel->latency, channel->is_closed);
   }
 
-  fclose(csv_edge_info_output);
+  fclose(csv_channel_output);
 
   csv_edge_output = fopen("edge_output.csv", "w");
-  if(csv_edge_info_output  == NULL) {
+  if(csv_channel_output  == NULL) {
     printf("ERROR cannot open edge_output.csv\n");
     return;
   }
-  fprintf(csv_edge_output, "id,edge_info,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
+  fprintf(csv_edge_output, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
 
   for(i=0; i<edge_index; i++) {
     edge = array_get(edges, i);
-    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->ID, edge->edge_info_id, edge->other_edge_direction_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_hTLC, edge->policy.timelock, edge->is_closed);
+    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->ID, edge->channel_id, edge->other_edge_direction_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_hTLC, edge->policy.timelock, edge->is_closed);
   }
 
   fclose(csv_edge_output);
 
   csv_payment_output = fopen("payment_output.csv", "w");
-  if(csv_edge_info_output  == NULL) {
+  if(csv_channel_output  == NULL) {
     printf("ERROR cannot open payment_output.csv\n");
     return;
   }
@@ -94,7 +94,7 @@ void csv_write_output() {
 
 
   csv_peer_output = fopen("peer_output.csv", "w");
-  if(csv_edge_info_output  == NULL) {
+  if(csv_channel_output  == NULL) {
     printf("ERROR cannot open peer_output.csv\n");
     return;
   }
