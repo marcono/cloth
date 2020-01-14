@@ -11,16 +11,17 @@
 - vedere se ci sono funzioni di numpy che direttamente calcolano varianza, media etc.
 ** fare script che esegure direttamente cloth e batch-means.py
 * TODO organizzare i file
-** fare due cartelle: src, include
-** fare file initialization.c dove vengono messi tutti gli initialize 
-** fare file network.c dove ci sono i vari create_channel create_node
-** fare file payment.c
-** il file protocol.c diventa htlc.c
+** TODO modifica path dei file della topologia in initialize_topology_preproc
+** DONE fare due cartelle: src, include
+** TODO fare file initialization.c dove vengono messi tutti gli initialize 
+** TODO fare file network.c dove ci sono i vari create_channel create_node
+** TODO fare file payment.c
+** DONE il file protocol.c diventa htlc.c
 - cosi quando si vuole aggiungere nuovo protocollo si crea file separato new-protoco.c
-** global.h diventa thread.h
+** DONE global.h diventa thread.h
 * TODO connessione nodi
 - usa algoritmo descritto qui https://medium.com/blockstream/letting-a-million-channels-bloom-985bdb28660b
-* TODO cambio nomi variabili
+* DONE cambio nomi variabili
 ** DONE camel case to snake case
 ** DONE channelInfo -> channel, channel->edge
 *** DONE tipi
@@ -30,6 +31,7 @@
  sed -i 's/edge_info/channel/g' main.c global.h simulator/* protocol/* utils/*
 ** DONE peer->node, Node -> elemento della lista
 ** DONE togliere typedef e lasciare struct x
+** DONE cambiare nomi campi in struct
 * TODO other
 ** TODO latency non come attributo di channel ma come numero randomico
 ** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)

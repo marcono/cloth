@@ -1,9 +1,10 @@
-#ifndef FINDROUTE_H
-#define FINDROUTE_H
-#include "../utils/array.h"
-#include <stdint.h>
-#include "../utils/heap.h"
+#ifndef ROUTING_H
+#define ROUTING_H
 
+#include <stdint.h>
+
+#include "array.h"
+#include "heap.h"
 
 struct distance{
   long node;

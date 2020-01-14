@@ -3,13 +3,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
-//#include "../gc-7.2/include/gc.h"
-#include "../simulator/initialize.h"
-#include "../protocol/protocol.h"
-#include "../utils/heap.h"
-#include "../utils/array.h"
-#include "routing.h"
-#include "../global.h"
+#include "../include/initialize.h"
+#include "../include/htlc.h"
+#include "../include/heap.h"
+#include "../include/array.h"
+#include "../include/routing.h"
+#include "../include/thread.h"
+
 #define INF UINT64_MAX
 #define HOPSLIMIT 20
 

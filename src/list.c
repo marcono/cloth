@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "list.h"
+#include "../include/list.h"
 
 struct element* push(struct element* head, long data) {
 	struct element* newhead;

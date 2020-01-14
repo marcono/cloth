@@ -1,9 +1,10 @@
 #ifndef INITIALIZE_H
 #define INITIALIZE_H
-#include "../utils/array.h"
-#include "../utils/heap.h"
-#include "gsl_rng.h"
+
 #include <stdint.h>
+#include "gsl_rng.h"
+#include "array.h"
+#include "heap.h"
 
 extern uint64_t simulator_time; //milliseconds
 extern struct array* payments;

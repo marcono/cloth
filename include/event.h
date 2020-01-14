@@ -1,6 +1,6 @@
 #ifndef EVENT_H
 #define EVENT_H
-#include "../utils/heap.h"
+#include "heap.h"
 #include <stdint.h>
 
 /*

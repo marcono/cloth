@@ -1,14 +1,13 @@
-#ifndef PROTOCOL_H
-#define PROTOCOL_H
+#ifndef HTLC_H
+#define HTLC_H
 
-#include "../utils/array.h"
-#include "routing.h"
-//#include "../utils/hash_table.h"
-#include "../simulator/event.h"
-#include "gsl_rng.h"
-#include "gsl_randist.h"
 #include <stdint.h>
 #include <pthread.h>
+#include "gsl_rng.h"
+#include "gsl_randist.h"
+#include "array.h"
+#include "routing.h"
+#include "event.h"
 
 extern long edge_index, node_index, channel_index, payment_index;
 extern double p_uncoop_before_lock, p_uncoop_after_lock;

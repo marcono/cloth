@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "heap.h"
-//#include "../gc-7.2/include/gc.h"
+
+#include "../include/heap.h"
 
 long get_parent(long i) {
   return (i-1)/2;

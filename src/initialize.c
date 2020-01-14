@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "../utils/array.h"
-#include "../protocol/protocol.h"
-#include "initialize.h"
-#include "event.h"
+#include <stdint.h>
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 #include "gsl_math.h"
-#include <stdint.h>
+#include "../include/array.h"
+#include "../include/htlc.h"
+#include "../include/initialize.h"
+#include "../include/event.h"
 
 #define MAXMICRO 1E3
 #define MINMICRO 1
@@ -83,9 +83,9 @@ void initialize_events_preproc(long n_payments, double payment_mean, double same
   int base, exp;
   int npay[8]={0};
 
-  csv_payment = fopen("payment.csv", "w");
+  csv_payment = fopen("payments.csv", "w");
   if(csv_payment==NULL) {
-    printf("ERROR cannot open file payment.csv\n");
+    printf("ERROR cannot open file payments.csv\n");
     return;
   }
   fprintf(csv_payment, "id,sender,receiver,amount,time\n");
@@ -143,15 +143,11 @@ void create_payments_from_csv(unsigned int is_preproc) {
   char row[256], file_payment[64];
   long id, sender, receiver;
   uint64_t amount, time;
-  if(is_preproc)
-    strcpy(file_payment, "payment.csv");
-  else
-    strcpy(file_payment, "payment_output.csv");
 
-  csv_payment = fopen("payment.csv", "r");
+  csv_payment = fopen("payments.csv", "r");
   if(csv_payment==NULL) {
-    printf("ERROR cannot open file payment.csv\n");
-    return;
+    printf("ERROR cannot open file payments.csv\n");
+    exit(-1);
   }
 
   fgets(row, 256, csv_payment);

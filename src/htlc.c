@@ -1,21 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "gsl_rng.h"
-#include "gsl_randist.h"
-#include "gsl/gsl_math.h"
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "protocol.h"
-#include "../utils/array.h"
-//#include "../utils/hash_table.h"
-#include "../utils/heap.h"
-#include "../simulator/initialize.h"
-#include "routing.h"
-#include "../simulator/event.h"
-//#include "../simulator/stats.h"
-#include "../global.h"
+
+#include "gsl_rng.h"
+#include "gsl_randist.h"
+#include "gsl/gsl_math.h"
+
+#include "../include/htlc.h"
+#include "../include/array.h"
+#include "../include/heap.h"
+#include "../include/initialize.h"
+#include "../include/routing.h"
+#include "../include/event.h"
+#include "../include/thread.h"
 
 #define MAXMSATOSHI 5E17 //5 millions  bitcoin
 #define MAXTIMELOCK 100
@@ -248,24 +248,24 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
   funds[1] = (funds_part)/(thresh2);
   funds[2] = (funds_part)/ (n_nodes*n_channels - (thresh1 + thresh2));
 
-  csv_node = fopen("node.csv", "w");
+  csv_node = fopen("nodes.csv", "w");
   if(csv_node==NULL) {
-    printf("ERROR cannot open file node.csv\n");
-    return;
+    printf("ERROR cannot open file nodes.csv\n");
+    exit(-1);
   }
   fprintf(csv_node, "id,withholds_r\n");
 
-  csv_channel = fopen("channel.csv", "w");
+  csv_channel = fopen("channels.csv", "w");
   if(csv_channel==NULL) {
-    printf("ERROR cannot open file channel.csv\n");
-    return;
+    printf("ERROR cannot open file channels.csv\n");
+    exit(-1);
   }
   fprintf(csv_channel, "id,direction1,direction2,node1,node2,capacity,latency\n");
 
-  csv_edge = fopen("edge.csv", "w");
+  csv_edge = fopen("edges.csv", "w");
   if(csv_edge==NULL) {
-    printf("ERROR cannot open file edge.csv\n");
-    return;
+    printf("ERROR cannot open file edges.csv\n");
+    exit(-1);
   }
   fprintf(csv_edge, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n");
 
@@ -400,21 +400,21 @@ void create_topology_from_csv(unsigned int is_preproc) {
   struct edge* edge;
 
   if(is_preproc) {
-    strcpy(edge_file, "edge.csv");
-    strcpy(info_file, "channel.csv");
-    strcpy(node_file, "node.csv");
+    strcpy(edge_file, "edges.csv");
+    strcpy(info_file, "channels.csv");
+    strcpy(node_file, "nodes.csv");
   }
   else {
-    strcpy(edge_file, "edge_ln.csv");
-    strcpy(info_file, "channel_ln.csv");
-    strcpy(node_file, "node_ln.csv");
+    strcpy(edge_file, "edges_ln.csv");
+    strcpy(info_file, "channels_ln.csv");
+    strcpy(node_file, "nodes_ln.csv");
     }
 
 
   csv_node = fopen(node_file, "r");
   if(csv_node==NULL) {
-    printf("ERROR cannot open file node.csv\n");
-    return;
+    printf("ERROR cannot open file %s\n", node_file);
+    exit(-1);
   }
 
   fgets(row, 256, csv_node);
@@ -429,7 +429,7 @@ void create_topology_from_csv(unsigned int is_preproc) {
   csv_channel = fopen(info_file, "r");
   if(csv_channel==NULL) {
     printf("ERROR cannot open file %s\n", info_file);
-    return;
+    exit(-1);
   }
 
   fgets(row, 256, csv_channel);
@@ -448,7 +448,7 @@ void create_topology_from_csv(unsigned int is_preproc) {
   csv_edge = fopen(edge_file, "r");
   if(csv_edge==NULL) {
     printf("ERROR cannot open file %s\n", edge_file);
-    return;
+    exit(-1);
   }
 
   fgets(row, 256, csv_edge);

@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-//#include "../gc-7.2/include/gc.h"
-#include "event.h"
+
+#include "../include/event.h"
 
 struct event* create_event(long id, uint64_t time, enum event_type type, long node_id, long payment_id) {
   struct event* e;

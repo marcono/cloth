@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "array.h"
-//#include "../gc-7.2/include/gc.h"
+#include "../include/array.h"
 
 struct array* resize_array(struct array* a) {
   struct array* new;

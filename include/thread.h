@@ -1,8 +1,8 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef THREAD_H
+#define THREAD_H
 #include <pthread.h>
-#include "./protocol/routing.h"
-#include "./utils/list.h"
+#include "array.h"
+#include "list.h"
 #define PARALLEL 4
 
 extern pthread_mutex_t paths_mutex;

@@ -9,7 +9,7 @@ import pandas as pd
 input_args = list(sys.argv)
 
 path = input_args[1]
-pay_file_name = 'payment_output.csv'
+pay_file_name = 'payments_output.csv'
 stats_file_name = 'output.json'
 pay_file_path = path + pay_file_name
 stats_file_path = path + stats_file_name

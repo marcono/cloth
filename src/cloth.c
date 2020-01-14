@@ -4,23 +4,19 @@
 #include <time.h>
 #include <math.h>
 #include <stdint.h>
-//#include <gsl/gsl_rng.h>
-//#include <gsl/gsl_randist.h>
+
 #include "json.h"
 #include "gsl_rng.h"
 #include "gsl_cdf.h"
 
-#include "./simulator/event.h"
-#include "./simulator/initialize.h"
-#include "./utils/heap.h"
-//#include "./utils/hash_table.h"
-//#include "./gc-7.2/include/gc.h"
-#include "./utils/array.h"
-#include "./protocol/routing.h"
-#include "./protocol/protocol.h"
-//#include "./simulator/stats.h"
-#include "./global.h"
-#include "./utils/list.h"
+#include "../include/event.h"
+#include "../include/initialize.h"
+#include "../include/heap.h"
+#include "../include/array.h"
+#include "../include/routing.h"
+#include "../include/htlc.h"
+#include "../include/thread.h"
+#include "../include/list.h"
 
 
 void csv_write_output() {
@@ -34,10 +30,10 @@ void csv_write_output() {
   struct array* hops;
   struct route_hop* hop;
 
-  csv_channel_output = fopen("channel_output.csv", "w");
+  csv_channel_output = fopen("channels_output.csv", "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open channel_output.csv\n");
-    return;
+    exit(-1);
   }
   fprintf(csv_channel_output, "id,direction1,direction2,node1,node2,capacity,latency,is_closed\n");
 
@@ -48,10 +44,10 @@ void csv_write_output() {
 
   fclose(csv_channel_output);
 
-  csv_edge_output = fopen("edge_output.csv", "w");
+  csv_edge_output = fopen("edges_output.csv", "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open edge_output.csv\n");
-    return;
+    exit(-1);
   }
   fprintf(csv_edge_output, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
 
@@ -62,7 +58,7 @@ void csv_write_output() {
 
   fclose(csv_edge_output);
 
-  csv_payment_output = fopen("payment_output.csv", "w");
+  csv_payment_output = fopen("payments_output.csv", "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open payment_output.csv\n");
     return;
@@ -93,7 +89,7 @@ void csv_write_output() {
   fclose(csv_payment_output);
 
 
-  csv_node_output = fopen("node_output.csv", "w");
+  csv_node_output = fopen("nodes_output.csv", "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open node_output.csv\n");
     return;
