@@ -8,11 +8,10 @@
 #include "array.h"
 #include "routing.h"
 #include "event.h"
+#include "cloth.h"
 
 extern long edge_index, node_index, channel_index, payment_index;
 extern double p_uncoop_before_lock, p_uncoop_after_lock;
-extern gsl_rng *r;
-extern const gsl_rng_type * T;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 FILE *csv_node, *csv_edge, *csv_channel;
 extern long n_dijkstra;
@@ -76,7 +75,7 @@ extern struct array* nodes;
 extern struct array* edges;
 extern struct array* channels;
 
-void initialize_protocol_data(long n_nodes, long n_edges, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc);
+void initialize_network(struct network_params net_params, unsigned int is_preproc);
 
 struct node* create_node(long id, long edges_size);
 

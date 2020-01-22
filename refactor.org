@@ -11,9 +11,9 @@
 - vedere se ci sono funzioni di numpy che direttamente calcolano varianza, media etc.
 ** fare script che esegure direttamente cloth e batch-means.py
 * TODO organizzare i file
-** TODO modifica path dei file della topologia in initialize_topology_preproc
+** DONE modifica path dei file della topologia in initialize_topology_preproc
 ** DONE fare due cartelle: src, include
-** TODO fare file initialization.c dove vengono messi tutti gli initialize 
+** DONE fare file cloth.c con main e altri oggetti del similatore (i/o, threads, random generator)
 ** TODO fare file network.c dove ci sono i vari create_channel create_node
 ** TODO fare file payment.c
 ** DONE il file protocol.c diventa htlc.c

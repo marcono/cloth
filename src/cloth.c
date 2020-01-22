@@ -17,7 +17,7 @@
 #include "../include/htlc.h"
 #include "../include/thread.h"
 #include "../include/list.h"
-
+#include "../include/cloth.h"
 
 void csv_write_output() {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
@@ -148,14 +148,58 @@ void csv_write_output() {
 
 
 
+
+void read_input(struct network_params* net_params, struct payments_params* pay_params) {
+  struct json_object* jpreinput, *jobj;
+
+
+  jpreinput = json_object_from_file("preinput.json");
+
+  jobj = json_object_object_get(jpreinput, "n_nodes");
+  net_params->n_nodes = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "n_channels");
+  net_params->n_channels = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
+  net_params->p_uncoop_before_lock = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock");
+  net_params->p_uncoop_after_lock = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "percentage_r_withholding");
+  net_params->RWithholding = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "gini");
+  net_params->gini = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "sigma_topology");
+  net_params->sigma_topology = json_object_get_int(jobj);
+  jobj = json_object_object_get(jpreinput, "capacity");
+  net_params->capacity_per_channel = json_object_get_int64(jobj);
+
+  jobj = json_object_object_get(jpreinput, "payment_mean");
+  pay_params->payment_mean = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "n_payments");
+  pay_params->n_payments = json_object_get_int64(jobj);
+  jobj = json_object_object_get(jpreinput, "percentage_same_dest");
+  pay_params->same_destination = json_object_get_double(jobj);
+  jobj = json_object_object_get(jpreinput, "sigma_amount");
+  pay_params->sigma_amount = json_object_get_double(jobj);
+
+  return;
+}
+
+gsl_rng *random_generator;
+const gsl_rng_type * random_generator_type;
+
+void initialize_random_generator(){
+  gsl_rng_env_setup();
+  random_generator_type = gsl_rng_default;
+  random_generator = gsl_rng_alloc (random_generator_type);
+}
+
 pthread_mutex_t paths_mutex;
 pthread_mutex_t nodes_mutex;
 pthread_mutex_t jobs_mutex;
 struct array** paths;
 struct element* jobs=NULL;
 
-
-void initialize_threads() {
+void run_dijkstra_threads() {
   long i;
   struct payment *payment;
   pthread_t tid[PARALLEL];
@@ -181,83 +225,6 @@ void initialize_threads() {
   for(i=0; i<PARALLEL; i++)
     pthread_join(tid[i], NULL);
 
-
-}
-
-uint64_t read_pre_input_and_initialize(int is_preproc_topology) {
-  long n_payments, n_nodes, n_channels, capacity_per_channel;
-  double payment_mean, p_uncoop_before, p_uncoop_after, RWithholding, same_dest;
-  struct json_object* jpreinput, *jobj;
-  unsigned int is_preproc_payments=1;
-  int gini, sigma_topology;
-  char answer;
-  clock_t  begin, end;
-  double time_spent=0.0;
-  struct timespec start, finish;
-  uint64_t end_time;
-  double sigma_amount;
-
-
-  jpreinput = json_object_from_file("preinput.json");
-
-  jobj = json_object_object_get(jpreinput, "payment_mean");
-  payment_mean = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "n_payments");
-  n_payments = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "n_nodes");
-  n_nodes = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "n_channels");
-  n_channels = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
-  p_uncoop_before = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock");
-  p_uncoop_after = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "percentage_r_withholding");
-  RWithholding = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "gini");
-  gini = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "sigma_topology");
-  sigma_topology = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "percentage_same_dest");
-  same_dest = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "sigma_amount");
-  sigma_amount = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "capacity");
-  capacity_per_channel = json_object_get_int64(jobj);
-
-
-  end_time = n_payments*payment_mean*1000;
-
-
-  begin = clock();
-
-  initialize_protocol_data(n_nodes, n_channels, p_uncoop_before, p_uncoop_after, RWithholding, gini, sigma_topology, capacity_per_channel, is_preproc_topology);
-  initialize_simulator_data(n_payments, payment_mean, same_dest, sigma_amount, is_preproc_payments);
-
-
-  //  stats_initialize();
-
-  initialize_dijkstra();
-
-  end = clock();
-  time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by initialization: %lf\n", time_spent);
-
-
-  begin = clock();
-  clock_gettime(CLOCK_MONOTONIC, &start);
-  initialize_threads();
-  end = clock();
-  clock_gettime(CLOCK_MONOTONIC, &finish);
-  time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by dijkstra executions (normal): %lf\n", time_spent);
-  time_spent = finish.tv_sec - start.tv_sec;
-  printf("Time consumed by dijkstra executions (threads): %lf\n", time_spent);
-
-  //  floyd_warshall();
-
-  return end_time;
-
 }
 
 
@@ -267,18 +234,34 @@ int main(int argc, char* argv[]) {
   double time_spent=0.0;
   uint64_t end_time;
   int preproc;
+  struct network_params net_params;
+  struct payments_params pay_params;
+  struct timespec start, finish;
+
 
   if(argc!=2) {
     printf("Command line error\n");
     return -1;
   }
-
   preproc = atoi(argv[1]);
 
-  end_time = read_pre_input_and_initialize(preproc);
+  read_input(&net_params, &pay_params);
+
+  initialize_random_generator();
+  initialize_network(net_params, preproc);
+  initialize_payments(pay_params, 1);
+  initialize_dijkstra();
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  run_dijkstra_threads();
+  clock_gettime(CLOCK_MONOTONIC, &finish);
+  time_spent = finish.tv_sec - start.tv_sec;
+  printf("Time consumed by initial dijkstra executions: %lf\n", time_spent);
+
 
 
   begin = clock();
+  end_time = (pay_params.n_payments)*(pay_params.payment_mean)*1000;
   while(heap_len(events) != 0) {
     event = heap_pop(events, compare_event);
     simulator_time = event->time;
@@ -316,11 +299,10 @@ int main(int argc, char* argv[]) {
       printf("ERROR wrong event type\n");
     }
   }
-
   end = clock();
+
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulator events: %lf\n", time_spent);
-
 
   csv_write_output();
 

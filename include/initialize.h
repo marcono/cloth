@@ -5,12 +5,13 @@
 #include "gsl_rng.h"
 #include "array.h"
 #include "heap.h"
+#include "cloth.h"
 
 extern uint64_t simulator_time; //milliseconds
 extern struct array* payments;
 FILE* csv_payment;
 
-void initialize_simulator_data(long n_payments, double payment_mean, double same_dest, double sigma_amount, unsigned int is_preproc);
+void initialize_payments(struct payments_params pay_params, unsigned int is_preproc);
 
 void initialize();
 

@@ -34,8 +34,6 @@
 
 
 long edge_index, node_index, channel_index, payment_index;
-gsl_rng *r;
-const gsl_rng_type * T;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 struct array* nodes;
@@ -192,18 +190,18 @@ struct edge* create_edge_post_proc(long id, long channel_id, long other_directio
 /*   return gini; */
 /* } */
 
-void initialize_topology_preproc(long n_nodes, long n_channels, double RWithholding, int gini, int sigma, long capacity_per_channel) {
+void initialize_network_preproc(struct network_params net_params) {
   long i, j, node_idIndex, channel_idIndex, edge_idIndex, node1, node2, direction1, direction2, info;
-  double Rwithholding_p[] = {1-RWithholding, RWithholding}, balance_p[] = {0.5, 0.5}, gini_p[3], min_htlcP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=n_nodes/2 ;
+  double Rwithholding_p[] = {1-net_params.RWithholding, net_params.RWithholding}, balance_p[] = {0.5, 0.5}, gini_p[3], min_htlcP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=net_params.n_nodes/2 ;
   gsl_ran_discrete_t* Rwithholding_discrete, *balance_discrete, *gini_discrete, *min_htlcDiscrete;
   int *node_edges;
   uint32_t latency;
-  uint64_t balance1, balance2, capacity, min_htlc;
+  uint64_t balance1, balance2, capacity;
   struct policy policy1, policy2;
-  long thresh1, thresh2, counter=0;
-  uint64_t funds[3], maxfunds, funds_part;
+  long thresh1, thresh2;
+  uint64_t funds[3], funds_part;
 
-  switch(gini) {
+  switch(net_params.gini) {
   case 1:
     coeff1 = 1.0/3;
     coeff2 = 1.0/3;
@@ -235,18 +233,18 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
 
   gini_discrete = gsl_ran_discrete_preproc(3, gini_p);
 
-  thresh1 = n_nodes*n_channels*coeff1;
-  thresh2 = n_nodes*n_channels*coeff2;
+  thresh1 = (net_params.n_nodes)*(net_params.n_channels)*coeff1;
+  thresh2 = (net_params.n_nodes)*(net_params.n_channels)*coeff2;
 
   // NOTE: *5 instead of *n_channels if you want to test Gini
-  funds_part = (capacity_per_channel/3)*n_nodes*n_channels;
+  funds_part = (net_params.capacity_per_channel/3)*(net_params.n_nodes)*(net_params.n_channels);
 
 //  printf("%ld, %ld\n", thresh1, thresh2);
 
   /* if(gini != 5) { */
   funds[0] = (funds_part)/thresh1;
   funds[1] = (funds_part)/(thresh2);
-  funds[2] = (funds_part)/ (n_nodes*n_channels - (thresh1 + thresh2));
+  funds[2] = (funds_part)/ ((net_params.n_nodes)*(net_params.n_channels) - (thresh1 + thresh2));
 
   csv_node = fopen("nodes.csv", "w");
   if(csv_node==NULL) {
@@ -275,8 +273,8 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
 
 
   node_idIndex=0;
-  for(i=0; i<n_nodes; i++){
-    fprintf(csv_node, "%ld,%ld\n", node_idIndex, gsl_ran_discrete(r, Rwithholding_discrete));
+  for(i=0; i<net_params.n_nodes; i++){
+    fprintf(csv_node, "%ld,%ld\n", node_idIndex, gsl_ran_discrete(random_generator, Rwithholding_discrete));
     node_idIndex++;
   }
 
@@ -287,23 +285,23 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
   channel_idIndex = edge_idIndex= 0;
   for(i=0; i<node_idIndex; i++) {
     node1 = i;
-    for(j=0; j<n_channels &&  (node_edges[node1] < n_channels); j++){
+    for(j=0; j<net_params.n_channels &&  (node_edges[node1] < net_params.n_channels); j++){
 
       do {
-       if(j==0 && sigma!=-1) {
-          node2 = mean + gsl_ran_gaussian(r, sigma);
+       if(j==0 && net_params.sigma_topology!=-1) {
+          node2 = mean + gsl_ran_gaussian(random_generator, net_params.sigma_topology);
           }
           else
-            node2 = gsl_rng_uniform_int(r,node_idIndex);
+            node2 = gsl_rng_uniform_int(random_generator,node_idIndex);
       }while(node2==node1);
 
       if(node2<0 || node2>=node_idIndex) continue;
 
-      if(sigma!=-1) {
-        if(j!=0 && node_edges[node2]>=n_channels) continue;
+      if(net_params.sigma_topology!=-1) {
+        if(j!=0 && node_edges[node2]>=net_params.n_channels) continue;
       }
       else {
-        if(node_edges[node2]>=n_channels) continue;
+        if(node_edges[node2]>=net_params.n_channels) continue;
       }
 
 
@@ -317,17 +315,17 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
       direction2 = edge_idIndex;
       ++edge_idIndex;
 
-      latency = gsl_rng_uniform_int(r, MAXLATENCY - MINLATENCY) + MINLATENCY;
+      latency = gsl_rng_uniform_int(random_generator, MAXLATENCY - MINLATENCY) + MINLATENCY;
 
-      capacity = funds[gsl_ran_discrete(r, gini_discrete)];
+      capacity = funds[gsl_ran_discrete(random_generator, gini_discrete)];
 
 
-      double balance_mean=5, balance_sigma=2.0, fraction;
+      double balance_sigma=2.0, fraction;
       int gauss;
 
-      gauss=gsl_ran_gaussian(r, balance_sigma);
+      gauss=gsl_ran_gaussian(random_generator, balance_sigma);
 
-      if(gsl_ran_discrete(r, balance_discrete))
+      if(gsl_ran_discrete(random_generator, balance_discrete))
         gauss = 2+gauss;
       else
         gauss = 7+gauss;
@@ -343,15 +341,15 @@ void initialize_topology_preproc(long n_nodes, long n_channels, double RWithhold
       min_htlcDiscrete = gsl_ran_discrete_preproc(4, min_htlcP);
 
 
-      policy1.fee_base = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy1.fee_proportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
-      policy1.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-      policy1.min_htlc = gsl_pow_int(10, gsl_ran_discrete(r, min_htlcDiscrete));
+      policy1.fee_base = gsl_rng_uniform_int(random_generator, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy1.fee_proportional = (gsl_rng_uniform_int(random_generator, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
+      policy1.timelock = gsl_rng_uniform_int(random_generator, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+      policy1.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlcDiscrete));
       policy1.min_htlc = policy1.min_htlc == 1 ? 0 : policy1.min_htlc;
-      policy2.fee_base = gsl_rng_uniform_int(r, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
-      policy2.fee_proportional = (gsl_rng_uniform_int(r, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
-      policy2.timelock = gsl_rng_uniform_int(r, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
-      policy2.min_htlc = gsl_pow_int(10, gsl_ran_discrete(r, min_htlcDiscrete));
+      policy2.fee_base = gsl_rng_uniform_int(random_generator, MAXFEEBASE - MINFEEBASE) + MINFEEBASE;
+      policy2.fee_proportional = (gsl_rng_uniform_int(random_generator, MAXFEEPROP-MINFEEPROP)+MINFEEPROP);
+      policy2.timelock = gsl_rng_uniform_int(random_generator, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK;
+      policy2.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlcDiscrete));
       policy2.min_htlc = policy2.min_htlc == 1 ? 0 : policy2.min_htlc;
 
       fprintf(csv_channel, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, node1, node2, capacity, latency);
@@ -464,13 +462,9 @@ void create_topology_from_csv(unsigned int is_preproc) {
 
 
 
-void initialize_protocol_data(long n_nodes, long n_channels, double p_uncoop_before, double p_uncoop_after, double RWithholding, int gini, int sigma, long capacity_per_channel, unsigned int is_preproc) {
-  double before_p[] = {p_uncoop_before, 1-p_uncoop_before};
-  double after_p[] = {p_uncoop_after, 1-p_uncoop_after};
-
-  gsl_rng_env_setup();
-  T = gsl_rng_default;
-  r = gsl_rng_alloc (T);
+void initialize_network(struct network_params net_params, unsigned int is_preproc) {
+  double before_p[] = {net_params.p_uncoop_before_lock, 1-net_params.p_uncoop_before_lock};
+  double after_p[] = {net_params.p_uncoop_after_lock, 1-net_params.p_uncoop_after_lock};
 
   uncoop_before_discrete = gsl_ran_discrete_preproc(2, before_p);
   uncoop_after_discrete = gsl_ran_discrete_preproc(2, after_p);
@@ -479,13 +473,13 @@ void initialize_protocol_data(long n_nodes, long n_channels, double p_uncoop_bef
 
   n_dijkstra = 0;
 
-  nodes = array_initialize(n_nodes);
-  edges = array_initialize(n_channels*n_nodes*2);
-  channels = array_initialize(n_channels*n_nodes);
+  nodes = array_initialize(net_params.n_nodes);
+  edges = array_initialize(net_params.n_channels*net_params.n_nodes*2);
+  channels = array_initialize(net_params.n_channels*net_params.n_nodes);
 
 
   if(is_preproc)
-    initialize_topology_preproc(n_nodes, n_channels, RWithholding, gini, sigma, capacity_per_channel);
+    initialize_network_preproc(net_params);
 
   create_topology_from_csv(is_preproc);
 
@@ -538,11 +532,11 @@ void close_channel(long channel_id) {
 
 
 int is_cooperative_before_lock() {
-  return gsl_ran_discrete(r, uncoop_before_discrete);
+  return gsl_ran_discrete(random_generator, uncoop_before_discrete);
 }
 
 int is_cooperative_after_lock() {
-  return gsl_ran_discrete(r, uncoop_after_discrete);
+  return gsl_ran_discrete(random_generator, uncoop_after_discrete);
 }
 
 uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
