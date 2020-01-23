@@ -9,7 +9,7 @@
 #include "../include/array.h"
 #include "../include/routing.h"
 #include "../include/thread.h"
-
+#include "../include/network.h"
 #define INF UINT64_MAX
 #define HOPSLIMIT 20
 

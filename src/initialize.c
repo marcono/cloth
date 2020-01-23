@@ -10,6 +10,7 @@
 #include "../include/htlc.h"
 #include "../include/initialize.h"
 #include "../include/event.h"
+#include "../include/network.h"
 
 #define MAXMICRO 1E3
 #define MINMICRO 1

@@ -18,6 +18,7 @@
 #include "../include/thread.h"
 #include "../include/list.h"
 #include "../include/cloth.h"
+#include "../include/network.h"
 
 void csv_write_output() {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
@@ -305,8 +306,6 @@ int main(int argc, char* argv[]) {
   printf("Time consumed by simulator events: %lf\n", time_spent);
 
   csv_write_output();
-
-  printf("DIJKSTRA CALLS: %ld\n", n_dijkstra);
 
   return 0;
 }
