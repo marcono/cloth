@@ -9,13 +9,11 @@
 #include "gsl_rng.h"
 #include "gsl_cdf.h"
 
-#include "../include/event.h"
 #include "../include/payments.h"
 #include "../include/heap.h"
 #include "../include/array.h"
 #include "../include/routing.h"
 #include "../include/htlc.h"
-#include "../include/thread.h"
 #include "../include/list.h"
 #include "../include/cloth.h"
 #include "../include/network.h"
@@ -194,39 +192,6 @@ void initialize_random_generator(){
   random_generator = gsl_rng_alloc (random_generator_type);
 }
 
-pthread_mutex_t paths_mutex;
-pthread_mutex_t nodes_mutex;
-pthread_mutex_t jobs_mutex;
-struct array** paths;
-struct element* jobs=NULL;
-
-void run_dijkstra_threads() {
-  long i;
-  struct payment *payment;
-  pthread_t tid[PARALLEL];
-  int data_index[PARALLEL];
-
-  pthread_mutex_init(&nodes_mutex, NULL);
-  pthread_mutex_init(&jobs_mutex, NULL);
-  pthread_mutex_init(&paths_mutex, NULL);
-
-  paths = malloc(sizeof(struct array*)*payment_index);
-
-  for(i=0; i<payment_index ;i++){
-    paths[i] = NULL;
-    payment = array_get(payments, i);
-    jobs = push(jobs, payment->id);
-  }
-
-  for(i=0; i<PARALLEL; i++) {
-    data_index[i] = i;
-    pthread_create(&(tid[i]), NULL, &dijkstra_thread, &(data_index[i]));
-  }
-
-  for(i=0; i<PARALLEL; i++)
-    pthread_join(tid[i], NULL);
-
-}
 
 
 int main(int argc, char* argv[]) {

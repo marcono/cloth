@@ -7,7 +7,6 @@
 #include "gsl_randist.h"
 #include "array.h"
 #include "routing.h"
-#include "event.h"
 #include "cloth.h"
 #include "network.h"
 #include "payments.h"
@@ -38,7 +37,5 @@ void receive_success(struct event* event);
 void forward_fail(struct event* event);
 
 void receive_fail(struct event* event);
-
-void* dijkstra_thread(void*arg);
 
 #endif

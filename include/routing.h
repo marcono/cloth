@@ -2,9 +2,19 @@
 #define ROUTING_H
 
 #include <stdint.h>
-
 #include "array.h"
 #include "heap.h"
+#include <pthread.h>
+#include "array.h"
+#include "list.h"
+
+#define N_THREADS 4
+
+extern pthread_mutex_t paths_mutex;
+extern pthread_mutex_t nodes_mutex;
+extern pthread_mutex_t jobs_mutex;
+extern struct array** paths;
+extern struct element* jobs;
 
 struct distance{
   long node;
@@ -39,28 +49,18 @@ struct route {
 };
 
 
-extern uint32_t** dist;
-extern struct path_hop** next;
 
 void initialize_dijkstra();
 
+void run_dijkstra_threads();
 
-struct array* get_path(long source, long destination);
-
-
-struct array* dijkstra_p(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p);
-
-struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p);
 
 struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock);
 
 void print_hop(struct route_hop* hop);
 
 int compare_distance(struct distance* a, struct distance* b);
-
-//struct array* find_paths(long source, long destination, double amount);
-
-//struct array* find_paths(long source, long destination, double amount);
 
 
 #endif

@@ -14,8 +14,6 @@
 #include "../include/heap.h"
 #include "../include/payments.h"
 #include "../include/routing.h"
-#include "../include/event.h"
-#include "../include/thread.h"
 #include "../include/network.h"
 
 
@@ -79,40 +77,6 @@ uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
   return policy.fee_base + fee;
 }
 
-void* dijkstra_thread(void*arg) {
-  struct payment * payment;
-  struct array* hops;
-  long payment_id;
-  int *index;
-  struct node* node;
-
-  index = (int*) arg;
-
-
-  while(1) {
-    pthread_mutex_lock(&jobs_mutex);
-    jobs = pop(jobs, &payment_id);
-    pthread_mutex_unlock(&jobs_mutex);
-
-    if(payment_id==-1) return NULL;
-
-    pthread_mutex_lock(&nodes_mutex);
-    payment = array_get(payments, payment_id);
-    node = array_get(nodes, payment->sender);
-    pthread_mutex_unlock(&nodes_mutex);
-
-    printf("DIJKSTRA %ld\n", payment->id);
-
-    hops = dijkstra_p(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                     node->ignored_edges, *index);
-
-
-    paths[payment->id] = hops;
-  }
-
-  return NULL;
-
-}
 
 unsigned int is_any_channel_closed(struct array* hops) {
   int i;
@@ -215,18 +179,18 @@ void find_route(struct event *event) {
     if(path_hops!=NULL)
       if(is_any_channel_closed(path_hops)) {
         path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                            node->ignored_edges);
+                             node->ignored_edges, 0);
       }
   }
   else {
     path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                        node->ignored_edges);
+                         node->ignored_edges, 0);
   }
 
   if(path_hops!=NULL)
     if(is_any_channel_closed(path_hops)) {
     path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                                       node->ignored_edges);
+                         node->ignored_edges, 0);
     paths[payment->id] = path_hops;
   }
   

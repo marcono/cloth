@@ -8,15 +8,92 @@
 #include "../include/heap.h"
 #include "../include/array.h"
 #include "../include/routing.h"
-#include "../include/thread.h"
 #include "../include/network.h"
 #define INF UINT64_MAX
 #define HOPSLIMIT 20
 
-char error[100];
-uint32_t** dist;
-struct path_hop** next;
 
+struct distance **distance;
+struct dijkstra_hop ** next_node;
+struct heap** distance_heap;
+pthread_mutex_t data_mutex;
+pthread_mutex_t jobs_mutex;
+struct array** paths;
+struct element* jobs=NULL;
+
+
+void initialize_dijkstra() {
+  int i;
+  struct payment *payment;
+
+  distance = malloc(sizeof(struct distance*)*N_THREADS);
+  next_node = malloc(sizeof(struct dijkstra_hop*)*N_THREADS);
+  distance_heap = malloc(sizeof(struct heap*)*N_THREADS);
+
+  for(i=0; i<N_THREADS; i++) {
+    distance[i] = malloc(sizeof(struct distance)*node_index);
+    next_node[i] = malloc(sizeof(struct dijkstra_hop)*node_index);
+    distance_heap[i] = heap_initialize(edge_index);
+  }
+
+  pthread_mutex_init(&data_mutex, NULL);
+  pthread_mutex_init(&jobs_mutex, NULL);
+
+  paths = malloc(sizeof(struct array*)*payment_index);
+
+  for(i=0; i<payment_index ;i++){
+    paths[i] = NULL;
+    payment = array_get(payments, i);
+    jobs = push(jobs, payment->id);
+  }
+
+}
+
+
+void* dijkstra_thread(void*arg) {
+  struct payment * payment;
+  struct array* hops;
+  long payment_id;
+  int *index;
+  struct node* node;
+
+  index = (int*) arg;
+
+  while(1) {
+    pthread_mutex_lock(&jobs_mutex);
+    jobs = pop(jobs, &payment_id);
+    pthread_mutex_unlock(&jobs_mutex);
+
+    if(payment_id==-1) return NULL;
+
+    pthread_mutex_lock(&data_mutex);
+    payment = array_get(payments, payment_id);
+    node = array_get(nodes, payment->sender);
+    pthread_mutex_unlock(&data_mutex);
+
+    hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
+                      node->ignored_edges, *index);
+
+    paths[payment->id] = hops;
+  }
+
+  return NULL;
+}
+
+void run_dijkstra_threads() {
+  long i;
+  pthread_t tid[N_THREADS];
+  int data_index[N_THREADS];
+
+  for(i=0; i<N_THREADS; i++) {
+    data_index[i] = i;
+    pthread_create(&(tid[i]), NULL, &dijkstra_thread, &(data_index[i]));
+  }
+
+  for(i=0; i<N_THREADS; i++)
+    pthread_join(tid[i], NULL);
+
+}
 
 
 int present(long i) {
@@ -31,6 +108,7 @@ int present(long i) {
   return 0;
 }
 
+
 int compare_distance(struct distance* a, struct distance* b) {
   uint64_t d1, d2;
   d1=a->distance;
@@ -41,28 +119,6 @@ int compare_distance(struct distance* a, struct distance* b) {
     return -1;
   else
     return 1;
-}
-
-
-struct distance **distance;
-struct dijkstra_hop ** next_node;
-//struct dijkstra_hop ** previous_node;
-struct heap** distance_heap;
-//struct array** hops;
-
-void initialize_dijkstra() {
-  int i;
-
-  distance = malloc(sizeof(struct distance*)*PARALLEL);
-  next_node = malloc(sizeof(struct dijkstra_hop*)*PARALLEL);
-  distance_heap = malloc(sizeof(struct heap*)*PARALLEL);
-
-  for(i=0; i<PARALLEL; i++) {
-    distance[i] = malloc(sizeof(struct distance)*node_index);
-     next_node[i] = malloc(sizeof(struct dijkstra_hop)*node_index);
-    distance_heap[i] = heap_initialize(edge_index);
-  }
-
 }
 
 
@@ -79,7 +135,7 @@ int is_ignored(long id, struct array* ignored){
   return 0;
 }
 
-struct array* dijkstra_p(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p) {
+struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p) {
   struct distance *d=NULL, to_node_dist;
   long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
   struct node* best_node=NULL;
@@ -196,153 +252,6 @@ struct array* dijkstra_p(long source, long target, uint64_t amount, struct array
 }
 
 
-
-struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges) {
-  struct distance *d=NULL, to_node_dist;
-  long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
-  struct node* best_node=NULL;
-  struct edge* edge=NULL, *other_edge=NULL;
-  struct channel* channel=NULL;
-  uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
-  struct array* hops=NULL;
-  struct path_hop* hop=NULL;
-
-  printf("DIJKSTRA\n");
-
-  while(heap_len(distance_heap[0])!=0)
-    heap_pop(distance_heap[0], compare_distance);
-
-  for(i=0; i<node_index; i++){
-    distance[0][i].node = i;
-    distance[0][i].distance = INF;
-    distance[0][i].fee = 0;
-    distance[0][i].amt_to_receive = 0;
-    next_node[0][i].edge = -1;
-    next_node[0][i].node = -1;
-  }
-
-  distance[0][target].node = target;
-  distance[0][target].amt_to_receive = amount;
-  distance[0][target].fee = 0;
-  distance[0][target].distance = 0;
-
-
-  distance_heap[0] =  heap_insert(distance_heap[0], &distance[0][target], compare_distance);
-
-
-  while(heap_len(distance_heap[0])!=0) {
-    d = heap_pop(distance_heap[0], compare_distance);
-    best_node_id = d->node;
-    if(best_node_id==source) break;
-
-    best_node = array_get(nodes, best_node_id);
-
-    for(j=0; j<array_len(best_node->open_edges); j++) {
-      // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_node->open_edges, j);
-      if(other_edge_id==NULL) continue;
-      other_edge = array_get(edges, *other_edge_id);
-      edge = array_get(edges, other_edge->other_edge_id);
-
-      prev_node_id = other_edge->counterparty;
-      edge_id = edge->id;
-
-      if(is_ignored(prev_node_id, ignored_nodes)) continue;
-      if(is_ignored(edge_id, ignored_edges)) continue;
-
-      to_node_dist = distance[0][best_node_id];
-      amt_to_send = to_node_dist.amt_to_receive;
-
-      if(prev_node_id==source)
-        capacity = edge->balance;
-      else{
-        channel = array_get(channels, edge->channel_id);
-        capacity = channel->capacity;
-      }
-
-      if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
-
-      if(prev_node_id==source)
-        fee = 0;
-      else
-        fee = compute_fee(amt_to_send, edge->policy);
-
-      new_amt_to_receive = amt_to_send + fee;
-
-      weight = fee + new_amt_to_receive*edge->policy.timelock*15/1000000000;
-
-      tmp_dist = weight + to_node_dist.distance;
-
-
-      if(tmp_dist < distance[0][prev_node_id].distance) {
-        distance[0][prev_node_id].node = prev_node_id;
-        distance[0][prev_node_id].distance = tmp_dist;
-        distance[0][prev_node_id].amt_to_receive = new_amt_to_receive;
-        distance[0][prev_node_id].fee = fee;
-
-        next_node[0][prev_node_id].edge = edge_id;
-        next_node[0][prev_node_id].node = best_node_id;
-
-        distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_node_id], compare_distance);
-      }
-      }
-
-    }
-
-
-  if(next_node[0][source].node == -1) {
-    return NULL;
-  }
-
-
-  hops = array_initialize(HOPSLIMIT);
-  curr = source;
-  while(curr!=target) {
-    hop = malloc(sizeof(struct path_hop));
-    hop->sender = curr;
-    hop->edge = next_node[0][curr].edge;
-    hop->receiver = next_node[0][curr].node;
-    hops=array_insert(hops, hop);
-
-    curr = next_node[0][curr].node;
-  }
-
-
-  if(array_len(hops)>HOPSLIMIT) {
-    return NULL;
-  }
-
-
-  return hops;
-}
-
-
-int is_same_path(struct array*root_path, struct array*path) {
-  long i;
-  struct path_hop* hop1, *hop2;
-
-  for(i=0; i<array_len(root_path); i++) {
-    hop1=array_get(root_path, i);
-    hop2=array_get(path, i);
-    if(hop1->edge != hop2->edge)
-      return 0;
-  }
-
-  return 1;
-}
-
-int compare_path(struct array* path1, struct array* path2){
-  long len1, len2;
-  len1 = array_len(path1);
-  len2=array_len(path2);
-
-  if(len1==len2) return 0;
-  else if (len1<len2) return -1;
-  else return 1;
-}
-
-
-
 struct route* route_initialize(long n_hops) {
   struct route* r;
 
@@ -419,8 +328,155 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t amount
 
 
 void print_hop(struct route_hop* hop){
-  printf("Sender %ld, Receiver %ld, struct edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->edge);
+  printf("Sender %ld, Receiver %ld, Edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->edge);
 }
+
+
+/* int is_same_path(struct array*root_path, struct array*path) { */
+/*   long i; */
+/*   struct path_hop* hop1, *hop2; */
+
+/*   for(i=0; i<array_len(root_path); i++) { */
+/*     hop1=array_get(root_path, i); */
+/*     hop2=array_get(path, i); */
+/*     if(hop1->edge != hop2->edge) */
+/*       return 0; */
+/*   } */
+
+/*   return 1; */
+/* } */
+
+
+/* int compare_path(struct array* path1, struct array* path2){ */
+/*   long len1, len2; */
+/*   len1 = array_len(path1); */
+/*   len2=array_len(path2); */
+
+/*   if(len1==len2) return 0; */
+/*   else if (len1<len2) return -1; */
+/*   else return 1; */
+/* } */
+
+//BASIC DIJKSTRA - NOT THREADS
+/* struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges) { */
+/*   struct distance *d=NULL, to_node_dist; */
+/*   long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr; */
+/*   struct node* best_node=NULL; */
+/*   struct edge* edge=NULL, *other_edge=NULL; */
+/*   struct channel* channel=NULL; */
+/*   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive; */
+/*   struct array* hops=NULL; */
+/*   struct path_hop* hop=NULL; */
+
+/*   printf("DIJKSTRA\n"); */
+
+/*   while(heap_len(distance_heap[0])!=0) */
+/*     heap_pop(distance_heap[0], compare_distance); */
+
+/*   for(i=0; i<node_index; i++){ */
+/*     distance[0][i].node = i; */
+/*     distance[0][i].distance = INF; */
+/*     distance[0][i].fee = 0; */
+/*     distance[0][i].amt_to_receive = 0; */
+/*     next_node[0][i].edge = -1; */
+/*     next_node[0][i].node = -1; */
+/*   } */
+
+/*   distance[0][target].node = target; */
+/*   distance[0][target].amt_to_receive = amount; */
+/*   distance[0][target].fee = 0; */
+/*   distance[0][target].distance = 0; */
+
+
+/*   distance_heap[0] =  heap_insert(distance_heap[0], &distance[0][target], compare_distance); */
+
+
+/*   while(heap_len(distance_heap[0])!=0) { */
+/*     d = heap_pop(distance_heap[0], compare_distance); */
+/*     best_node_id = d->node; */
+/*     if(best_node_id==source) break; */
+
+/*     best_node = array_get(nodes, best_node_id); */
+
+/*     for(j=0; j<array_len(best_node->open_edges); j++) { */
+/*       // need to get other direction of the edge as search is performed from target to source */
+/*       other_edge_id = array_get(best_node->open_edges, j); */
+/*       if(other_edge_id==NULL) continue; */
+/*       other_edge = array_get(edges, *other_edge_id); */
+/*       edge = array_get(edges, other_edge->other_edge_id); */
+
+/*       prev_node_id = other_edge->counterparty; */
+/*       edge_id = edge->id; */
+
+/*       if(is_ignored(prev_node_id, ignored_nodes)) continue; */
+/*       if(is_ignored(edge_id, ignored_edges)) continue; */
+
+/*       to_node_dist = distance[0][best_node_id]; */
+/*       amt_to_send = to_node_dist.amt_to_receive; */
+
+/*       if(prev_node_id==source) */
+/*         capacity = edge->balance; */
+/*       else{ */
+/*         channel = array_get(channels, edge->channel_id); */
+/*         capacity = channel->capacity; */
+/*       } */
+
+/*       if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue; */
+
+/*       if(prev_node_id==source) */
+/*         fee = 0; */
+/*       else */
+/*         fee = compute_fee(amt_to_send, edge->policy); */
+
+/*       new_amt_to_receive = amt_to_send + fee; */
+
+/*       weight = fee + new_amt_to_receive*edge->policy.timelock*15/1000000000; */
+
+/*       tmp_dist = weight + to_node_dist.distance; */
+
+
+/*       if(tmp_dist < distance[0][prev_node_id].distance) { */
+/*         distance[0][prev_node_id].node = prev_node_id; */
+/*         distance[0][prev_node_id].distance = tmp_dist; */
+/*         distance[0][prev_node_id].amt_to_receive = new_amt_to_receive; */
+/*         distance[0][prev_node_id].fee = fee; */
+
+/*         next_node[0][prev_node_id].edge = edge_id; */
+/*         next_node[0][prev_node_id].node = best_node_id; */
+
+/*         distance_heap[0] = heap_insert(distance_heap[0], &distance[0][prev_node_id], compare_distance); */
+/*       } */
+/*       } */
+
+/*     } */
+
+
+/*   if(next_node[0][source].node == -1) { */
+/*     return NULL; */
+/*   } */
+
+
+/*   hops = array_initialize(HOPSLIMIT); */
+/*   curr = source; */
+/*   while(curr!=target) { */
+/*     hop = malloc(sizeof(struct path_hop)); */
+/*     hop->sender = curr; */
+/*     hop->edge = next_node[0][curr].edge; */
+/*     hop->receiver = next_node[0][curr].node; */
+/*     hops=array_insert(hops, hop); */
+
+/*     curr = next_node[0][curr].node; */
+/*   } */
+
+
+/*   if(array_len(hops)>HOPSLIMIT) { */
+/*     return NULL; */
+/*   } */
+
+
+/*   return hops; */
+/* } */
+
 
 /* version for not all peers (doesn't work)
 void floyd_warshall() {

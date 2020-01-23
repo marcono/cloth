@@ -9,7 +9,6 @@
 #include "../include/array.h"
 #include "../include/htlc.h"
 #include "../include/payments.h"
-#include "../include/event.h"
 #include "../include/network.h"
 
 #define MAXMICRO 1E3

@@ -43,7 +43,6 @@
 ** ripensare a sigma_amount
 ** ripensare a uncoop_after_HTLC
 ** cancellare funzioni non utilizzate e commentate
-
 * feedback federico
 ** cercare regexp per passare da snake a camel
 ** aspettare suo feedback
