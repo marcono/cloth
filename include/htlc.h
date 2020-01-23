@@ -10,29 +10,10 @@
 #include "event.h"
 #include "cloth.h"
 #include "network.h"
+#include "payments.h"
 
 #define FAULTYLATENCY 3000 //3 seconds waiting for a peer not responding (tcp default retransmission time)
 
-extern long payment_index;
-
-struct payment {
-  long id;
-  long sender;
-  long receiver;
-  uint64_t amount; //millisatoshis
-  struct route* route;
-  unsigned int is_success;
-  unsigned int uncoop_after;
-  unsigned int uncoop_before;
-  unsigned int is_timeout;
-  uint64_t start_time;
-  uint64_t end_time;
-  int attempts;
-};
-
-
-
-struct payment* create_payment(long id, long sender, long receiver, uint64_t amount);
 
 void connect_nodes(long node1, long node2);
 

@@ -10,7 +10,7 @@
 #include "gsl_cdf.h"
 
 #include "../include/event.h"
-#include "../include/initialize.h"
+#include "../include/payments.h"
 #include "../include/heap.h"
 #include "../include/array.h"
 #include "../include/routing.h"

@@ -14,8 +14,8 @@
 ** DONE modifica path dei file della topologia in initialize_topology_preproc
 ** DONE fare due cartelle: src, include
 ** DONE fare file cloth.c con main e altri oggetti del similatore (i/o, threads, random generator)
-** TODO fare file network.c dove ci sono i vari create_channel create_node
-** TODO fare file payment.c
+** DONE fare file network.c dove ci sono i vari create_channel create_node
+** DONE fare file payment.c
 ** DONE il file protocol.c diventa htlc.c
 - cosi quando si vuole aggiungere nuovo protocollo si crea file separato new-protoco.c
 ** DONE global.h diventa thread.h

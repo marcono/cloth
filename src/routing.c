@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
-#include "../include/initialize.h"
+#include "../include/payments.h"
 #include "../include/htlc.h"
 #include "../include/heap.h"
 #include "../include/array.h"

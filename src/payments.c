@@ -8,7 +8,7 @@
 #include "gsl_math.h"
 #include "../include/array.h"
 #include "../include/htlc.h"
-#include "../include/initialize.h"
+#include "../include/payments.h"
 #include "../include/event.h"
 #include "../include/network.h"
 
@@ -24,54 +24,59 @@ struct heap* events;
 uint64_t simulator_time;
 struct array *payments;
 
-void initialize_events(long n_payments, double payment_mean) {
-  long i, sender_id, receiver_id;
-  uint64_t  payment_amount=0, event_time=0 ;
-  uint32_t next_event_interval;
-  unsigned int payment_class;
-  double payment_class_p[]= {0.65, 0.2, 0.1, 0.05}, random_double;
-  gsl_ran_discrete_t* discrete;
-  struct payment *payment;
-  struct event* event;
+struct payment* new_payment(long id, long sender, long receiver, uint64_t amount) {
+  struct payment * p;
 
-  discrete = gsl_ran_discrete_preproc(4, payment_class_p);
+  p = malloc(sizeof(struct payment));
+  p->id=id;
+  p->sender= sender;
+  p->receiver = receiver;
+  p->amount = amount;
+  p->route = NULL;
+  p->is_success = 0;
+  p->uncoop_after = 0;
+  p->uncoop_before=0;
+  p->is_timeout = 0;
+  p->start_time = 0;
+  p->end_time = 0;
+  p->attempts = 0;
 
+  payment_index++;
 
-  for(i=0;i<n_payments;i++) {
+  return p;
+}
 
+struct event* new_event(long id, uint64_t time, enum event_type type, long node_id, long payment_id) {
+  struct event* e;
 
-    do{
-      sender_id = gsl_rng_uniform_int(random_generator,node_index);
-      receiver_id = gsl_rng_uniform_int(random_generator, node_index);
-    } while(sender_id==receiver_id);
+  e = malloc(sizeof(struct event));
+  e->id = id;
+  e->time = time;
+  e->type = type;
+  e->node_id = node_id;
+  e->payment_id = payment_id;
 
+  event_index++;
 
-    payment_class = gsl_ran_discrete(random_generator, discrete);
-    random_double = gsl_rng_uniform(random_generator);
-    switch(payment_class) {
-    case 0:
-      payment_amount = random_double*gsl_pow_uint(10, gsl_rng_uniform_int(random_generator, 3) + 1);
-      break;
-    case 1:
-      payment_amount = random_double*gsl_pow_uint(10, gsl_rng_uniform_int(random_generator, 3) + 3);
-       break;
-    case 2:
-      payment_amount = random_double*gsl_pow_uint(10, gsl_rng_uniform_int(random_generator, 3) + 6);
-      break;
-    case 3:
-      payment_amount = random_double*gsl_pow_uint(10, gsl_rng_uniform_int(random_generator, 3) + 9);
-      break;
-    }
-    payment = create_payment(payment_index, sender_id, receiver_id, payment_amount);
-    array_insert(payments, payment);
-
-    next_event_interval = 1000*gsl_ran_exponential(random_generator, payment_mean);
-    event_time += next_event_interval;
-    event = create_event(event_index, event_time, FINDROUTE, sender_id, payment->id);
-    events = heap_insert(events, event, compare_event);
-  }
+  return e;
 
 }
+
+
+int compare_event(struct event *e1, struct event *e2) {
+  uint64_t time1, time2;
+
+  time1=e1->time;
+  time2=e2->time;
+
+  if(time1==time2)
+    return 0;
+  else if(time1<time2)
+    return -1;
+  else
+    return 1;
+}
+
 
 void initialize_payments_preproc(struct payments_params pay_params) {
   long i, sender_id, receiver_id;
@@ -137,7 +142,7 @@ void initialize_payments_preproc(struct payments_params pay_params) {
 
 }
 
-void create_payments_from_csv(unsigned int is_preproc) {
+void generate_payments_from_file(unsigned int is_preproc) {
   struct payment* payment;
   struct event* event;
   char row[256];
@@ -153,9 +158,9 @@ void create_payments_from_csv(unsigned int is_preproc) {
   fgets(row, 256, csv_payment);
   while(fgets(row, 256, csv_payment) != NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld", &id, &sender, &receiver, &amount, &time);
-    payment = create_payment(id, sender, receiver, amount);
+    payment = new_payment(id, sender, receiver, amount);
     array_insert(payments, payment);
-    event = create_event(event_index, time, FINDROUTE, sender, payment->id);
+    event = new_event(event_index, time, FINDROUTE, sender, payment->id);
     events = heap_insert(events, event, compare_event);
   }
 
@@ -173,7 +178,7 @@ void initialize_payments(struct payments_params pay_params, unsigned int is_prep
     initialize_payments_preproc(pay_params);
 
 
-  create_payments_from_csv(is_preproc);
+  generate_payments_from_file(is_preproc);
 }
 
 

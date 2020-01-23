@@ -12,7 +12,7 @@
 #include "../include/htlc.h"
 #include "../include/array.h"
 #include "../include/heap.h"
-#include "../include/initialize.h"
+#include "../include/payments.h"
 #include "../include/routing.h"
 #include "../include/event.h"
 #include "../include/thread.h"
@@ -20,63 +20,6 @@
 
 
 long payment_index;
-
-
-
-struct payment* create_payment(long id, long sender, long receiver, uint64_t amount) {
-  struct payment * p;
-
-  p = malloc(sizeof(struct payment));
-  p->id=id;
-  p->sender= sender;
-  p->receiver = receiver;
-  p->amount = amount;
-  p->route = NULL;
-  p->is_success = 0;
-  p->uncoop_after = 0;
-  p->uncoop_before=0;
-  p->is_timeout = 0;
-  p->start_time = 0;
-  p->end_time = 0;
-  p->attempts = 0;
-
-  payment_index++;
-
-  return p;
-}
-
-
-
-
-
-
-/* double compute_gini() { */
-/*   long i, j; */
-/*   __uint128_t num=0, den=0; */
-/*   __uint128_t difference; */
-/*   struct channel *channeli, *channelj; */
-/*   double gini; */
-
-/*   for(i=0;i<channel_info_index; i++) { */
-/*     channeli = array_get(channel_infos, i); */
-/*     den += channeli->capacity; */
-/*     for(j=0; j<channel_info_index; j++){ */
-/*       if(i==j) continue; */
-/*       channelj = array_get(channel_infos, j); */
-/*       if(channeli->capacity > channelj->capacity) */
-/*         difference = channeli->capacity - channelj->capacity; */
-/*       else */
-/*         difference = channelj->capacity - channeli->capacity; */
-/*       num += difference; */
-/*     } */
-/*   } */
-
-/*   den = 2*channel_info_index*den; */
-
-/*   gini = num/(den*1.0); */
-
-/*   return gini; */
-/* } */
 
 
 int is_present(long element, struct array* long_array) {
@@ -305,7 +248,7 @@ void find_route(struct event *event) {
   payment->route = route;
 
   next_event_time = simulator_time;
-  send_event = create_event(event_index, next_event_time, SENDPAYMENT, payment->sender, event->payment_id );
+  send_event = new_event(event_index, next_event_time, SENDPAYMENT, payment->sender, event->payment_id );
   events = heap_insert(events, send_event, compare_event);
 
 }
@@ -399,7 +342,7 @@ void send_payment(struct event* event) {
   if(!is_present(next_edge->id, node->open_edges)) {
     printf("struct edge %ld has been closed\n", next_edge->id);
     next_event_time = simulator_time;
-    next_event = create_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
+    next_event = new_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -409,7 +352,7 @@ void send_payment(struct event* event) {
     printf("Not enough balance in edge %ld\n", next_edge->id);
     add_ignored(payment->sender, next_edge->id);
     next_event_time = simulator_time;
-    next_event = create_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
+    next_event = new_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -419,7 +362,7 @@ void send_payment(struct event* event) {
 
   event_type = first_route_hop->path_hop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   next_event_time = simulator_time + channel->latency;
-  next_event = create_event(event_index, next_event_time, event_type, first_route_hop->path_hop->receiver, event->payment_id );
+  next_event = new_event(event_index, next_event_time, event_type, first_route_hop->path_hop->receiver, event->payment_id );
   events = heap_insert(events, next_event, compare_event);
 }
 
@@ -456,7 +399,7 @@ void forward_payment(struct event *event) {
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
     next_event_time = simulator_time + prev_channel->latency;
-    next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
+    next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -470,7 +413,7 @@ void forward_payment(struct event *event) {
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
     next_event_time = simulator_time + prev_channel->latency + FAULTYLATENCY;
-    next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
+    next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -498,7 +441,7 @@ void forward_payment(struct event *event) {
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
     next_event_time = simulator_time + prev_channel->latency;
-    next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
+    next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -508,7 +451,7 @@ void forward_payment(struct event *event) {
   next_node_id = next_route_hop->path_hop->receiver;
   event_type = next_node_id == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
   next_event_time = simulator_time + next_channel->latency;
-  next_event = create_event(event_index, next_event_time, event_type, next_node_id, event->payment_id );
+  next_event = new_event(event_index, next_event_time, event_type, next_node_id, event->payment_id );
   events = heap_insert(events, next_event, compare_event);
 
 }
@@ -545,7 +488,7 @@ void receive_payment(struct event* event ) {
     prev_node_id = last_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
     next_event_time = simulator_time + channel->latency + FAULTYLATENCY;
-    next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
+    next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -555,7 +498,7 @@ void receive_payment(struct event* event ) {
   prev_node_id = last_route_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
   next_event_time = simulator_time + channel->latency;
-  next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
+  next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
   events = heap_insert(events, next_event, compare_event);
 }
 
@@ -587,7 +530,7 @@ void forward_success(struct event* event) {
     prev_node_id = prev_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
     next_event_time = simulator_time + prev_channel->latency;
-    next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
+    next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
     events = heap_insert(events, next_event, compare_event);
     return;
   }
@@ -613,7 +556,7 @@ void forward_success(struct event* event) {
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
   next_event_time = simulator_time + prev_channel->latency;
-  next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
+  next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
   events = heap_insert(events, next_event, compare_event);
 }
 
@@ -654,7 +597,7 @@ void forward_fail(struct event* event) {
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
   next_event_time = simulator_time + prev_channel->latency;
-  next_event = create_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
+  next_event = new_event(event_index, next_event_time, event_type, prev_node_id, event->payment_id);
   events = heap_insert(events, next_event, compare_event);
 }
 
@@ -685,7 +628,7 @@ void receive_fail(struct event* event) {
   }
 
   next_event_time = simulator_time;
-  next_event = create_event(event_index, next_event_time, FINDROUTE, payment->sender, payment->id);
+  next_event = new_event(event_index, next_event_time, FINDROUTE, payment->sender, payment->id);
   events = heap_insert(events, next_event, compare_event);
 }
 
