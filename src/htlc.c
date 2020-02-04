@@ -19,6 +19,7 @@
 
 long payment_index;
 
+/* AUXILIARY FUNCTIONS */
 
 int is_present(long element, struct array* long_array) {
   long i, *curr;
@@ -39,37 +40,12 @@ int is_equal(long* a, long* b) {
 }
 
 
-void close_channel(long channel_id) {
-  long i;
-  struct node *node;
-  struct channel *channel;
-  struct edge* direction1, *direction2;
-
-  channel = array_get(channels, channel_id);
-  direction1 = array_get(edges, channel->edge1);
-  direction2 = array_get(edges, channel->edge2);
-
-  channel->is_closed = 1;
-  direction1->is_closed = 1;
-  direction2->is_closed = 1;
-
-  printf("struct channel %ld, struct edge_direction1 %ld, struct edge_direction2 %ld are now closed\n", channel->id, channel->edge1, channel->edge2);
-
-  for(i = 0; i < node_index; i++) {
-    node = array_get(nodes, i);
-    array_delete(node->open_edges, &(channel->edge1), is_equal);
-    array_delete(node->open_edges, &(channel->edge2), is_equal);
-  }
-}
 
 
 int is_cooperative_before_lock() {
   return gsl_ran_discrete(random_generator, uncoop_before_discrete);
 }
 
-int is_cooperative_after_lock() {
-  return gsl_ran_discrete(random_generator, uncoop_after_discrete);
-}
 
 uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
   uint64_t fee;
@@ -77,33 +53,15 @@ uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
   return policy.fee_base + fee;
 }
 
-
-unsigned int is_any_channel_closed(struct array* hops) {
-  int i;
-  struct edge* edge;
-  struct path_hop* hop;
-
-  for(i=0;i<array_len(hops);i++) {
-    hop = array_get(hops, i);
-    edge = array_get(edges, hop->edge);
-    if(edge->is_closed)
-      return 1;
-  }
-
-  return 0;
-}
-
 int is_equal_ignored(struct ignored* a, struct ignored* b){
   return a->id == b->id;
 }
 
-void check_ignored(long sender_id){
-  struct node* sender;
+void check_ignored(struct node* sender){
   struct array* ignored_edges;
   struct ignored* ignored;
   int i;
 
-  sender = array_get(nodes, sender_id);
   ignored_edges = sender->ignored_edges;
 
   for(i=0; i<array_len(ignored_edges); i++){
@@ -120,128 +78,7 @@ void check_ignored(long sender_id){
   }
 }
 
-
-void find_route(struct event *event) {
-  struct payment *payment;
-  struct node* node;
-  struct array *path_hops;
-  struct route* route;
-  int final_timelock=9;
-  struct event* send_event;
-  uint64_t next_event_time;
-
-  printf("FINDROUTE %ld\n", event->payment_id);
-
-  payment = array_get(payments, event->payment_id);
-  node = array_get(nodes, payment->sender);
-
-  ++(payment->attempts);
-
-  if(payment->start_time < 1)
-    payment->start_time = simulator_time;
-
-  /*
-  // dijkstra version
-  path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
-                      payment->ignored_edges);
-*/  
-
-  /* floyd_warshall version
-  if(payment->attempts == 0) {
-    path_hops = get_path(payment->sender, payment->receiver);
-  }
-  else {
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
-                        payment->ignored_edges);
-                        }*/
-
-  //dijkstra parallel OLD version
-  /* if(payment->attempts > 0) */
-  /*   pthread_create(&tid, NULL, &dijkstra_thread, payment); */
-
-  /* pthread_mutex_lock(&(cond_mutex[payment->id])); */
-  /* while(!cond_paths[payment->id]) */
-  /*   pthread_cond_wait(&(cond_var[payment->id]), &(cond_mutex[payment->id])); */
-  /* cond_paths[payment->id] = 0; */
-  /* pthread_mutex_unlock(&(cond_mutex[payment->id])); */
-
-  if(simulator_time > payment->start_time + 60000) {
-    payment->end_time = simulator_time;
-    payment->is_timeout = 1;
-    return;
-  }
-
-  check_ignored(payment->sender);
-
-  //dijkstra parallel NEW version
-  if(payment->attempts==1) {
-    path_hops = paths[payment->id];
-    if(path_hops!=NULL)
-      if(is_any_channel_closed(path_hops)) {
-        path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                             node->ignored_edges, 0);
-      }
-  }
-  else {
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                         node->ignored_edges, 0);
-  }
-
-  if(path_hops!=NULL)
-    if(is_any_channel_closed(path_hops)) {
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                         node->ignored_edges, 0);
-    paths[payment->id] = path_hops;
-  }
-  
-
-
-  if (path_hops == NULL) {
-    printf("No available path\n");
-    payment->end_time = simulator_time;
-    return;
-  }
-
-  route = transform_path_into_route(path_hops, payment->amount, final_timelock);
-  if(route==NULL) {
-    printf("No available route\n");
-    payment->end_time = simulator_time;
-    return;
-  }
-
-  payment->route = route;
-
-  next_event_time = simulator_time;
-  send_event = new_event(event_index, next_event_time, SENDPAYMENT, payment->sender, event->payment_id );
-  events = heap_insert(events, send_event, compare_event);
-
-}
-
-struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_sender) {
-  struct route_hop *route_hop;
-  long i, index = -1;
-
-  for (i = 0; i < array_len(route_hops); i++) {
-    route_hop = array_get(route_hops, i);
-
-    if (is_sender && route_hop->path_hop->sender == node_id) {
-      index = i;
-      break;
-    }
-
-    if (!is_sender && route_hop->path_hop->receiver == node_id) {
-      index = i;
-      break;
-    }
-  }
-
-  if (index == -1)
-    return NULL;
-
-  return array_get(route_hops, index);
-}
-
-int check_policy_forward( struct route_hop* prev_hop, struct route_hop* curr_hop) {
+int check_policy_forward( struct route_hop* prev_hop, struct route_hop* curr_hop, struct array* edges) {
   struct policy policy;
   struct edge* curr_edge, *prev_edge;
   uint64_t fee;
@@ -271,7 +108,7 @@ int check_policy_forward( struct route_hop* prev_hop, struct route_hop* curr_hop
 }
 
 
-void add_ignored(long node_id, long ignored_id){
+void add_ignored_edge(long node_id, long ignored_id, struct array* nodes){
   struct ignored* ignored;
   struct node* node;
 
@@ -284,7 +121,95 @@ void add_ignored(long node_id, long ignored_id){
 }
 
 
-void send_payment(struct event* event) {
+struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_sender) {
+  struct route_hop *route_hop;
+  long i, index = -1;
+
+  for (i = 0; i < array_len(route_hops); i++) {
+    route_hop = array_get(route_hops, i);
+
+    if (is_sender && route_hop->path_hop->sender == node_id) {
+      index = i;
+      break;
+    }
+
+    if (!is_sender && route_hop->path_hop->receiver == node_id) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index == -1)
+    return NULL;
+
+  return array_get(route_hops, index);
+}
+
+
+/*HTLC FUNCTIONS*/
+
+
+void find_route(struct event *event, struct network* network) {
+  struct payment *payment;
+  struct node* node, *sender;
+  struct array *path_hops;
+  struct route* route;
+  int final_timelock=9;
+  struct event* send_event;
+  uint64_t next_event_time;
+
+  printf("FINDROUTE %ld\n", event->payment_id);
+
+  payment = array_get(payments, event->payment_id);
+  node = array_get(network->nodes, payment->sender);
+
+  ++(payment->attempts);
+
+  if(payment->start_time < 1)
+    payment->start_time = simulator_time;
+
+
+  if(simulator_time > payment->start_time + 60000) {
+    payment->end_time = simulator_time;
+    payment->is_timeout = 1;
+    return;
+  }
+
+  sender = array_get(network->nodes, payment->sender);
+  check_ignored(sender);
+
+
+  if (payment->attempts==1)
+    path_hops = paths[payment->id];
+  else
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
+                         node->ignored_edges, network, 0);
+
+
+  if (path_hops == NULL) {
+    printf("No available path\n");
+    payment->end_time = simulator_time;
+    return;
+  }
+
+  route = transform_path_into_route(path_hops, payment->amount, final_timelock, network);
+  if(route==NULL) {
+    printf("No available route\n");
+    payment->end_time = simulator_time;
+    return;
+  }
+
+  payment->route = route;
+
+  next_event_time = simulator_time;
+  send_event = new_event(event_index, next_event_time, SENDPAYMENT, payment->sender, event->payment_id );
+  events = heap_insert(events, send_event, compare_event);
+
+}
+
+
+
+void send_payment(struct event* event, struct network *network) {
   struct payment* payment;
   uint64_t next_event_time;
   struct route* route;
@@ -297,11 +222,11 @@ void send_payment(struct event* event) {
 
 
   payment = array_get(payments, event->payment_id);
-  node = array_get(nodes, event->node_id);
+  node = array_get(network->nodes, event->node_id);
   route = payment->route;
   first_route_hop = array_get(route->route_hops, 0);
-  next_edge = array_get(edges, first_route_hop->path_hop->edge);
-  channel = array_get(channels, next_edge->channel_id);
+  next_edge = array_get(network->edges, first_route_hop->path_hop->edge);
+  channel = array_get(network->channels, next_edge->channel_id);
 
   if(!is_present(next_edge->id, node->open_edges)) {
     printf("struct edge %ld has been closed\n", next_edge->id);
@@ -314,7 +239,7 @@ void send_payment(struct event* event) {
 
   if(first_route_hop->amount_to_forward > next_edge->balance) {
     printf("Not enough balance in edge %ld\n", next_edge->id);
-    add_ignored(payment->sender, next_edge->id);
+    add_ignored_edge(payment->sender, next_edge->id, network->nodes);
     next_event_time = simulator_time;
     next_event = new_event(event_index, next_event_time, FINDROUTE, event->node_id, event->payment_id );
     events = heap_insert(events, next_event, compare_event);
@@ -330,7 +255,7 @@ void send_payment(struct event* event) {
   events = heap_insert(events, next_event, compare_event);
 }
 
-void forward_payment(struct event *event) {
+void forward_payment(struct event *event, struct network* network) {
   struct payment* payment;
   struct route* route;
   struct route_hop* next_route_hop, *previous_route_hop;
@@ -344,14 +269,14 @@ void forward_payment(struct event *event) {
   struct node* node;
 
   payment = array_get(payments, event->payment_id);
-  node = array_get(nodes, event->node_id);
+  node = array_get(network->nodes, event->node_id);
   route = payment->route;
   next_route_hop=get_route_hop(node->id, route->route_hops, 1);
   previous_route_hop = get_route_hop(node->id, route->route_hops, 0);
-  prev_edge = array_get(edges, previous_route_hop->path_hop->edge);
-  next_edge = array_get(edges, next_route_hop->path_hop->edge);
-  prev_channel = array_get(channels, prev_edge->channel_id);
-  next_channel = array_get(channels, next_edge->channel_id);
+  prev_edge = array_get(network->edges, previous_route_hop->path_hop->edge);
+  next_edge = array_get(network->edges, next_route_hop->path_hop->edge);
+  prev_channel = array_get(network->channels, prev_edge->channel_id);
+  next_channel = array_get(network->channels, next_edge->channel_id);
 
   if(next_route_hop == NULL || previous_route_hop == NULL) {
     printf("ERROR: no route hop\n");
@@ -372,7 +297,7 @@ void forward_payment(struct event *event) {
   if(!is_cooperative_before_lock()){
     printf("node %ld is not cooperative before lock\n", event->node_id);
     payment->uncoop_before = 1;
-    add_ignored(payment->sender, prev_edge->id);
+    add_ignored_edge(payment->sender, prev_edge->id, network->nodes);
 
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -395,12 +320,12 @@ void forward_payment(struct event *event) {
 
 
 
-  is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop);
+  is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop, network->edges);
   if(!is_policy_respected) return;
 
   if(next_route_hop->amount_to_forward > next_edge->balance ) {
     printf("Not enough balance in edge %ld\n", next_edge->id);
-    add_ignored(payment->sender, next_edge->id);
+    add_ignored_edge(payment->sender, next_edge->id, network->nodes);
 
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -420,7 +345,7 @@ void forward_payment(struct event *event) {
 
 }
 
-void receive_payment(struct event* event ) {
+void receive_payment(struct event* event, struct network* network ) {
   long node_id, prev_node_id;
   struct route* route;
   struct payment* payment;
@@ -433,21 +358,21 @@ void receive_payment(struct event* event ) {
   struct node* node;
 
   node_id = event->node_id;
-  node = array_get(nodes, node_id);
+  node = array_get(network->nodes, node_id);
   payment = array_get(payments, event->payment_id);
   route = payment->route;
 
   last_route_hop = array_get(route->route_hops, array_len(route->route_hops) - 1);
-  forward_edge = array_get(edges, last_route_hop->path_hop->edge);
-  backward_edge = array_get(edges, forward_edge->other_edge_id);
-  channel = array_get(channels, forward_edge->channel_id);
+  forward_edge = array_get(network->edges, last_route_hop->path_hop->edge);
+  backward_edge = array_get(network->edges, forward_edge->other_edge_id);
+  channel = array_get(network->channels, forward_edge->channel_id);
 
   backward_edge->balance += last_route_hop->amount_to_forward;
 
   if(!is_cooperative_before_lock()){
     printf("struct node %ld is not cooperative before lock\n", event->node_id);
     payment->uncoop_before = 1;
-    add_ignored(payment->sender, forward_edge->id);
+    add_ignored_edge(payment->sender, forward_edge->id, network->nodes);
 
     prev_node_id = last_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -467,7 +392,7 @@ void receive_payment(struct event* event ) {
 }
 
 
-void forward_success(struct event* event) {
+void forward_success(struct event* event, struct network* network) {
   struct route_hop* prev_hop, *next_hop;
   struct payment* payment;
   struct edge* forward_edge, * backward_edge, *next_edge;
@@ -482,11 +407,11 @@ void forward_success(struct event* event) {
   payment = array_get(payments, event->payment_id);
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
   next_hop = get_route_hop(event->node_id, payment->route->route_hops, 1);
-  next_edge = array_get(edges, next_hop->path_hop->edge);
-  forward_edge = array_get(edges, prev_hop->path_hop->edge);
-  backward_edge = array_get(edges, forward_edge->other_edge_id);
-  prev_channel = array_get(channels, forward_edge->channel_id);
-  node = array_get(nodes, event->node_id);
+  next_edge = array_get(network->edges, next_hop->path_hop->edge);
+  forward_edge = array_get(network->edges, prev_hop->path_hop->edge);
+  backward_edge = array_get(network->edges, forward_edge->other_edge_id);
+  prev_channel = array_get(network->channels, forward_edge->channel_id);
+  node = array_get(network->nodes, event->node_id);
  
 
   if(!is_present(backward_edge->id, node->open_edges)) {
@@ -532,7 +457,7 @@ void receive_success(struct event* event){
 }
 
 
-void forward_fail(struct event* event) {
+void forward_fail(struct event* event, struct network* network) {
   struct payment* payment;
   struct route_hop* next_hop, *prev_hop;
   struct edge* next_edge, *prev_edge;
@@ -543,11 +468,10 @@ void forward_fail(struct event* event) {
   struct node* node;
   uint64_t next_event_time;
 
- 
-  node = array_get(nodes, event->node_id); 
+  node = array_get(network->nodes, event->node_id);
   payment = array_get(payments, event->payment_id);
   next_hop = get_route_hop(event->node_id, payment->route->route_hops, 1);
-  next_edge = array_get(edges, next_hop->path_hop->edge);
+  next_edge = array_get(network->edges, next_hop->path_hop->edge);
 
   if(is_present(next_edge->id, node->open_edges)) {
     next_edge->balance += next_hop->amount_to_forward;
@@ -556,8 +480,8 @@ void forward_fail(struct event* event) {
     printf("struct edge %ld is not present\n", next_hop->path_hop->edge);
 
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
-  prev_edge = array_get(edges, prev_hop->path_hop->edge);
-  prev_channel = array_get(channels, prev_edge->channel_id);
+  prev_edge = array_get(network->edges, prev_hop->path_hop->edge);
+  prev_channel = array_get(network->channels, prev_edge->channel_id);
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
   next_event_time = simulator_time + prev_channel->latency;
@@ -566,7 +490,7 @@ void forward_fail(struct event* event) {
 }
 
 
-void receive_fail(struct event* event) {
+void receive_fail(struct event* event, struct network* network) {
   struct payment* payment;
   struct route_hop* first_hop;
   struct edge* next_edge;
@@ -578,8 +502,8 @@ void receive_fail(struct event* event) {
 
   payment = array_get(payments, event->payment_id);
   first_hop = array_get(payment->route->route_hops, 0);
-  next_edge = array_get(edges, first_hop->path_hop->edge);
-  node = array_get(nodes, event->node_id);
+  next_edge = array_get(network->edges, first_hop->path_hop->edge);
+  node = array_get(network->nodes, event->node_id);
 
   if(is_present(next_edge->id, node->open_edges))
     next_edge->balance += first_hop->amount_to_forward;
@@ -595,4 +519,101 @@ void receive_fail(struct event* event) {
   next_event = new_event(event_index, next_event_time, FINDROUTE, payment->sender, payment->id);
   events = heap_insert(events, next_event, compare_event);
 }
+
+
+
+
+
+//FUNCTIONS FOR UNCOOPERATIVE-AFTER-LOCK BEHAVIOR
+
+/* void close_channel(long channel_id) { */
+/*   long i; */
+/*   struct node *node; */
+/*   struct channel *channel; */
+/*   struct edge* direction1, *direction2; */
+
+/*   channel = array_get(channels, channel_id); */
+/*   direction1 = array_get(edges, channel->edge1); */
+/*   direction2 = array_get(edges, channel->edge2); */
+
+/*   channel->is_closed = 1; */
+/*   direction1->is_closed = 1; */
+/*   direction2->is_closed = 1; */
+
+/*   printf("struct channel %ld, struct edge_direction1 %ld, struct edge_direction2 %ld are now closed\n", channel->id, channel->edge1, channel->edge2); */
+
+/*   for(i = 0; i < node_index; i++) { */
+/*     node = array_get(nodes, i); */
+/*     array_delete(node->open_edges, &(channel->edge1), is_equal); */
+/*     array_delete(node->open_edges, &(channel->edge2), is_equal); */
+/*   } */
+/* } */
+
+/* int is_cooperative_after_lock() { */
+/*   return gsl_ran_discrete(random_generator, uncoop_after_discrete); */
+/* } */
+
+/* unsigned int is_any_channel_closed(struct array* hops) { */
+/*   int i; */
+/*   struct edge* edge; */
+/*   struct path_hop* hop; */
+
+/*   for(i=0;i<array_len(hops);i++) { */
+/*     hop = array_get(hops, i); */
+/*     edge = array_get(edges, hop->edge); */
+/*     if(edge->is_closed) */
+/*       return 1; */
+/*   } */
+
+/*   return 0; */
+/* } */
+
+
+//old versions for route finding (to be placed in find_route())
+  /*
+  // dijkstra version
+  path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
+                      payment->ignored_edges);
+*/  
+
+  /* floyd_warshall version
+  if(payment->attempts == 0) {
+    path_hops = get_path(payment->sender, payment->receiver);
+  }
+  else {
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
+                        payment->ignored_edges);
+                        }*/
+
+  //dijkstra parallel OLD OLD version
+  /* if(payment->attempts > 0) */
+  /*   pthread_create(&tid, NULL, &dijkstra_thread, payment); */
+
+  /* pthread_mutex_lock(&(cond_mutex[payment->id])); */
+  /* while(!cond_paths[payment->id]) */
+  /*   pthread_cond_wait(&(cond_var[payment->id]), &(cond_mutex[payment->id])); */
+  /* cond_paths[payment->id] = 0; */
+  /* pthread_mutex_unlock(&(cond_mutex[payment->id])); */
+
+
+  //dijkstra parallel OLD version
+  /* if(payment->attempts==1) { */
+  /*   path_hops = paths[payment->id]; */
+  /*   if(path_hops!=NULL) */
+  /*     if(is_any_channel_closed(path_hops)) { */
+  /*       path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
+  /*                            node->ignored_edges, network, 0); */
+  /*     } */
+  /* } */
+  /* else { */
+  /*   path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
+  /*                        node->ignored_edges, network, 0); */
+  /* } */
+
+  /* if(path_hops!=NULL) */
+  /*   if(is_any_channel_closed(path_hops)) { */
+  /*     path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
+  /*                          node->ignored_edges, network, 0); */
+  /*     paths[payment->id] = path_hops; */
+  /*   } */
 

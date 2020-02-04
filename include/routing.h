@@ -7,14 +7,19 @@
 #include <pthread.h>
 #include "array.h"
 #include "list.h"
+#include "network.h"
 
 #define N_THREADS 4
 
-extern pthread_mutex_t paths_mutex;
-extern pthread_mutex_t nodes_mutex;
+extern pthread_mutex_t data_mutex;
 extern pthread_mutex_t jobs_mutex;
 extern struct array** paths;
 extern struct element* jobs;
+
+struct thread_args{
+  struct network* network;
+  int data_index;
+};
 
 struct distance{
   long node;
@@ -50,13 +55,13 @@ struct route {
 
 
 
-void initialize_dijkstra();
+void initialize_dijkstra(long n_nodes, long n_edges);
 
-void run_dijkstra_threads();
+void run_dijkstra_threads(struct network* network);
 
-struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p);
 
-struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock);
+struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock, struct network* network);
 
 void print_hop(struct route_hop* hop);
 

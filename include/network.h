@@ -19,7 +19,6 @@
 #define HOPSLIMIT 20
 
 
-extern long edge_index, node_index, channel_index;
 FILE *csv_node, *csv_edge, *csv_channel;
 extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
@@ -63,9 +62,11 @@ struct edge {
   unsigned int is_closed;
 };
 
-extern struct array* nodes;
-extern struct array* edges;
-extern struct array* channels;
+struct network {
+  struct array* nodes;
+  struct array* channels;
+  struct array* edges;
+};
 
 
 struct node* new_node(long id);
@@ -74,9 +75,7 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
 
 struct edge* new_edge(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, struct policy policy);
 
-void initialize_network(struct network_params net_params, unsigned int is_preproc);
-
-void generate_network_from_file(unsigned int is_preproc);
+struct network* initialize_network(struct network_params net_params, unsigned int is_preproc);
 
 
 #endif

@@ -18,7 +18,7 @@
 #include "../include/cloth.h"
 #include "../include/network.h"
 
-void csv_write_output() {
+void csv_write_output(struct network* network) {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
   long i,j, *id;
   struct channel* channel;
@@ -36,8 +36,8 @@ void csv_write_output() {
   }
   fprintf(csv_channel_output, "id,direction1,direction2,node1,node2,capacity,latency,is_closed\n");
 
-  for(i=0; i<channel_index; i++) {
-    channel = array_get(channels, i);
+  for(i=0; i<array_len(network->channels); i++) {
+    channel = array_get(network->channels, i);
     fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->latency, channel->is_closed);
   }
 
@@ -50,8 +50,8 @@ void csv_write_output() {
   }
   fprintf(csv_edge_output, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
 
-  for(i=0; i<edge_index; i++) {
-    edge = array_get(edges, i);
+  for(i=0; i<array_len(network->edges); i++) {
+    edge = array_get(network->edges, i);
     fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed);
   }
 
@@ -95,8 +95,8 @@ void csv_write_output() {
   }
   fprintf(csv_node_output, "id,open_edges,ignored_nodes,ignored_edges\n");
 
-  for(i=0; i<node_index; i++) {
-    node = array_get(nodes, i);
+  for(i=0; i<array_len(network->nodes); i++) {
+    node = array_get(network->nodes, i);
 
     fprintf(csv_node_output, "%ld,", node->id);
 
@@ -203,6 +203,8 @@ int main(int argc, char* argv[]) {
   struct network_params net_params;
   struct payments_params pay_params;
   struct timespec start, finish;
+  struct network *network;
+  long n_nodes, n_edges;
 
 
   if(argc!=2) {
@@ -214,12 +216,14 @@ int main(int argc, char* argv[]) {
   read_input(&net_params, &pay_params);
 
   initialize_random_generator();
-  initialize_network(net_params, preproc);
-  initialize_payments(pay_params, 1);
-  initialize_dijkstra();
+  network = initialize_network(net_params, preproc);
+  n_nodes = array_len(network->nodes);
+  initialize_payments(pay_params, 1, n_nodes);
+  n_edges = array_len(network->edges);
+  initialize_dijkstra(n_nodes, n_edges);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
-  run_dijkstra_threads();
+  run_dijkstra_threads(network);
   clock_gettime(CLOCK_MONOTONIC, &finish);
   time_spent = finish.tv_sec - start.tv_sec;
   printf("Time consumed by initial dijkstra executions: %lf\n", time_spent);
@@ -238,28 +242,28 @@ int main(int argc, char* argv[]) {
 
     switch(event->type){
     case FINDROUTE:
-      find_route(event);
+      find_route(event, network);
       break;
     case SENDPAYMENT:
-      send_payment(event);
+      send_payment(event, network);
       break;
     case FORWARDPAYMENT:
-      forward_payment(event);
+      forward_payment(event, network);
       break;
     case RECEIVEPAYMENT:
-      receive_payment(event);
+      receive_payment(event, network);
       break;
     case FORWARDSUCCESS:
-      forward_success(event);
+      forward_success(event, network);
       break;
     case RECEIVESUCCESS:
       receive_success(event);
       break;
     case FORWARDFAIL:
-      forward_fail(event);
+      forward_fail(event, network);
       break;
     case RECEIVEFAIL:
-      receive_fail(event);
+      receive_fail(event, network);
       break;
     default:
       printf("ERROR wrong event type\n");
@@ -270,7 +274,7 @@ int main(int argc, char* argv[]) {
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulator events: %lf\n", time_spent);
 
-  csv_write_output();
+  csv_write_output(network);
 
   return 0;
 }

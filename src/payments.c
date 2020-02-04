@@ -18,7 +18,7 @@
 #define MAXMEDIUM 1E11
 #define MINMEDIUM 1E8
 
-long event_index;
+long event_index, payment_index;
 struct heap* events;
 uint64_t simulator_time;
 struct array *payments;
@@ -77,7 +77,7 @@ int compare_event(struct event *e1, struct event *e2) {
 }
 
 
-void initialize_payments_preproc(struct payments_params pay_params) {
+void initialize_payments_preproc(struct payments_params pay_params, long n_nodes) {
   long i, sender_id, receiver_id;
   uint64_t  payment_amount=0, event_time=0 ;
   uint32_t next_event_interval;
@@ -100,13 +100,12 @@ void initialize_payments_preproc(struct payments_params pay_params) {
 
   for(i=0;i<pay_params.n_payments;i++) {
 
-
     do{
-      sender_id = gsl_rng_uniform_int(random_generator,node_index);
+      sender_id = gsl_rng_uniform_int(random_generator,n_nodes);
       if(gsl_ran_discrete(random_generator, discrete_dest))
         receiver_id = 500;
       else
-        receiver_id = gsl_rng_uniform_int(random_generator, node_index);
+        receiver_id = gsl_rng_uniform_int(random_generator, n_nodes);
     } while(sender_id==receiver_id);
 
 
@@ -166,15 +165,15 @@ void generate_payments_from_file(unsigned int is_preproc) {
   fclose(csv_payment);
 }
 
-void initialize_payments(struct payments_params pay_params, unsigned int is_preproc ) {
-  event_index = 0;
+void initialize_payments(struct payments_params pay_params, unsigned int is_preproc, long n_nodes) {
+  event_index = payment_index = 0;
   simulator_time = 1;
 
   payments = array_initialize(pay_params.n_payments);
   events = heap_initialize(pay_params.n_payments*10);
 
   if(is_preproc)
-    initialize_payments_preproc(pay_params);
+    initialize_payments_preproc(pay_params, n_nodes);
 
 
   generate_payments_from_file(is_preproc);

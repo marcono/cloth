@@ -4,10 +4,6 @@
 #include "../include/network.h"
 #include "../include/array.h"
 
-struct array* nodes;
-struct array* edges;
-struct array* channels;
-long edge_index, node_index, channel_index, payment_index;
 gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 struct node* new_node(long id) {
@@ -18,8 +14,6 @@ struct node* new_node(long id) {
   node->open_edges = array_initialize(5);
   node->ignored_edges = array_initialize(10);
   node->ignored_nodes = array_initialize(1);
-
-  node_index++;
 
   return node;
 }
@@ -37,8 +31,6 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
   channel->capacity = capacity;
   channel->is_closed = 0;
 
-  channel_index++;
-
   return channel;
 }
 
@@ -53,8 +45,6 @@ struct edge* new_edge(long id, long channel_id, long other_direction, long count
   edge->policy = policy;
   edge->balance = balance;
   edge->is_closed = 0;
-
-  edge_index++;
 
   return edge;
 }
@@ -256,7 +246,7 @@ void initialize_network_preproc(struct network_params net_params) {
 }
 
 
-void generate_network_from_file(unsigned int is_preproc) {
+struct network* generate_network_from_file(struct network_params net_params, unsigned int is_preproc) {
   char row[256], edge_file[64], info_file[64], node_file[64];
   struct node* node, *node1, *node2;
   long id, direction1, direction2, node_id1, node_id2, channel_id, other_direction, counterparty;
@@ -266,6 +256,7 @@ void generate_network_from_file(unsigned int is_preproc) {
   uint64_t capacity, balance;
   struct channel* channel;
   struct edge* edge;
+  struct network* network;
 
   if(is_preproc) {
     strcpy(edge_file, "edges.csv");
@@ -278,6 +269,10 @@ void generate_network_from_file(unsigned int is_preproc) {
     strcpy(node_file, "nodes_ln.csv");
     }
 
+  network = (struct network*) malloc(sizeof(struct network));
+  network->nodes = array_initialize(net_params.n_nodes);
+  network->channels = array_initialize(net_params.n_channels*net_params.n_nodes);
+  network->edges = array_initialize(net_params.n_channels*net_params.n_nodes*2);
 
   csv_node = fopen(node_file, "r");
   if(csv_node==NULL) {
@@ -289,9 +284,8 @@ void generate_network_from_file(unsigned int is_preproc) {
   while(fgets(row, 256, csv_node)!=NULL) {
     sscanf(row, "%ld,%d", &id, &withholds_r);
     node = new_node(id);
-    nodes = array_insert(nodes, node);
+    network->nodes = array_insert(network->nodes, node);
   }
-
   fclose(csv_node);
 
   csv_channel = fopen(info_file, "r");
@@ -304,10 +298,10 @@ void generate_network_from_file(unsigned int is_preproc) {
   while(fgets(row, 256, csv_channel)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &direction1, &direction2, &node_id1, &node_id2, &capacity, &latency);
     channel = new_channel(id, direction1, direction2, node_id1, node_id2, capacity, latency);
-    channels = array_insert(channels, channel);
-    node1 = array_get(nodes, node_id1);
+    network->channels = array_insert(network->channels, channel);
+    node1 = array_get(network->nodes, node_id1);
     node1->open_edges = array_insert(node1->open_edges, &(channel->edge1));
-    node2 = array_get(nodes, node_id2);
+    node2 = array_get(network->nodes, node_id2);
     node2->open_edges = array_insert(node2->open_edges, &(channel->edge2));
   }
 
@@ -323,34 +317,27 @@ void generate_network_from_file(unsigned int is_preproc) {
   while(fgets(row, 256, csv_edge)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &id, &channel_id, &other_direction, &counterparty, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_htlc, &policy.timelock);
     edge = new_edge(id, channel_id, other_direction, counterparty, balance, policy);
-    edges = array_insert(edges, edge);
+    network->edges = array_insert(network->edges, edge);
   }
 
   fclose(csv_edge);
+
+  return network;
+
 
 }
 
 
 
-void initialize_network(struct network_params net_params, unsigned int is_preproc) {
+struct network* initialize_network(struct network_params net_params, unsigned int is_preproc) {
   double before_p[] = {net_params.p_uncoop_before_lock, 1-net_params.p_uncoop_before_lock};
   double after_p[] = {net_params.p_uncoop_after_lock, 1-net_params.p_uncoop_after_lock};
 
   uncoop_before_discrete = gsl_ran_discrete_preproc(2, before_p);
   uncoop_after_discrete = gsl_ran_discrete_preproc(2, after_p);
 
-  edge_index = node_index = channel_index = payment_index = 0;
-
-  nodes = array_initialize(net_params.n_nodes);
-  edges = array_initialize(net_params.n_channels*net_params.n_nodes*2);
-  channels = array_initialize(net_params.n_channels*net_params.n_nodes);
-
-
   if(is_preproc)
     initialize_network_preproc(net_params);
 
-  generate_network_from_file(is_preproc);
-
-
-
+  return generate_network_from_file(net_params, is_preproc);
 }

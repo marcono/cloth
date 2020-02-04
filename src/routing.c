@@ -22,7 +22,7 @@ struct array** paths;
 struct element* jobs=NULL;
 
 
-void initialize_dijkstra() {
+void initialize_dijkstra(long n_nodes, long n_edges) {
   int i;
   struct payment *payment;
 
@@ -31,9 +31,9 @@ void initialize_dijkstra() {
   distance_heap = malloc(sizeof(struct heap*)*N_THREADS);
 
   for(i=0; i<N_THREADS; i++) {
-    distance[i] = malloc(sizeof(struct distance)*node_index);
-    next_node[i] = malloc(sizeof(struct dijkstra_hop)*node_index);
-    distance_heap[i] = heap_initialize(edge_index);
+    distance[i] = malloc(sizeof(struct distance)*n_nodes);
+    next_node[i] = malloc(sizeof(struct dijkstra_hop)*n_nodes);
+    distance_heap[i] = heap_initialize(n_edges);
   }
 
   pthread_mutex_init(&data_mutex, NULL);
@@ -54,10 +54,10 @@ void* dijkstra_thread(void*arg) {
   struct payment * payment;
   struct array* hops;
   long payment_id;
-  int *index;
   struct node* node;
+  struct thread_args *thread_args;
 
-  index = (int*) arg;
+  thread_args = (struct thread_args*) arg;
 
   while(1) {
     pthread_mutex_lock(&jobs_mutex);
@@ -68,11 +68,11 @@ void* dijkstra_thread(void*arg) {
 
     pthread_mutex_lock(&data_mutex);
     payment = array_get(payments, payment_id);
-    node = array_get(nodes, payment->sender);
+    node = array_get(thread_args->network->nodes, payment->sender);
     pthread_mutex_unlock(&data_mutex);
 
     hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                      node->ignored_edges, *index);
+                    node->ignored_edges, thread_args->network, thread_args->data_index);
 
     paths[payment->id] = hops;
   }
@@ -80,14 +80,16 @@ void* dijkstra_thread(void*arg) {
   return NULL;
 }
 
-void run_dijkstra_threads() {
+void run_dijkstra_threads(struct network*  network) {
   long i;
   pthread_t tid[N_THREADS];
-  int data_index[N_THREADS];
+  struct thread_args *thread_args;
 
   for(i=0; i<N_THREADS; i++) {
-    data_index[i] = i;
-    pthread_create(&(tid[i]), NULL, &dijkstra_thread, &(data_index[i]));
+    thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
+    thread_args->network = network;
+    thread_args->data_index = i;
+    pthread_create(&(tid[i]), NULL, &dijkstra_thread, thread_args);
   }
 
   for(i=0; i<N_THREADS; i++)
@@ -135,7 +137,7 @@ int is_ignored(long id, struct array* ignored){
   return 0;
 }
 
-struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, long p) {
+struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p) {
   struct distance *d=NULL, to_node_dist;
   long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
   struct node* best_node=NULL;
@@ -149,7 +151,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   while(heap_len(distance_heap[p])!=0)
     heap_pop(distance_heap[p], compare_distance);
 
-  for(i=0; i<node_index; i++){
+  for(i=0; i<array_len(network->nodes); i++){
     distance[p][i].node = i;
     distance[p][i].distance = INF;
     distance[p][i].fee = 0;
@@ -172,14 +174,14 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
     best_node_id = d->node;
     if(best_node_id==source) break;
 
-    best_node = array_get(nodes, best_node_id);
+    best_node = array_get(network->nodes, best_node_id);
 
     for(j=0; j<array_len(best_node->open_edges); j++) {
       // need to get other direction of the edge as search is performed from target to source
       other_edge_id = array_get(best_node->open_edges, j);
       if(other_edge_id==NULL) continue;
-      other_edge = array_get(edges, *other_edge_id);
-      edge = array_get(edges, other_edge->other_edge_id);
+      other_edge = array_get(network->edges, *other_edge_id);
+      edge = array_get(network->edges, other_edge->other_edge_id);
 
       prev_node_id = other_edge->counterparty;
       edge_id = edge->id;
@@ -193,7 +195,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
       if(prev_node_id==source)
         capacity = edge->balance;
       else{
-        channel = array_get(channels, edge->channel_id);
+        channel = array_get(network->channels, edge->channel_id);
         capacity = channel->capacity;
       }
 
@@ -265,7 +267,7 @@ struct route* route_initialize(long n_hops) {
 }
 
 
-struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock) {
+struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock, struct network* network) {
   struct path_hop *path_hop;
   struct route_hop *route_hop, *next_route_hop;
   struct route *route;
@@ -281,9 +283,9 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t amount
   for(i=n_hops-1; i>=0; i--) {
     path_hop = array_get(path_hops, i);
 
-    edge = array_get(edges, path_hop->edge);
+    edge = array_get(network->edges, path_hop->edge);
     current_edge_policy = edge->policy;
-    channel = array_get(channels,edge->channel_id);
+    channel = array_get(network->channels,edge->channel_id);
     current_channel_capacity = channel->capacity;
 
     route_hop = malloc(sizeof(struct route_hop));

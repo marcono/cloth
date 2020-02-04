@@ -6,6 +6,7 @@
 #include "array.h"
 #include "heap.h"
 #include "cloth.h"
+#include "network.h"
 
 extern uint64_t simulator_time; //milliseconds
 FILE* csv_payment;
@@ -55,7 +56,7 @@ int compare_event(struct event* e1, struct event *e2);
 
 struct payment* new_payment(long id, long sender, long receiver, uint64_t amount);
 
-void initialize_payments(struct payments_params pay_params, unsigned int is_preproc);
+void initialize_payments(struct payments_params pay_params, unsigned int is_preproc, long n_nodes);
 
 void generate_payments_from_file(unsigned int is_preproc);
 

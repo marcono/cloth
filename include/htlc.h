@@ -22,20 +22,20 @@ int is_equal(long *a, long *b);
 
 uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy);
 
-void find_route(struct event* event);
+void find_route(struct event* event, struct network* network);
 
-void send_payment(struct event* event);
+void send_payment(struct event* event, struct network* network);
 
-void forward_payment(struct event* event);
+void forward_payment(struct event* event, struct network* network);
 
-void receive_payment(struct event* event);
+void receive_payment(struct event* event, struct network* network);
 
-void forward_success(struct event* event);
+void forward_success(struct event* event, struct network* network);
 
 void receive_success(struct event* event);
 
-void forward_fail(struct event* event);
+void forward_fail(struct event* event, struct network* network);
 
-void receive_fail(struct event* event);
+void receive_fail(struct event* event, struct network* network);
 
 #endif
