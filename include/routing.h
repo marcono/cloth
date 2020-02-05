@@ -18,6 +18,7 @@ extern struct element* jobs;
 
 struct thread_args{
   struct network* network;
+  struct array* payments;
   int data_index;
 };
 
@@ -55,9 +56,9 @@ struct route {
 
 
 
-void initialize_dijkstra(long n_nodes, long n_edges);
+void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments);
 
-void run_dijkstra_threads(struct network* network);
+void run_dijkstra_threads(struct network* network, struct array* payments);
 
 struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p);
 

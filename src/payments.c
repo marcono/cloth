@@ -18,10 +18,9 @@
 #define MAXMEDIUM 1E11
 #define MINMEDIUM 1E8
 
-long event_index, payment_index;
+long event_index;
 struct heap* events;
 uint64_t simulator_time;
-struct array *payments;
 
 struct payment* new_payment(long id, long sender, long receiver, uint64_t amount) {
   struct payment * p;
@@ -40,12 +39,10 @@ struct payment* new_payment(long id, long sender, long receiver, uint64_t amount
   p->end_time = 0;
   p->attempts = 0;
 
-  payment_index++;
-
   return p;
 }
 
-struct event* new_event(long id, uint64_t time, enum event_type type, long node_id, long payment_id) {
+struct event* new_event(long id, uint64_t time, enum event_type type, long node_id, struct payment* payment) {
   struct event* e;
 
   e = malloc(sizeof(struct event));
@@ -53,7 +50,7 @@ struct event* new_event(long id, uint64_t time, enum event_type type, long node_
   e->time = time;
   e->type = type;
   e->node_id = node_id;
-  e->payment_id = payment_id;
+  e->payment = payment;
 
   event_index++;
 
@@ -140,12 +137,13 @@ void initialize_payments_preproc(struct payments_params pay_params, long n_nodes
 
 }
 
-void generate_payments_from_file(unsigned int is_preproc) {
+struct array* generate_payments_from_file(struct payments_params pay_params, unsigned int is_preproc) {
   struct payment* payment;
   struct event* event;
   char row[256];
   long id, sender, receiver;
   uint64_t amount, time;
+  struct array* payments;
 
   csv_payment = fopen("payments.csv", "r");
   if(csv_payment==NULL) {
@@ -153,30 +151,32 @@ void generate_payments_from_file(unsigned int is_preproc) {
     exit(-1);
   }
 
+  payments = array_initialize(pay_params.n_payments);
+
   fgets(row, 256, csv_payment);
   while(fgets(row, 256, csv_payment) != NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld", &id, &sender, &receiver, &amount, &time);
     payment = new_payment(id, sender, receiver, amount);
     array_insert(payments, payment);
-    event = new_event(event_index, time, FINDROUTE, sender, payment->id);
+    event = new_event(event_index, time, FINDROUTE, sender, payment);
     events = heap_insert(events, event, compare_event);
   }
-
   fclose(csv_payment);
+
+  return payments;
 }
 
-void initialize_payments(struct payments_params pay_params, unsigned int is_preproc, long n_nodes) {
-  event_index = payment_index = 0;
+struct array* initialize_payments(struct payments_params pay_params, unsigned int is_preproc, long n_nodes) {
+  event_index = 0;
   simulator_time = 1;
 
-  payments = array_initialize(pay_params.n_payments);
   events = heap_initialize(pay_params.n_payments*10);
 
   if(is_preproc)
     initialize_payments_preproc(pay_params, n_nodes);
 
 
-  generate_payments_from_file(is_preproc);
+  return generate_payments_from_file(pay_params, is_preproc);
 }
 
 

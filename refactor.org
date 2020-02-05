@@ -1,7 +1,15 @@
 * TODO eliminare variabili globali
+** come fare
 - usando variabili statiche
 - oppure passando parametri, definiti nel main (magari creare una struct network con tutti i nodi e i canali)
 - vedi https://stackoverflow.com/questions/3208531/c-program-structure-avoiding-global-variables-includes-etc
+** DONE creare struttura network da passare a funzioni 
+** DONE creare array payments da passare a funzioni
+** DONE mettere riferimento a payment in event, anziche id del payment
+** TODO creare heap events da passare a funzioni
+*** TODO separare events da payments
+*** TODO creare funzione initialize_events che crea i primi eventi a partire dai pagamenti
+** TODO creare struct simulator che contiene rimanenti variabili globali (e.g. random generator, simulator_time)
 * TODO input e output
 ** configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]

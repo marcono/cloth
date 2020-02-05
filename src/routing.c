@@ -22,7 +22,7 @@ struct array** paths;
 struct element* jobs=NULL;
 
 
-void initialize_dijkstra(long n_nodes, long n_edges) {
+void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
   int i;
   struct payment *payment;
 
@@ -39,9 +39,9 @@ void initialize_dijkstra(long n_nodes, long n_edges) {
   pthread_mutex_init(&data_mutex, NULL);
   pthread_mutex_init(&jobs_mutex, NULL);
 
-  paths = malloc(sizeof(struct array*)*payment_index);
+  paths = malloc(sizeof(struct array*)*array_len(payments));
 
-  for(i=0; i<payment_index ;i++){
+  for(i=0; i<array_len(payments) ;i++){
     paths[i] = NULL;
     payment = array_get(payments, i);
     jobs = push(jobs, payment->id);
@@ -67,7 +67,7 @@ void* dijkstra_thread(void*arg) {
     if(payment_id==-1) return NULL;
 
     pthread_mutex_lock(&data_mutex);
-    payment = array_get(payments, payment_id);
+    payment = array_get(thread_args->payments, payment_id);
     node = array_get(thread_args->network->nodes, payment->sender);
     pthread_mutex_unlock(&data_mutex);
 
@@ -80,7 +80,7 @@ void* dijkstra_thread(void*arg) {
   return NULL;
 }
 
-void run_dijkstra_threads(struct network*  network) {
+void run_dijkstra_threads(struct network*  network, struct array* payments) {
   long i;
   pthread_t tid[N_THREADS];
   struct thread_args *thread_args;
@@ -88,6 +88,7 @@ void run_dijkstra_threads(struct network*  network) {
   for(i=0; i<N_THREADS; i++) {
     thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
     thread_args->network = network;
+    thread_args->payments = payments;
     thread_args->data_index = i;
     pthread_create(&(tid[i]), NULL, &dijkstra_thread, thread_args);
   }
@@ -97,18 +98,6 @@ void run_dijkstra_threads(struct network*  network) {
 
 }
 
-
-int present(long i) {
-  long p;
-  struct payment *payment;
-
-  for(p=0; p<payment_index; p++) {
-    payment = array_get(payments, p);
-    if(i==payment->sender || i == payment->receiver) return 1;
-  }
-
-  return 0;
-}
 
 
 int compare_distance(struct distance* a, struct distance* b) {

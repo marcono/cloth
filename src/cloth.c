@@ -18,7 +18,7 @@
 #include "../include/cloth.h"
 #include "../include/network.h"
 
-void csv_write_output(struct network* network) {
+void write_output(struct network* network, struct array* payments) {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
   long i,j, *id;
   struct channel* channel;
@@ -64,7 +64,7 @@ void csv_write_output(struct network* network) {
   }
   fprintf(csv_payment_output, "id,sender,receiver,amount,time,end_time,is_success,uncoop_after,uncoop_before,is_timeout,attempts,route,total_fee\n");
 
-  for(i=0; i<payment_index; i++)  {
+  for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
     fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
     route = payment->route;
@@ -205,6 +205,7 @@ int main(int argc, char* argv[]) {
   struct timespec start, finish;
   struct network *network;
   long n_nodes, n_edges;
+  struct array* payments;
 
 
   if(argc!=2) {
@@ -218,12 +219,12 @@ int main(int argc, char* argv[]) {
   initialize_random_generator();
   network = initialize_network(net_params, preproc);
   n_nodes = array_len(network->nodes);
-  initialize_payments(pay_params, 1, n_nodes);
   n_edges = array_len(network->edges);
-  initialize_dijkstra(n_nodes, n_edges);
+  payments = initialize_payments(pay_params, 1, n_nodes);
+  initialize_dijkstra(n_nodes, n_edges, payments);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
-  run_dijkstra_threads(network);
+  run_dijkstra_threads(network, payments);
   clock_gettime(CLOCK_MONOTONIC, &finish);
   time_spent = finish.tv_sec - start.tv_sec;
   printf("Time consumed by initial dijkstra executions: %lf\n", time_spent);
@@ -274,7 +275,7 @@ int main(int argc, char* argv[]) {
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulator events: %lf\n", time_spent);
 
-  csv_write_output(network);
+  write_output(network, payments);
 
   return 0;
 }
@@ -1420,7 +1421,6 @@ int main() {
 }
 
 
-/*
 int main() {
 
   const gsl_rng_type * T;
