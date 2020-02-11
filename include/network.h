@@ -20,7 +20,6 @@
 
 
 FILE *csv_node, *csv_edge, *csv_channel;
-extern gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 struct policy {
   uint32_t fee_base;
@@ -66,6 +65,7 @@ struct network {
   struct array* nodes;
   struct array* channels;
   struct array* edges;
+  gsl_ran_discrete_t* faulty_node_prob;
 };
 
 
@@ -75,7 +75,7 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
 
 struct edge* new_edge(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, struct policy policy);
 
-struct network* initialize_network(struct network_params net_params, unsigned int is_preproc);
+struct network* initialize_network(struct network_params net_params, unsigned int is_preproc, gsl_rng* random_generator);
 
 
 #endif

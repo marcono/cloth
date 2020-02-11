@@ -4,6 +4,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "json.h"
 #include "gsl_rng.h"
@@ -17,6 +18,7 @@
 #include "../include/list.h"
 #include "../include/cloth.h"
 #include "../include/network.h"
+#include "../include/event.h"
 
 void write_output(struct network* network, struct array* payments) {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
@@ -66,7 +68,7 @@ void write_output(struct network* network, struct array* payments) {
 
   for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%"PRIu64",%"PRIu64",%"PRIu64",%u,%u,%u,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
@@ -159,7 +161,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
   jobj = json_object_object_get(jpreinput, "n_channels");
   net_params->n_channels = json_object_get_int64(jobj);
   jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
-  net_params->p_uncoop_before_lock = json_object_get_double(jobj);
+  net_params->faulty_node_prob = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock");
   net_params->p_uncoop_after_lock = json_object_get_double(jobj);
   jobj = json_object_object_get(jpreinput, "percentage_r_withholding");
@@ -183,15 +185,11 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
   return;
 }
 
-gsl_rng *random_generator;
-const gsl_rng_type * random_generator_type;
 
-void initialize_random_generator(){
+gsl_rng* initialize_random_generator(){
   gsl_rng_env_setup();
-  random_generator_type = gsl_rng_default;
-  random_generator = gsl_rng_alloc (random_generator_type);
+  return gsl_rng_alloc (gsl_rng_default);
 }
-
 
 
 int main(int argc, char* argv[]) {
@@ -206,6 +204,7 @@ int main(int argc, char* argv[]) {
   struct network *network;
   long n_nodes, n_edges;
   struct array* payments;
+  struct simulation* simulation;
 
 
   if(argc!=2) {
@@ -216,11 +215,14 @@ int main(int argc, char* argv[]) {
 
   read_input(&net_params, &pay_params);
 
-  initialize_random_generator();
-  network = initialize_network(net_params, preproc);
+  simulation = malloc(sizeof(struct simulation));
+
+  simulation->random_generator = initialize_random_generator();
+  network = initialize_network(net_params, preproc, simulation->random_generator);
   n_nodes = array_len(network->nodes);
   n_edges = array_len(network->edges);
-  payments = initialize_payments(pay_params, 1, n_nodes);
+  payments = initialize_payments(pay_params, 1, n_nodes, simulation->random_generator);
+  simulation->events = initialize_events(payments);
   initialize_dijkstra(n_nodes, n_edges, payments);
 
   clock_gettime(CLOCK_MONOTONIC, &start);
@@ -229,42 +231,41 @@ int main(int argc, char* argv[]) {
   time_spent = finish.tv_sec - start.tv_sec;
   printf("Time consumed by initial dijkstra executions: %lf\n", time_spent);
 
-
-
   begin = clock();
+  simulation->current_time = 1;
   end_time = (pay_params.n_payments)*(pay_params.payment_mean)*1000;
-  while(heap_len(events) != 0) {
-    event = heap_pop(events, compare_event);
-    simulator_time = event->time;
+  while(heap_len(simulation->events) != 0) {
+    event = heap_pop(simulation->events, compare_event);
+    simulation->current_time = event->time;
 
-    if(simulator_time >= end_time) {
+    if(simulation->current_time >= end_time) {
       break;
     }
 
     switch(event->type){
     case FINDROUTE:
-      find_route(event, network);
+      find_route(event, simulation, network);
       break;
     case SENDPAYMENT:
-      send_payment(event, network);
+      send_payment(event, simulation, network);
       break;
     case FORWARDPAYMENT:
-      forward_payment(event, network);
+      forward_payment(event, simulation, network);
       break;
     case RECEIVEPAYMENT:
-      receive_payment(event, network);
+      receive_payment(event, simulation, network);
       break;
     case FORWARDSUCCESS:
-      forward_success(event, network);
+      forward_success(event, simulation, network);
       break;
     case RECEIVESUCCESS:
-      receive_success(event);
+      receive_success(event, simulation);
       break;
     case FORWARDFAIL:
-      forward_fail(event, network);
+      forward_fail(event, simulation, network);
       break;
     case RECEIVEFAIL:
-      receive_fail(event, network);
+      receive_fail(event, simulation, network);
       break;
     default:
       printf("ERROR wrong event type\n");
@@ -273,7 +274,7 @@ int main(int argc, char* argv[]) {
   end = clock();
 
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
-  printf("Time consumed by simulator events: %lf\n", time_spent);
+  printf("Time consumed by simulation events: %lf\n", time_spent);
 
   write_output(network, payments);
 

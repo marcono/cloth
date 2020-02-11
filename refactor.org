@@ -7,7 +7,7 @@
 ** DONE creare array payments da passare a funzioni
 ** DONE mettere riferimento a payment in event, anziche id del payment
 ** TODO creare heap events da passare a funzioni
-*** TODO separare events da payments
+*** DONE separare events da payments
 *** TODO creare funzione initialize_events che crea i primi eventi a partire dai pagamenti
 ** TODO creare struct simulator che contiene rimanenti variabili globali (e.g. random generator, simulator_time)
 * TODO input e output

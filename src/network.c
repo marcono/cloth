@@ -4,7 +4,6 @@
 #include "../include/network.h"
 #include "../include/array.h"
 
-gsl_ran_discrete_t* uncoop_before_discrete, *uncoop_after_discrete;
 
 struct node* new_node(long id) {
   struct node* node;
@@ -50,7 +49,7 @@ struct edge* new_edge(long id, long channel_id, long other_direction, long count
 }
 
 
-void initialize_network_preproc(struct network_params net_params) {
+void initialize_network_preproc(struct network_params net_params, gsl_rng *random_generator) {
   long i, j, node_idIndex, channel_idIndex, edge_idIndex, node1, node2, direction1, direction2, info;
   double Rwithholding_p[] = {1-net_params.RWithholding, net_params.RWithholding}, balance_p[] = {0.5, 0.5}, gini_p[3], min_htlcP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=net_params.n_nodes/2 ;
   gsl_ran_discrete_t* Rwithholding_discrete, *balance_discrete, *gini_discrete, *min_htlcDiscrete;
@@ -329,15 +328,16 @@ struct network* generate_network_from_file(struct network_params net_params, uns
 
 
 
-struct network* initialize_network(struct network_params net_params, unsigned int is_preproc) {
-  double before_p[] = {net_params.p_uncoop_before_lock, 1-net_params.p_uncoop_before_lock};
-  double after_p[] = {net_params.p_uncoop_after_lock, 1-net_params.p_uncoop_after_lock};
-
-  uncoop_before_discrete = gsl_ran_discrete_preproc(2, before_p);
-  uncoop_after_discrete = gsl_ran_discrete_preproc(2, after_p);
+struct network* initialize_network(struct network_params net_params, unsigned int is_preproc, gsl_rng* random_generator) {
+  struct network* network;
+  double faulty_prob[] = {1-net_params.faulty_node_prob, net_params.faulty_node_prob};
 
   if(is_preproc)
-    initialize_network_preproc(net_params);
+    initialize_network_preproc(net_params, random_generator);
 
-  return generate_network_from_file(net_params, is_preproc);
+  network = generate_network_from_file(net_params, is_preproc);
+
+  network->faulty_node_prob = gsl_ran_discrete_preproc(2, faulty_prob);
+
+  return network ;
 }

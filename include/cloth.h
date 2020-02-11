@@ -1,16 +1,16 @@
 #ifndef CLOTH_H
 #define CLOTH_H
 
+#include <stdint.h>
+#include "heap.h"
 #include "gsl_rng.h"
 #include "gsl_randist.h"
 
-extern gsl_rng *random_generator;
-extern const gsl_rng_type * random_generator_type;
 
 struct network_params{
   long n_nodes;
   long n_channels;
-  double p_uncoop_before_lock;
+  double faulty_node_prob;
   double p_uncoop_after_lock;
   double RWithholding;
   int gini;
@@ -23,6 +23,12 @@ struct payments_params{
   long n_payments;
   double sigma_amount;
   double same_destination;
+};
+
+struct simulation{
+  uint64_t current_time; //milliseconds
+  struct heap* events;
+  gsl_rng* random_generator;
 };
 
 #endif
