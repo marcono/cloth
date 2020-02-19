@@ -10,18 +10,25 @@
 struct network_params{
   long n_nodes;
   long n_channels;
-  double faulty_node_prob;
-  double p_uncoop_after_lock;
-  double RWithholding;
-  int gini;
   int sigma_topology;
   long capacity_per_channel;
+  double faulty_node_prob;
+  unsigned int network_from_file;
+  char nodes_filename[256];
+  char channels_filename[256];
+  char edges_filename[256];
+  //FIXME: REMOVE
+  double RWithholding;
+  int gini;
 };
 
 struct payments_params{
   double payment_mean;
   long n_payments;
   double sigma_amount;
+  unsigned int payments_from_file;
+  char payments_filename[256];
+  //FIXME: REMOVE
   double same_destination;
 };
 

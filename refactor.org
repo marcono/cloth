@@ -1,23 +1,22 @@
-* TODO eliminare variabili globali
+* DONE eliminare variabili globali
 ** come fare
 - usando variabili statiche
 - oppure passando parametri, definiti nel main (magari creare una struct network con tutti i nodi e i canali)
 - vedi https://stackoverflow.com/questions/3208531/c-program-structure-avoiding-global-variables-includes-etc
 ** DONE creare struttura network da passare a funzioni 
+- contiene anche faulty node probability
 ** DONE creare array payments da passare a funzioni
 ** DONE mettere riferimento a payment in event, anziche id del payment
-** TODO creare heap events da passare a funzioni
-*** DONE separare events da payments
-*** TODO creare funzione initialize_events che crea i primi eventi a partire dai pagamenti
-** TODO creare struct simulator che contiene rimanenti variabili globali (e.g. random generator, simulator_time)
+** DONE creare struct simulation 
+- contiene heap events, current time e  da passare a funzioni
 * TODO input e output
-** configuration file per l'input
+** TODO configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
-** riscrivere  batch-means.py
+** TODO riscrivere  batch-means.py
 - usare i for per calcolare le varie misure
 - vedere se ci sono funzioni di numpy che direttamente calcolano varianza, media etc.
-** fare script che esegure direttamente cloth e batch-means.py
+** TODO fare script che esegure direttamente cloth e batch-means.py
 * DONE organizzare i file
 ** DONE modifica path dei file della topologia in initialize_topology_preproc
 ** DONE fare due cartelle: src, include
@@ -43,6 +42,7 @@
 ** DONE peer->node, Node -> elemento della lista
 ** DONE togliere typedef e lasciare struct x
 ** DONE cambiare nomi campi in struct
+
 * TODO other
 ** TODO latency non come attributo di channel ma come numero randomico
 ** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)
@@ -53,6 +53,7 @@
 ** ripensare a sigma_amount
 ** ripensare a uncoop_after_HTLC
 ** cancellare funzioni non utilizzate e commentate
+* TODO test
 * feedback federico
 ** cercare regexp per passare da snake a camel
 ** aspettare suo feedback

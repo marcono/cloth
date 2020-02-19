@@ -150,39 +150,138 @@ void write_output(struct network* network, struct array* payments) {
 
 
 
-void read_input(struct network_params* net_params, struct payments_params* pay_params) {
-  struct json_object* jpreinput, *jobj;
+/* void read_input(struct network_params* net_params, struct payments_params* pay_params) { */
+/*   struct json_object* jpreinput, *jobj; */
 
 
-  jpreinput = json_object_from_file("preinput.json");
+/*   jpreinput = json_object_from_file("preinput.json"); */
 
-  jobj = json_object_object_get(jpreinput, "n_nodes");
-  net_params->n_nodes = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "n_channels");
-  net_params->n_channels = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock");
-  net_params->faulty_node_prob = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock");
-  net_params->p_uncoop_after_lock = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "percentage_r_withholding");
-  net_params->RWithholding = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "gini");
-  net_params->gini = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "sigma_topology");
-  net_params->sigma_topology = json_object_get_int(jobj);
-  jobj = json_object_object_get(jpreinput, "capacity");
-  net_params->capacity_per_channel = json_object_get_int64(jobj);
+/*   jobj = json_object_object_get(jpreinput, "n_nodes"); */
+/*   net_params->n_nodes = json_object_get_int64(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "n_channels"); */
+/*   net_params->n_channels = json_object_get_int64(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock"); */
+/*   net_params->faulty_node_prob = json_object_get_double(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock"); */
+/*   net_params->p_uncoop_after_lock = json_object_get_double(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "percentage_r_withholding"); */
+/*   net_params->RWithholding = json_object_get_double(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "gini"); */
+/*   net_params->gini = json_object_get_int(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "sigma_topology"); */
+/*   net_params->sigma_topology = json_object_get_int(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "capacity"); */
+/*   net_params->capacity_per_channel = json_object_get_int64(jobj); */
 
-  jobj = json_object_object_get(jpreinput, "payment_mean");
-  pay_params->payment_mean = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "n_payments");
-  pay_params->n_payments = json_object_get_int64(jobj);
-  jobj = json_object_object_get(jpreinput, "percentage_same_dest");
-  pay_params->same_destination = json_object_get_double(jobj);
-  jobj = json_object_object_get(jpreinput, "sigma_amount");
-  pay_params->sigma_amount = json_object_get_double(jobj);
+/*   jobj = json_object_object_get(jpreinput, "payment_mean"); */
+/*   pay_params->payment_mean = json_object_get_double(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "n_payments"); */
+/*   pay_params->n_payments = json_object_get_int64(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "percentage_same_dest"); */
+/*   pay_params->same_destination = json_object_get_double(jobj); */
+/*   jobj = json_object_object_get(jpreinput, "sigma_amount"); */
+/*   pay_params->sigma_amount = json_object_get_double(jobj); */
 
-  return;
+/*   return; */
+/* } */
+
+void read_input(struct network_params* net_params, struct payments_params* pay_params){
+  FILE* input_file;
+  char *parameter, *value, line[1024];
+
+  input_file = fopen("cloth_input.txt","r");
+
+  if(input_file==NULL){
+    fprintf(stderr, "ERROR: cannot open file <cloth_input.txt> in cloth directory.\n");
+    exit(-1);
+  }
+
+  while(fgets(line, 1024, input_file)){
+
+    parameter = strtok(line, "=");
+    value = strtok(NULL, "=");
+    if(parameter==NULL || value==NULL){
+      fprintf(stderr, "ERROR: wrong format in file <cloth_input.txt>\n");
+      exit(-1);
+    }
+
+    if(value[0]==' ' || parameter[strlen(parameter)-1]==' '){
+      fprintf(stderr, "ERROR: no space allowed after/before <=> character in <cloth_input.txt>. Space detected in parameter <%s>\n", parameter);
+      exit(-1);
+    }
+
+    value[strlen(value)-1] = '\0';
+    printf("value: %s\n", value);
+
+    if(strcmp(parameter, "generate_network_from_file")==0){
+      if(strcmp(value, "true")==0)
+        net_params->network_from_file=1;
+      else if(strcmp(value, "false")==0)
+        net_params->network_from_file=0;
+      else{
+        fprintf(stderr, "ERROR: wrong value of parameter <%s> in <cloth_input.txt>. Possible values are <true> or <false>\n", parameter);
+        exit(-1);
+      }
+    }
+    else if(strcmp(parameter, "nodes_csv")==0){
+      strcpy(net_params->nodes_filename, value);
+    }
+    else if(strcmp(parameter, "channels_csv")==0){
+      strcpy(net_params->channels_filename, value);
+    }
+    else if(strcmp(parameter, "edges_csv")==0){
+      strcpy(net_params->edges_filename, value);
+    }
+    else if(strcmp(parameter, "n_nodes")==0){
+      net_params->n_nodes = atol(value);
+      printf("%ld\n", net_params->n_nodes);
+    }
+    else if(strcmp(parameter, "n_channels_per_node")==0){
+      net_params->n_channels = atol(value);
+    }
+    else if(strcmp(parameter, "sigma_topology")==0){
+      net_params->sigma_topology = atoi(value);
+    }
+    else if(strcmp(parameter, "capacity_per_channel")==0){
+      net_params->capacity_per_channel = atol(value);
+    }
+    else if(strcmp(parameter, "faulty_node_probability")==0){
+      net_params->faulty_node_prob = strtod(value, NULL);
+    }
+    else if(strcmp(parameter, "generate_payments_from_file")==0){
+      if(strcmp(value, "true")==0)
+        pay_params->payments_from_file=1;
+      else if(strcmp(value, "false")==0)
+        pay_params->payments_from_file=0;
+      else{
+        fprintf(stderr, "ERROR: wrong value of parameter <%s> in <cloth_input.txt>. Possible values are <true> or <false>\n", parameter);
+        exit(-1);
+      }
+    }
+    else if(strcmp(parameter, "payments_csv")==0){
+      strcpy(pay_params->payments_filename, value);
+    }
+    else if(strcmp(parameter, "payment_mean")==0){
+      pay_params->payment_mean = strtod(value, NULL);
+    }
+    else if(strcmp(parameter, "n_payments")==0){
+      pay_params->n_payments = atol(value);
+    }
+    else if(strcmp(parameter, "sigma_amount")==0){
+      pay_params->sigma_amount = strtod(value, NULL);
+    }
+    else{
+      fprintf(stderr, "ERROR: unknown parameter <%s>\n", parameter);
+      exit(-1);
+    }
+
+  }
+
+  //FIXME:REMOVE
+  pay_params->same_destination=0.0;
+  net_params->RWithholding=0.0;
+  net_params->gini=1;
+
 }
 
 
@@ -214,6 +313,8 @@ int main(int argc, char* argv[]) {
   preproc = atoi(argv[1]);
 
   read_input(&net_params, &pay_params);
+
+  exit(-1);
 
   simulation = malloc(sizeof(struct simulation));
 
