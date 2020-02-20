@@ -211,7 +211,6 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
     }
 
     value[strlen(value)-1] = '\0';
-    printf("value: %s\n", value);
 
     if(strcmp(parameter, "generate_network_from_file")==0){
       if(strcmp(value, "true")==0)
@@ -234,7 +233,6 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
     }
     else if(strcmp(parameter, "n_nodes")==0){
       net_params->n_nodes = atol(value);
-      printf("%ld\n", net_params->n_nodes);
     }
     else if(strcmp(parameter, "n_channels_per_node")==0){
       net_params->n_channels = atol(value);
@@ -277,10 +275,6 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
 
   }
 
-  //FIXME:REMOVE
-  pay_params->same_destination=0.0;
-  net_params->RWithholding=0.0;
-  net_params->gini=1;
 
 }
 
@@ -291,12 +285,11 @@ gsl_rng* initialize_random_generator(){
 }
 
 
-int main(int argc, char* argv[]) {
+int main() {
   struct event* event;
   clock_t  begin, end;
   double time_spent=0.0;
   uint64_t end_time;
-  int preproc;
   struct network_params net_params;
   struct payments_params pay_params;
   struct timespec start, finish;
@@ -305,24 +298,15 @@ int main(int argc, char* argv[]) {
   struct array* payments;
   struct simulation* simulation;
 
-
-  if(argc!=2) {
-    printf("Command line error\n");
-    return -1;
-  }
-  preproc = atoi(argv[1]);
-
   read_input(&net_params, &pay_params);
-
-  exit(-1);
 
   simulation = malloc(sizeof(struct simulation));
 
   simulation->random_generator = initialize_random_generator();
-  network = initialize_network(net_params, preproc, simulation->random_generator);
+  network = initialize_network(net_params, simulation->random_generator);
   n_nodes = array_len(network->nodes);
   n_edges = array_len(network->edges);
-  payments = initialize_payments(pay_params, 1, n_nodes, simulation->random_generator);
+  payments = initialize_payments(pay_params,  n_nodes, simulation->random_generator);
   simulation->events = initialize_events(payments);
   initialize_dijkstra(n_nodes, n_edges, payments);
 

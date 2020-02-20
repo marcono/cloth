@@ -8,7 +8,6 @@
 #include "cloth.h"
 #include "network.h"
 
-FILE* csv_payment;
 
 struct payment {
   long id;
@@ -26,6 +25,6 @@ struct payment {
 };
 
 
-struct array* initialize_payments(struct payments_params pay_params, unsigned int is_preproc, long n_nodes, gsl_rng* random_generator);
+struct array* initialize_payments(struct payments_params pay_params, long n_nodes, gsl_rng* random_generator);
 
 #endif

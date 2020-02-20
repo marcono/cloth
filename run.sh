@@ -9,7 +9,7 @@ path=$ipath$folder
 #     exit
 # fi
 
-LD_LIBRARY_PATH=$path GSL_RNG_SEED=1992  ./cloth 0
+LD_LIBRARY_PATH=$path GSL_RNG_SEED=1992  ./cloth 
 
 python2.7 batch-means.py ./
 

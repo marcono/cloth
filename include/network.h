@@ -19,8 +19,6 @@
 #define HOPSLIMIT 20
 
 
-FILE *csv_node, *csv_edge, *csv_channel;
-
 struct policy {
   uint32_t fee_base;
   uint32_t fee_proportional;
@@ -75,7 +73,7 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
 
 struct edge* new_edge(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, struct policy policy);
 
-struct network* initialize_network(struct network_params net_params, unsigned int is_preproc, gsl_rng* random_generator);
+struct network* initialize_network(struct network_params net_params, gsl_rng* random_generator);
 
 
 #endif

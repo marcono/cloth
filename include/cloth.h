@@ -18,7 +18,6 @@ struct network_params{
   char channels_filename[256];
   char edges_filename[256];
   //FIXME: REMOVE
-  double RWithholding;
   int gini;
 };
 
@@ -28,8 +27,6 @@ struct payments_params{
   double sigma_amount;
   unsigned int payments_from_file;
   char payments_filename[256];
-  //FIXME: REMOVE
-  double same_destination;
 };
 
 struct simulation{

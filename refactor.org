@@ -10,7 +10,7 @@
 ** DONE creare struct simulation 
 - contiene heap events, current time e  da passare a funzioni
 * TODO input e output
-** TODO configuration file per l'input
+** DONE configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
 ** TODO riscrivere  batch-means.py
@@ -44,6 +44,7 @@
 ** DONE cambiare nomi campi in struct
 
 * TODO other
+** la capacity in input e' da esprimere in satoshi (poi nella funzione si moltiplica per 1000 per convertire in millisat)
 ** TODO latency non come attributo di channel ma come numero randomico
 ** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)
 - fai search di parola chiave "ERROR"

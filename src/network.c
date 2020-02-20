@@ -49,91 +49,43 @@ struct edge* new_edge(long id, long channel_id, long other_direction, long count
 }
 
 
-void initialize_network_preproc(struct network_params net_params, gsl_rng *random_generator) {
+void initialize_random_network(struct network_params net_params, gsl_rng *random_generator) {
   long i, j, node_idIndex, channel_idIndex, edge_idIndex, node1, node2, direction1, direction2, info;
-  double Rwithholding_p[] = {1-net_params.RWithholding, net_params.RWithholding}, balance_p[] = {0.5, 0.5}, gini_p[3], min_htlcP[]={0.7, 0.2, 0.05, 0.05},coeff1, coeff2, mean=net_params.n_nodes/2 ;
-  gsl_ran_discrete_t* Rwithholding_discrete, *balance_discrete, *gini_discrete, *min_htlcDiscrete;
+  double min_htlcP[]={0.7, 0.2, 0.05, 0.05}, mean=net_params.n_nodes/2, fraction_capacity;
+  gsl_ran_discrete_t  *min_htlcDiscrete;
   int *node_edges;
   uint32_t latency;
   uint64_t balance1, balance2, capacity;
   struct policy policy1, policy2;
-  long thresh1, thresh2;
-  uint64_t funds[3], funds_part;
+  FILE *nodes_file, *channels_file, *edges_file;
 
-  switch(net_params.gini) {
-  case 1:
-    coeff1 = 1.0/3;
-    coeff2 = 1.0/3;
-    break;
-  case 2:
-    coeff1 = 1.0/6;
-    coeff2 = 1.0/3;
-    break;
-  case 3:
-    coeff1 = 1.0/8;
-    coeff2 = 1.0/6;
-    break;
-  case 4:
-    coeff1 = 1.0/16;
-    coeff2 = 1.0/12;
-    break;
-  case 5:
-    coeff1 = 1.0/1000;
-    coeff2 = 1.0/1000;
-    break;
-  default:
-    printf("ERROR wrong preinput gini level\n");
-    return;
-  }
 
-  gini_p[0] = coeff1;
-  gini_p[1] = coeff2;
-  gini_p[2] = 1 - (coeff1+coeff2);
-
-  gini_discrete = gsl_ran_discrete_preproc(3, gini_p);
-
-  thresh1 = (net_params.n_nodes)*(net_params.n_channels)*coeff1;
-  thresh2 = (net_params.n_nodes)*(net_params.n_channels)*coeff2;
-
-  // NOTE: *5 instead of *n_channels if you want to test Gini
-  funds_part = (net_params.capacity_per_channel/3)*(net_params.n_nodes)*(net_params.n_channels);
-
-//  printf("%ld, %ld\n", thresh1, thresh2);
-
-  /* if(gini != 5) { */
-  funds[0] = (funds_part)/thresh1;
-  funds[1] = (funds_part)/(thresh2);
-  funds[2] = (funds_part)/ ((net_params.n_nodes)*(net_params.n_channels) - (thresh1 + thresh2));
-
-  csv_node = fopen("nodes.csv", "w");
-  if(csv_node==NULL) {
+  nodes_file = fopen("nodes.csv", "w");
+  if(nodes_file==NULL) {
     printf("ERROR cannot open file nodes.csv\n");
     exit(-1);
   }
-  fprintf(csv_node, "id,withholds_r\n");
+  fprintf(nodes_file, "id\n");
 
-  csv_channel = fopen("channels.csv", "w");
-  if(csv_channel==NULL) {
+  channels_file = fopen("channels.csv", "w");
+  if(channels_file==NULL) {
     printf("ERROR cannot open file channels.csv\n");
     exit(-1);
   }
-  fprintf(csv_channel, "id,direction1,direction2,node1,node2,capacity,latency\n");
+  fprintf(channels_file, "id,direction1,direction2,node1,node2,capacity,latency\n");
 
-  csv_edge = fopen("edges.csv", "w");
-  if(csv_edge==NULL) {
+  edges_file = fopen("edges.csv", "w");
+  if(edges_file==NULL) {
     printf("ERROR cannot open file edges.csv\n");
     exit(-1);
   }
-  fprintf(csv_edge, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n");
+  fprintf(edges_file, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n");
 
-
-  Rwithholding_discrete = gsl_ran_discrete_preproc(2, Rwithholding_p);
-  balance_discrete = gsl_ran_discrete_preproc(2, balance_p);
 
 
   node_idIndex=0;
   for(i=0; i<net_params.n_nodes; i++){
-    fprintf(csv_node, "%ld,%ld\n", node_idIndex, gsl_ran_discrete(random_generator, Rwithholding_discrete));
+    fprintf(nodes_file, "%ld\n", node_idIndex);
     node_idIndex++;
   }
 
@@ -176,25 +128,16 @@ void initialize_network_preproc(struct network_params net_params, gsl_rng *rando
 
       latency = gsl_rng_uniform_int(random_generator, MAXLATENCY - MINLATENCY) + MINLATENCY;
 
-      capacity = funds[gsl_ran_discrete(random_generator, gini_discrete)];
+      capacity = net_params.capacity_per_channel + gsl_ran_ugaussian(random_generator); 
 
-
-      double balance_sigma=2.0, fraction;
-      int gauss;
-
-      gauss=gsl_ran_gaussian(random_generator, balance_sigma);
-
-      if(gsl_ran_discrete(random_generator, balance_discrete))
-        gauss = 2+gauss;
-      else
-        gauss = 7+gauss;
-
-      if(gauss>10) gauss=10;
-      if(gauss<0) gauss = 0;
-
-      fraction = gauss/10.0;
-      balance1 = fraction*capacity;
+      fraction_capacity = (5 + gsl_ran_ugaussian(random_generator))/10; //a number between 0.1 and 1.0, mean 0.5
+      balance1 = fraction_capacity*((double) capacity);
       balance2 = capacity - balance1;
+
+      //multiplied by 1000 to convert satoshi to millisatoshi
+      capacity*=1000;
+      balance1*=1000;
+      balance2*=1000;
 
 
       min_htlcDiscrete = gsl_ran_discrete_preproc(4, min_htlcP);
@@ -211,90 +154,83 @@ void initialize_network_preproc(struct network_params net_params, gsl_rng *rando
       policy2.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlcDiscrete));
       policy2.min_htlc = policy2.min_htlc == 1 ? 0 : policy2.min_htlc;
 
-      fprintf(csv_channel, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, node1, node2, capacity, latency);
+      fprintf(channels_file, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, node1, node2, capacity, latency);
 
-      fprintf(csv_edge, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, node2, balance1, policy1.fee_base, policy1.fee_proportional, policy1.min_htlc, policy1.timelock);
+      fprintf(edges_file, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, node2, balance1, policy1.fee_base, policy1.fee_proportional, policy1.min_htlc, policy1.timelock);
 
-      fprintf(csv_edge, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, node1, balance2, policy2.fee_base, policy2.fee_proportional, policy2.min_htlc, policy2.timelock);
+      fprintf(edges_file, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, node1, balance2, policy2.fee_base, policy2.fee_proportional, policy2.min_htlc, policy2.timelock);
 
     }
 
   }
 
-
-/*   double num = 0, den = 0; */
-/*   for(i=0; i<node_idIndex; i++) { */
-/*     //    if(node_channels[i]>5) printf("%ld, %d\n", i, node_channels[i]); */
-/*     // else { */
-/*     if(node_channels[i]>5) */
-/*       printf("%ld, %d\n", i, node_channels[i]); */
-/*     den++; */
-/*     num += node_channels[i]; */
-/*       //} */
-/*   } */
-
-/*   printf("mean channels: %lf\n", num/den); */
-
-/* exit(-1); */
-
-  fclose(csv_node);
-  fclose(csv_channel);
-  fclose(csv_edge);
-
+  fclose(nodes_file);
+  fclose(channels_file);
+  fclose(edges_file);
 
 }
 
 
-struct network* generate_network_from_file(struct network_params net_params, unsigned int is_preproc) {
-  char row[256], edge_file[64], info_file[64], node_file[64];
+struct network* generate_network(struct network_params net_params) {
+  char row[256], edges_filename[256], channels_filename[256], nodes_filename[256];
   struct node* node, *node1, *node2;
   long id, direction1, direction2, node_id1, node_id2, channel_id, other_direction, counterparty;
   struct policy policy;
-  int withholds_r;
   uint32_t latency;
   uint64_t capacity, balance;
   struct channel* channel;
   struct edge* edge;
   struct network* network;
+  FILE *nodes_file, *channels_file, *edges_file;
+  double faulty_prob[2];
 
-  if(is_preproc) {
-    strcpy(edge_file, "edges.csv");
-    strcpy(info_file, "channels.csv");
-    strcpy(node_file, "nodes.csv");
+  if(!(net_params.network_from_file)) {
+    strcpy(edges_filename, "edges.csv");
+    strcpy(channels_filename, "channels.csv");
+    strcpy(nodes_filename, "nodes.csv");
   }
   else {
-    strcpy(edge_file, "edges_ln.csv");
-    strcpy(info_file, "channels_ln.csv");
-    strcpy(node_file, "nodes_ln.csv");
+    strcpy(edges_filename, net_params.edges_filename);
+    strcpy(channels_filename, net_params.channels_filename);
+    strcpy(nodes_filename, net_params.nodes_filename);
     }
 
-  network = (struct network*) malloc(sizeof(struct network));
-  network->nodes = array_initialize(net_params.n_nodes);
-  network->channels = array_initialize(net_params.n_channels*net_params.n_nodes);
-  network->edges = array_initialize(net_params.n_channels*net_params.n_nodes*2);
-
-  csv_node = fopen(node_file, "r");
-  if(csv_node==NULL) {
-    printf("ERROR cannot open file %s\n", node_file);
+  nodes_file = fopen(nodes_filename, "r");
+  if(nodes_file==NULL) {
+    fprintf(stderr, "ERROR: cannot open file <%s>\n", nodes_filename);
+    exit(-1);
+  }
+  channels_file = fopen(channels_filename, "r");
+  if(channels_file==NULL) {
+    fprintf(stderr, "ERROR: cannot open file <%s>\n", channels_filename);
+    exit(-1);
+  }
+  edges_file = fopen(edges_filename, "r");
+  if(edges_file==NULL) {
+    fprintf(stderr, "ERROR: cannot open file <%s>\n", edges_filename);
     exit(-1);
   }
 
-  fgets(row, 256, csv_node);
-  while(fgets(row, 256, csv_node)!=NULL) {
-    sscanf(row, "%ld,%d", &id, &withholds_r);
+  network = (struct network*) malloc(sizeof(struct network));
+  network->nodes = array_initialize(1000);
+  network->channels = array_initialize(1000);
+  network->edges = array_initialize(2000);
+
+  faulty_prob[0] = 1-net_params.faulty_node_prob;
+  faulty_prob[1] = net_params.faulty_node_prob;
+  network->faulty_node_prob = gsl_ran_discrete_preproc(2, faulty_prob);
+
+  fgets(row, 256, nodes_file);
+  while(fgets(row, 256, nodes_file)!=NULL) {
+    sscanf(row, "%ld", &id);
+    printf("node_id: %ld\n",id);
     node = new_node(id);
     network->nodes = array_insert(network->nodes, node);
   }
-  fclose(csv_node);
+  fclose(nodes_file);
 
-  csv_channel = fopen(info_file, "r");
-  if(csv_channel==NULL) {
-    printf("ERROR cannot open file %s\n", info_file);
-    exit(-1);
-  }
-
-  fgets(row, 256, csv_channel);
-  while(fgets(row, 256, csv_channel)!=NULL) {
+  fgets(row, 256, channels_file);
+  while(fgets(row, 256, channels_file)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &direction1, &direction2, &node_id1, &node_id2, &capacity, &latency);
     channel = new_channel(id, direction1, direction2, node_id1, node_id2, capacity, latency);
     network->channels = array_insert(network->channels, channel);
@@ -303,41 +239,25 @@ struct network* generate_network_from_file(struct network_params net_params, uns
     node2 = array_get(network->nodes, node_id2);
     node2->open_edges = array_insert(node2->open_edges, &(channel->edge2));
   }
+  fclose(channels_file);
 
-  fclose(csv_channel);
 
-  csv_edge = fopen(edge_file, "r");
-  if(csv_edge==NULL) {
-    printf("ERROR cannot open file %s\n", edge_file);
-    exit(-1);
-  }
-
-  fgets(row, 256, csv_edge);
-  while(fgets(row, 256, csv_edge)!=NULL) {
+  fgets(row, 256, edges_file);
+  while(fgets(row, 256, edges_file)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &id, &channel_id, &other_direction, &counterparty, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_htlc, &policy.timelock);
     edge = new_edge(id, channel_id, other_direction, counterparty, balance, policy);
     network->edges = array_insert(network->edges, edge);
   }
-
-  fclose(csv_edge);
+  fclose(edges_file);
 
   return network;
-
-
 }
 
 
+struct network* initialize_network(struct network_params net_params, gsl_rng* random_generator) {
 
-struct network* initialize_network(struct network_params net_params, unsigned int is_preproc, gsl_rng* random_generator) {
-  struct network* network;
-  double faulty_prob[] = {1-net_params.faulty_node_prob, net_params.faulty_node_prob};
+  if(!(net_params.network_from_file))
+    initialize_random_network(net_params, random_generator);
 
-  if(is_preproc)
-    initialize_network_preproc(net_params, random_generator);
-
-  network = generate_network_from_file(net_params, is_preproc);
-
-  network->faulty_node_prob = gsl_ran_discrete_preproc(2, faulty_prob);
-
-  return network ;
+  return  generate_network(net_params);
 }
