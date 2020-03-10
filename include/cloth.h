@@ -17,8 +17,6 @@ struct network_params{
   char nodes_filename[256];
   char channels_filename[256];
   char edges_filename[256];
-  //FIXME: REMOVE
-  int gini;
 };
 
 struct payments_params{

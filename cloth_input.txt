@@ -1,9 +1,9 @@
-generate_network_from_file=true
+generate_network_from_file=false
 nodes_csv=nodes_ln.csv
 channels_csv=channels_ln.csv
 edges_csv=edges_ln.csv
-n_nodes=
-n_channels_per_node=
+n_nodes=1000
+n_channels_per_node=5
 sigma_topology=
 capacity_per_channel=
 faulty_node_probability=0.0

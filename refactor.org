@@ -14,9 +14,9 @@
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
 ** TODO riscrivere  batch-means.py
+- rimuovere il transitorio
+- settare condizioni di fine della simulazione e dell'analisi dell'output
 - usare i for per calcolare le varie misure
-- vedere se ci sono funzioni di numpy che direttamente calcolano varianza, media etc.
-** TODO fare script che esegure direttamente cloth e batch-means.py
 * DONE organizzare i file
 ** DONE modifica path dei file della topologia in initialize_topology_preproc
 ** DONE fare due cartelle: src, include
@@ -44,16 +44,16 @@
 ** DONE cambiare nomi campi in struct
 
 * TODO other
-** la capacity in input e' da esprimere in satoshi (poi nella funzione si moltiplica per 1000 per convertire in millisat)
+** DONE la capacity in input e' da esprimere in satoshi (poi nella funzione si moltiplica per 1000 per convertire in millisat)
 ** TODO latency non come attributo di channel ma come numero randomico
-** exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)
+** TODO exit(-1) in tutte le condizioni di errore (per es. in check_policy_forward)
 - fai search di parola chiave "ERROR"
-** rimuovere withholds R
-** rimuovere gini
+** DONE rimuovere withholds R
+** DONE rimuovere gini
 - oppure rifare in modo che non bisogna specificare i fondi *3
-** ripensare a sigma_amount
-** ripensare a uncoop_after_HTLC
-** cancellare funzioni non utilizzate e commentate
+** TODO ripensare a sigma_amount
+** TODO ripensare a uncoop_after_HTLC
+** TODO cancellare funzioni non utilizzate e commentate
 * TODO test
 * feedback federico
 ** cercare regexp per passare da snake a camel

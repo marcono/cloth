@@ -232,16 +232,16 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
       strcpy(net_params->edges_filename, value);
     }
     else if(strcmp(parameter, "n_nodes")==0){
-      net_params->n_nodes = atol(value);
+      net_params->n_nodes = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "n_channels_per_node")==0){
-      net_params->n_channels = atol(value);
+      net_params->n_channels = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "sigma_topology")==0){
-      net_params->sigma_topology = atoi(value);
+      net_params->sigma_topology = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "capacity_per_channel")==0){
-      net_params->capacity_per_channel = atol(value);
+      net_params->capacity_per_channel = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "faulty_node_probability")==0){
       net_params->faulty_node_prob = strtod(value, NULL);
@@ -263,7 +263,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
       pay_params->payment_mean = strtod(value, NULL);
     }
     else if(strcmp(parameter, "n_payments")==0){
-      pay_params->n_payments = atol(value);
+      pay_params->n_payments = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "sigma_amount")==0){
       pay_params->sigma_amount = strtod(value, NULL);
@@ -318,14 +318,14 @@ int main() {
 
   begin = clock();
   simulation->current_time = 1;
-  end_time = (pay_params.n_payments)*(pay_params.payment_mean)*1000;
+  // end_time = 6000;
   while(heap_len(simulation->events) != 0) {
     event = heap_pop(simulation->events, compare_event);
     simulation->current_time = event->time;
 
-    if(simulation->current_time >= end_time) {
-      break;
-    }
+    /* if(simulation->current_time >= end_time) { */
+    /*   break; */
+    /* } */
 
     switch(event->type){
     case FINDROUTE:
