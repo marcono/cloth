@@ -5,9 +5,9 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "gsl_rng.h"
-#include "gsl_randist.h"
-#include "gsl/gsl_math.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_math.h>
 
 #include "../include/htlc.h"
 #include "../include/array.h"

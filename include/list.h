@@ -11,4 +11,8 @@ struct element* push(struct element* head, long data);
 
 struct element* pop(struct element* head, long* data);
 
+long list_len(struct element* head);
+
+unsigned int is_in_list(struct element* head, long value);
+
 #endif

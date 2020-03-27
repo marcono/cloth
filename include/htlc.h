@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <pthread.h>
-#include "gsl_rng.h"
-#include "gsl_randist.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 #include "array.h"
 #include "routing.h"
 #include "cloth.h"

@@ -6,9 +6,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "json.h"
-#include "gsl_rng.h"
-#include "gsl_cdf.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_cdf.h>
 
 #include "../include/payments.h"
 #include "../include/heap.h"

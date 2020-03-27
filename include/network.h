@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "cloth.h"
+#include "list.h"
 
 #define MAXMSATOSHI 5E17 //5 millions  bitcoin
 #define MAXTIMELOCK 100
@@ -29,6 +30,20 @@ struct policy {
 struct ignored{
   long id;
   uint64_t time;
+};
+
+/* struct random_network_node{ */
+/*   long id; */
+/*   int n_channels; */
+/*   int channel_count; */
+/*   unsigned int in_network; */
+/*   unsigned int left; */
+/*   struct element* connections; */
+/* }; */
+
+struct graph_channel {
+  long node1_id;
+  long node2_id;
 };
 
 struct node {

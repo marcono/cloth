@@ -4,9 +4,9 @@
 #include <time.h>
 #include <stdint.h>
 #include <inttypes.h>
-#include "gsl_rng.h"
-#include "gsl_randist.h"
-#include "gsl_math.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_math.h>
 #include "../include/array.h"
 #include "../include/htlc.h"
 #include "../include/payments.h"

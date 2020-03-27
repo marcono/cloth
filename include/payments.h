@@ -2,7 +2,7 @@
 #define PAYMENTS_H
 
 #include <stdint.h>
-#include "gsl_rng.h"
+#include <gsl/gsl_rng.h>
 #include "array.h"
 #include "heap.h"
 #include "cloth.h"
