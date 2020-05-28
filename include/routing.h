@@ -27,6 +27,9 @@ struct distance{
   uint64_t distance;
   uint64_t amt_to_receive;
   uint64_t fee;
+  double probability;
+  uint32_t timelock;
+  double weight;
 };
 
 struct dijkstra_hop {

@@ -7,11 +7,11 @@ input_args = list(sys.argv)
 
 np.random.seed(1992)
 
-with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_channel, open('../channelInfoLN.csv', 'wb') as csv_info, open('../peerLN.csv', 'wb') as csv_peer, open('../map-nodes.json', 'wb') as map_file:
+with open(input_args[1], 'rb') as input, open('../edges_ln.csv', 'wb') as csv_channel, open('../channels_ln.csv', 'wb') as csv_info, open('../nodes_ln.csv', 'wb') as csv_peer, open('../map-nodes.json', 'wb') as map_file:
     data = json.load(input)
     peer_writer = csv.writer(csv_peer)
 
-    peer_writer.writerow(['ID', 'WithholdsR'])
+    peer_writer.writerow(['id'])
 
     edges = list(data["edges"])
     connected_nodes = []
@@ -33,10 +33,10 @@ with open(input_args[1], 'rb') as input, open('../channelLN.csv', 'wb') as csv_c
     json.dump(map_nodes, map_file, indent=2)
 
     info_writer = csv.writer(csv_info)
-    info_writer.writerow(['ID', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])
+    info_writer.writerow(['id', 'direction1', 'direction2', 'node1', 'node2', 'capacity', 'latency'])
 
     channel_writer = csv.writer(csv_channel)
-    channel_writer.writerow(['ID', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'MinHTLC', 'Timelock'])
+    channel_writer.writerow(['id', 'channel', 'other_direction', 'counterparty', 'balance', 'fee_base', 'fee_proportional', 'min_htlc', 'timelock'])
 
 
     info_id = 0

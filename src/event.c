@@ -38,6 +38,7 @@ struct heap* initialize_events(struct array* payments){
   long i;
   struct event* event;
   struct payment* payment;
+  uint64_t open_channel_time, last_payment_time;
 
   events = heap_initialize(array_len(payments)*10);
 
@@ -46,6 +47,13 @@ struct heap* initialize_events(struct array* payments){
     event = new_event(payment->start_time, FINDROUTE, payment->sender, payment);
     events = heap_insert(events, event, compare_event);
   }
+
+  /* payment = array_get(payments, array_len(payments)-1); */
+  /* last_payment_time = payment->start_time; */
+  /* for(open_channel_time=100; open_channel_time<last_payment_time; open_channel_time+=100){ */
+  /*   event = new_event(open_channel_time, OPENCHANNEL, -1, NULL); */
+  /*   events = heap_insert(events, event, compare_event); */
+  /* } */
 
   return events;
 }

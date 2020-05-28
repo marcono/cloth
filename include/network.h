@@ -21,10 +21,10 @@
 
 
 struct policy {
-  uint32_t fee_base;
-  uint32_t fee_proportional;
-  uint32_t min_htlc;
-  uint16_t timelock;
+  uint64_t fee_base;
+  uint64_t fee_proportional;
+  uint64_t min_htlc;
+  uint32_t timelock;
 };
 
 struct ignored{
@@ -72,6 +72,7 @@ struct edge {
   struct policy policy;
   uint64_t balance;
   unsigned int is_closed;
+  uint64_t tot_flows;
 };
 
 struct network {
@@ -87,6 +88,8 @@ struct node* new_node(long id);
 struct channel* new_channel(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity, uint32_t latency);
 
 struct edge* new_edge(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, struct policy policy);
+
+void open_channel(struct network* network, gsl_rng* random_generator);
 
 struct network* initialize_network(struct network_params net_params, gsl_rng* random_generator);
 

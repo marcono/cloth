@@ -166,8 +166,8 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
     return;
   }
 
-  sender = array_get(network->nodes, payment->sender);
-  check_ignored(sender, simulation->current_time);
+  //  sender = array_get(network->nodes, payment->sender);
+  check_ignored(node, simulation->current_time);
 
 
   if (payment->attempts==1)
@@ -227,6 +227,7 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
     return;
   }
 
+  next_edge->tot_flows += 1;
 
   if(first_route_hop->amount_to_forward > next_edge->balance) {
     printf("Not enough balance in edge %ld\n", next_edge->id);
@@ -240,8 +241,9 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
   next_edge->balance -= first_route_hop->amount_to_forward;
 
 
+
   event_type = first_route_hop->path_hop->receiver == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  next_event_time = simulation->current_time + channel->latency;
+  next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);
   next_event = new_event(next_event_time, event_type, first_route_hop->path_hop->receiver, event->payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
@@ -278,7 +280,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
     printf("struct edge %ld has been closed\n", next_route_hop->path_hop->edge);
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + prev_channel->latency;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;
     next_event = new_event( next_event_time, event_type, prev_node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -292,7 +294,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
 
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + prev_channel->latency + FAULTYLATENCY;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator) + FAULTYLATENCY;//prev_channel->latency + FAULTYLATENCY;
     next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -314,13 +316,15 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop, network->edges);
   if(!is_policy_respected) return;
 
+  next_edge->tot_flows += 1;
+
   if(next_route_hop->amount_to_forward > next_edge->balance ) {
     printf("Not enough balance in edge %ld\n", next_edge->id);
     add_ignored_edge(payment->sender, next_edge->id, network->nodes);
 
     prev_node_id = previous_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + prev_channel->latency;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;
     next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -328,9 +332,10 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   next_edge->balance -= next_route_hop->amount_to_forward;
 
 
+
   next_node_id = next_route_hop->path_hop->receiver;
   event_type = next_node_id == payment->receiver ? RECEIVEPAYMENT : FORWARDPAYMENT;
-  next_event_time = simulation->current_time + next_channel->latency;
+  next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//next_channel->latency;
   next_event = new_event(next_event_time, event_type, next_node_id, event->payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 
@@ -370,7 +375,7 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
 
     prev_node_id = last_route_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + channel->latency + FAULTYLATENCY;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator) + FAULTYLATENCY;//channel->latency + FAULTYLATENCY;
     next_event = new_event(next_event_time, event_type, prev_node_id, event->payment );
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -380,7 +385,7 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
 
   prev_node_id = last_route_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  next_event_time = simulation->current_time + channel->latency;
+  next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//channel->latency;
   next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
@@ -412,7 +417,7 @@ void forward_success(struct event* event, struct simulation* simulation, struct 
     printf("struct edge %ld is not present\n", prev_hop->path_hop->edge);
     prev_node_id = prev_hop->path_hop->sender;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + prev_channel->latency;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;
     next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -438,7 +443,7 @@ void forward_success(struct event* event, struct simulation* simulation, struct 
 
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVESUCCESS : FORWARDSUCCESS;
-  next_event_time = simulation->current_time + prev_channel->latency;
+  next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;
   next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
@@ -476,7 +481,7 @@ void forward_fail(struct event* event, struct simulation* simulation, struct net
   prev_channel = array_get(network->channels, prev_edge->channel_id);
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-  next_event_time = simulation->current_time + prev_channel->latency;
+  next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;
   next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }

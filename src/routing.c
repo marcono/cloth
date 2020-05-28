@@ -11,7 +11,8 @@
 #include "../include/network.h"
 #define INF UINT64_MAX
 #define HOPSLIMIT 20
-
+#define FINALTIMELOCK 40
+#define TIMELOCKLIMIT 2016+FINALTIMELOCK
 
 struct distance **distance;
 struct dijkstra_hop ** next_node;
@@ -85,13 +86,14 @@ void run_dijkstra_threads(struct network*  network, struct array* payments) {
   pthread_t tid[N_THREADS];
   struct thread_args *thread_args;
 
+
   for(i=0; i<N_THREADS; i++) {
     thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
     thread_args->network = network;
     thread_args->payments = payments;
     thread_args->data_index = i;
-    pthread_create(&(tid[i]), NULL, &dijkstra_thread, thread_args);
-  }
+    pthread_create(&(tid[i]), NULL, dijkstra_thread, (void*) thread_args);
+   }
 
   for(i=0; i<N_THREADS; i++)
     pthread_join(tid[i], NULL);
@@ -102,10 +104,17 @@ void run_dijkstra_threads(struct network*  network, struct array* payments) {
 
 int compare_distance(struct distance* a, struct distance* b) {
   uint64_t d1, d2;
+  double p1, p2;
   d1=a->distance;
   d2=b->distance;
-  if(d1==d2)
-    return 0;
+  p1=a->probability;
+  p2=b->probability;
+  if(d1==d2){
+    if(p1>=p2)
+      return 1;
+    else
+      return -1;
+  }
   else if(d1<d2)
     return -1;
   else
@@ -126,6 +135,82 @@ int is_ignored(long id, struct array* ignored){
   return 0;
 }
 
+
+
+struct array* get_best_edges(struct node* to_node, uint64_t amount, long source_node_id, struct network* network){
+  struct array* best_edges;
+  struct element* explored_nodes = NULL;
+  int i, j;
+  struct edge* edge, *best_edge = NULL, *new_best_edge;
+  struct channel* channel;
+  long from_node_id;
+  uint64_t max_balance, max_fee, fee;
+  uint32_t max_timelock;
+  unsigned int local_node;
+  struct policy modified_policy;
+
+  best_edges = array_initialize(5);
+
+  for(i=0; i<array_len(to_node->open_edges); i++){
+    edge = array_get(to_node->open_edges, i);
+    if(is_in_list(explored_nodes, edge->counterparty))
+      continue;
+    explored_nodes = push(explored_nodes, edge->counterparty);
+    from_node_id = edge->counterparty;
+
+    max_balance = 0;
+    max_fee = 0;
+    max_timelock = 0;
+    best_edge = NULL;
+    local_node = source_node_id == from_node_id;
+    for(j=0; j<array_len(to_node->open_edges); j++){
+      edge = array_get(to_node->open_edges, j);
+      if(edge->counterparty != from_node_id)
+        continue;
+      edge = array_get(network->edges, edge->other_edge_id);
+      channel = array_get(network->channels, edge->channel_id);
+
+      if(local_node){
+        if(edge->balance < amount)
+          continue;
+        if(amount < edge->policy.min_htlc)
+          continue;
+        if(edge->balance < max_balance)
+          continue;
+        max_balance = edge->balance;
+        best_edge = edge;
+      }
+      else {
+        if(amount > channel->capacity)
+          continue;
+        if(amount < edge->policy.min_htlc)
+          continue;
+        if(edge->policy.timelock > max_timelock)
+          max_timelock = edge->policy.timelock;
+        fee = compute_fee(amount, edge->policy);
+        if(fee < max_fee)
+          continue;
+        max_fee = fee;
+        best_edge = edge;
+      }
+    }
+
+    if(best_edge == NULL)
+      continue;
+    if(!local_node){
+      modified_policy = best_edge->policy;
+      modified_policy.timelock = max_timelock;
+      new_best_edge = new_edge(best_edge->id, best_edge->channel_id, best_edge->other_edge_id, best_edge->counterparty, best_edge->balance, modified_policy);
+    }
+    else {
+      new_best_edge = best_edge;
+    }
+    best_edges = array_insert(best_edges, new_best_edge);
+  }
+
+  return best_edges;
+}
+
 struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p) {
   struct distance *d=NULL, to_node_dist;
   long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
@@ -135,7 +220,6 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
   struct array* hops=NULL;
   struct path_hop* hop=NULL;
-
 
   while(heap_len(distance_heap[p])!=0)
     heap_pop(distance_heap[p], compare_distance);
@@ -153,7 +237,9 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   distance[p][target].amt_to_receive = amount;
   distance[p][target].fee = 0;
   distance[p][target].distance = 0;
-
+  distance[p][target].timelock = FINALTIMELOCK;
+  distance[p][target].weight = 0;
+  distance[p][target].probability = 1;
 
   distance_heap[p] =  heap_insert(distance_heap[p], &distance[p][target], compare_distance);
 

@@ -49,11 +49,11 @@ void write_output(struct network* network, struct array* payments) {
     printf("ERROR cannot open edge_output.csv\n");
     exit(-1);
   }
-  fprintf(csv_edge_output, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed\n");
+  fprintf(csv_edge_output, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed,tot_flows\n");
 
   for(i=0; i<array_len(network->edges); i++) {
     edge = array_get(network->edges, i);
-    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed);
+    fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d,%d,%ld\n", edge->id, edge->channel_id, edge->other_edge_id, edge->counterparty, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed, edge->tot_flows);
   }
 
   fclose(csv_edge_output);
@@ -288,7 +288,6 @@ int main() {
   struct event* event;
   clock_t  begin, end;
   double time_spent=0.0;
-  uint64_t end_time;
   struct network_params net_params;
   struct payments_params pay_params;
   struct timespec start, finish;
@@ -302,13 +301,17 @@ int main() {
   simulation = malloc(sizeof(struct simulation));
 
   simulation->random_generator = initialize_random_generator();
+  printf("NETWORK INITIALIZATION\n");
   network = initialize_network(net_params, simulation->random_generator);
   n_nodes = array_len(network->nodes);
   n_edges = array_len(network->edges);
+  printf("PAYMENTS INITIALIZATION\n");
   payments = initialize_payments(pay_params,  n_nodes, simulation->random_generator);
+  printf("EVENTS INITIALIZATION\n");
   simulation->events = initialize_events(payments);
   initialize_dijkstra(n_nodes, n_edges, payments);
 
+  printf("INITIAL DIJKSTRA THREADS EXECUTION\n");
   clock_gettime(CLOCK_MONOTONIC, &start);
   run_dijkstra_threads(network, payments);
   clock_gettime(CLOCK_MONOTONIC, &finish);
@@ -351,8 +354,12 @@ int main() {
     case RECEIVEFAIL:
       receive_fail(event, simulation, network);
       break;
+    case OPENCHANNEL:
+      open_channel(network, simulation->random_generator);
+      break;
     default:
       printf("ERROR wrong event type\n");
+      exit(-1);
     }
   }
   end = clock();

@@ -7,11 +7,11 @@ input_args = list(sys.argv)
 
 np.random.seed(1992)
 
-with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_channel, open('channelInfoLN.csv', 'wb') as csv_info, open('peerLN.csv', 'wb') as csv_peer, open('map-nodes.json', 'wb') as map_file:
+with open(input_args[1], 'rb') as input, open('edges_ln.csv', 'wb') as csv_channel, open('channels_ln.csv', 'wb') as csv_info, open('nodes_ln.csv', 'wb') as csv_peer, open('map-nodes.json', 'wb') as map_file:
     data = json.load(input)
     peer_writer = csv.writer(csv_peer)
 
-    peer_writer.writerow(['id', 'WithholdsR'])
+    peer_writer.writerow(['id'])
 
     edges = list(data["edges"])
     connected_nodes = []
@@ -33,10 +33,10 @@ with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_chan
     json.dump(map_nodes, map_file, indent=2)
 
     info_writer = csv.writer(csv_info)
-    info_writer.writerow(['id', 'Direction1', 'Direction2', 'Peer1', 'Peer2', 'Capacity', 'Latency'])
+    info_writer.writerow(['id', 'direction1', 'direction2', 'node1', 'node2', 'capacity', 'latency'])
 
     channel_writer = csv.writer(csv_channel)
-    channel_writer.writerow(['id', 'ChannelInfo', 'OtherDirection', 'Counterparty', 'Balance', 'FeeBase', 'FeeProportional', 'MinHTLC', 'Timelock'])
+    channel_writer.writerow(['id', 'channel', 'other_direction', 'counterparty', 'balance', 'fee_base', 'fee_proportional', 'min_htlc', 'timelock'])
 
 
     info_id = 0
@@ -45,7 +45,7 @@ with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_chan
     for edge in edges:
         peer1 = map_nodes[edge["node1_pub"]]
         peer2 = map_nodes[edge["node2_pub"]]
-        capacity = 1000*long(edge["capacity"])
+        capacity = int(edge["capacity"])
         latency = np.random.randint(10,100)
 
         info_writer.writerow([info_id, channel_id, channel_id+1, peer1, peer2, capacity, latency])
@@ -61,13 +61,15 @@ with open(input_args[1], 'rb') as input, open('channelLN.csv', 'wb') as csv_chan
             fee_prop = edge["node1_policy"]["fee_rate_milli_msat"]
             min_htlc = edge["node1_policy"]["min_htlc"]
 
-        fraction = np.random.normal(0.5, 0.1)
-        fraction = round(fraction, 1)
-        if fraction < 0.1:
-            fraction = 0.1
-        elif fraction > 0.9:
-            fraction = 0.9
-        balance1 = capacity*fraction
+        # fraction = np.random.normal(0.5, 0.1)
+        # fraction = round(fraction, 1)
+        # if fraction < 0.1:
+        #     fraction = 0.1
+        # elif fraction > 0.9:
+        #     fraction = 0.9
+
+        fraction = np.random.uniform(0.0, 1.0)
+        balance1 = int(capacity*fraction)
         balance2 = capacity - balance1
 
         channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, long(round(balance1)), fee_base, fee_prop, min_htlc, timelock])

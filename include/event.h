@@ -14,7 +14,8 @@ enum event_type {
   FORWARDSUCCESS,
   FORWARDFAIL,
   RECEIVESUCCESS,
-  RECEIVEFAIL
+  RECEIVEFAIL,
+  OPENCHANNEL
 };
 
 struct event {

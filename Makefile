@@ -1,6 +1,6 @@
 #include makefile.variable
 
-LIBS=-lgsl -lgslcblas -lm  -lpthread
+LIBS=-lgsl -lgslcblas -lm 
 #INCLUDES=-I$(ipath)include/json-c -I$(ipath)include/gsl -I$(ipath)include/
 
 build:
