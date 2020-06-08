@@ -30,6 +30,7 @@ struct distance{
   double probability;
   uint32_t timelock;
   double weight;
+  long next_edge;
 };
 
 struct dijkstra_hop {
@@ -52,20 +53,23 @@ struct route_hop {
 
 struct route {
   uint64_t total_amount;
-  uint32_t total_timelock;
   uint64_t total_fee;
+  uint32_t total_timelock;
   struct array *route_hops;
 };
 
-
+enum pathfind_error{
+  NOLOCALBALANCE,
+  NOPATH
+};
 
 void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments);
 
 void run_dijkstra_threads(struct network* network, struct array* payments);
 
-struct array* dijkstra(long source, long destination, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct network* network, long p, enum pathfind_error *error);
 
-struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock, struct network* network);
+struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, struct network* network);
 
 void print_hop(struct route_hop* hop);
 

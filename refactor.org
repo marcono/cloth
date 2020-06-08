@@ -62,17 +62,11 @@ creo un nuovo canale randomico ogni 100 ms. Anche in questo caso non e' cambiato
 nulla
 ** TODO fare altre prove
 * TODO aggiornare a lnd-0.9 (0.10 con MPP)
-** find route and send payment
-- default finalcltv timelock delta is 40 blocks. this must be the timelock in
-  the last edge
-- in dijkstra, return error when the maximum of balances the sender edges is
-  lower than the payment amount (without fees)
-- fees are computed in this way:
-	return c.FeeBaseMSat + (amt*c.FeeProportionalMillionths)/1e6
-- stop dijkstra when timelock limit is exceeded. Default timelock limit is
-  2016+40.
-- implement dijkstra with the probabilty
-- implement `getPolicy` to take the policy used in dijkstra
+** TODO find route and send payment
+*** DONE new dijsktra
+*** DONE get policy
+*** TODO edge probabilities (`applypaymentresult`)
+*** TODO fixed final timelock
 ** forward payment
 - the hop must check all his edges connecting to the next node and selects the
   first for which the policies are respect (if any).

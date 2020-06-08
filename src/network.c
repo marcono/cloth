@@ -5,17 +5,12 @@
 #include "../include/network.h"
 #include "../include/array.h"
 
-//parameters of the power law to define number of channels per node, taken from millions-channel-project
-#define A 2.114
-#define B 3.887
-#define C 5.837
-
 struct node* new_node(long id) {
   struct node* node;
 
   node = malloc(sizeof(struct node));
   node->id=id;
-  node->open_edges = array_initialize(5);
+  node->open_edges = array_initialize(10);
   node->ignored_edges = array_initialize(10);
   node->ignored_nodes = array_initialize(1);
 
@@ -38,14 +33,15 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
   return channel;
 }
 
-struct edge* new_edge(long id, long channel_id, long other_direction, long counterparty, uint64_t balance, struct policy policy){
+struct edge* new_edge(long id, long channel_id, long counter_edge_id, long from_node_id, long to_node_id, uint64_t balance, struct policy policy){
   struct edge* edge;
 
   edge = malloc(sizeof(struct edge));
   edge->id = id;
   edge->channel_id = channel_id;
-  edge->counterparty = counterparty;
-  edge->other_edge_id = other_direction;
+  edge->from_node_id = from_node_id;
+  edge->to_node_id = to_node_id;
+  edge->counter_edge_id = counter_edge_id;
   edge->policy = policy;
   edge->balance = balance;
   edge->is_closed = 0;
@@ -213,13 +209,14 @@ void write_network_files(struct network* network){
 
   for(i=0; i<array_len(network->edges); i++){
     edge = array_get(network->edges, i);
-    fprintf(edges_output_file, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", edge->id, edge->channel_id, edge->other_edge_id, edge->counterparty, edge->balance, (edge->policy).fee_base, (edge->policy).fee_proportional, (edge->policy).min_htlc, (edge->policy).timelock);
+    fprintf(edges_output_file, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d\n", edge->id, edge->channel_id, edge->counter_edge_id, edge->from_node_id, edge->to_node_id, edge->balance, (edge->policy).fee_base, (edge->policy).fee_proportional, (edge->policy).min_htlc, (edge->policy).timelock);
   }
 
   fclose(nodes_output_file);
   fclose(edges_output_file);
   fclose(channels_output_file);
 }
+
 
 void update_probability_per_node(double *probability_per_node, int *channels_per_node, long n_nodes, long node1_id, long node2_id, long tot_channels){
   long i;
@@ -228,6 +225,7 @@ void update_probability_per_node(double *probability_per_node, int *channels_per
   for(i=0; i<n_nodes; i++)
     probability_per_node[i] = ((double)channels_per_node[i])/tot_channels;
 }
+
 
 void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long node1_id, long node2_id,  uint64_t channel_capacity, struct network* network, gsl_rng*random_generator) {
   uint64_t capacity, latency, edge1_balance, edge2_balance;
@@ -262,8 +260,8 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   edge2_policy.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlc_discrete));
   edge2_policy.min_htlc = edge2_policy.min_htlc == 1 ? 0 : edge2_policy.min_htlc;
 
-  edge1 = new_edge(edge1_id, channel_id, edge2_id, node2_id, edge1_balance, edge1_policy);
-  edge2 = new_edge(edge2_id, channel_id, edge1_id, node1_id, edge2_balance, edge2_policy);
+  edge1 = new_edge(edge1_id, channel_id, edge2_id, node1_id, node2_id, edge1_balance, edge1_policy);
+  edge2 = new_edge(edge2_id, channel_id, edge1_id, node2_id, node1_id, edge2_balance, edge2_policy);
 
   network->channels = array_insert(network->channels, channel);
   network->edges = array_insert(network->edges, edge1);
@@ -274,6 +272,7 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   node = array_get(network->nodes, node2_id);
   node->open_edges = array_insert(node->open_edges, &(channel->edge2));
 }
+
 
 struct network* generate_random_network(struct network_params net_params, gsl_rng* random_generator){
   FILE* nodes_input_file, *channels_input_file;
@@ -356,8 +355,8 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
 
 struct network* generate_network_from_files(char nodes_filename[256], char channels_filename[256], char edges_filename[256]) {
   char row[256];
-  struct node* node, *node1, *node2;
-  long id, direction1, direction2, node_id1, node_id2, channel_id, other_direction, counterparty;
+  struct node* node;
+  long id, direction1, direction2, node_id1, node_id2, channel_id, other_direction;
   struct policy policy;
   uint32_t latency;
   uint64_t capacity, balance;
@@ -400,19 +399,17 @@ struct network* generate_network_from_files(char nodes_filename[256], char chann
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &direction1, &direction2, &node_id1, &node_id2, &capacity, &latency);
     channel = new_channel(id, direction1, direction2, node_id1, node_id2, capacity, latency);
     network->channels = array_insert(network->channels, channel);
-    node1 = array_get(network->nodes, node_id1);
-    node1->open_edges = array_insert(node1->open_edges, &(channel->edge1));
-    node2 = array_get(network->nodes, node_id2);
-    node2->open_edges = array_insert(node2->open_edges, &(channel->edge2));
   }
   fclose(channels_file);
 
 
-  fgets(row, 256, edges_file);
-  while(fgets(row, 256, edges_file)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%hd", &id, &channel_id, &other_direction, &counterparty, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_htlc, &policy.timelock);
-    edge = new_edge(id, channel_id, other_direction, counterparty, balance, policy);
+  fgets(row, 1024, edges_file);
+  while(fgets(row, 1024, edges_file)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &channel_id, &other_direction, &node_id1, &node_id2, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_htlc, &policy.timelock);
+    edge = new_edge(id, channel_id, other_direction, node_id1, node_id2, balance, policy);
     network->edges = array_insert(network->edges, edge);
+    node = array_get(network->nodes, node_id1);
+    node->open_edges = array_insert(node->open_edges, &(edge->id));
   }
   fclose(edges_file);
 
@@ -452,6 +449,11 @@ void open_channel(struct network* network, gsl_rng* random_generator){
 
 
 //FUNCTIONS COPIED FROM ONE MILLION CHANNELS PROJECT: NOT WORKING, TOO BUGGY
+
+//parameters of the power law to define number of channels per node, taken from millions-channel-project
+/* #define A 2.114 */
+/* #define B 3.887 */
+/* #define C 5.837 */
 
 /* double pow_law_integral(double x){ */
 /*   double y; */

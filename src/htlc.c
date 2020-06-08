@@ -73,32 +73,32 @@ void check_ignored(struct node* sender, uint64_t current_time){
 }
 
 
-int check_policy_forward( struct route_hop* prev_hop, struct route_hop* curr_hop, struct array* edges) {
-  struct policy policy;
-  struct edge* curr_edge, *prev_edge;
-  uint64_t fee;
+/* int check_policy_forward( struct route_hop* prev_hop, struct route_hop* curr_hop, struct array* edges) { */
+/*   struct policy policy; */
+/*   struct edge* curr_edge, *prev_edge; */
+/*   uint64_t fee; */
 
-  curr_edge = array_get(edges, curr_hop->path_hop->edge);
-  prev_edge = array_get(edges, prev_hop->path_hop->edge);
+/*   curr_edge = array_get(edges, curr_hop->path_hop->edge); */
+/*   prev_edge = array_get(edges, prev_hop->path_hop->edge); */
 
-  fee = compute_fee(curr_hop->amount_to_forward,curr_edge->policy);
-  //the check should be: prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward
-  if(prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward) {
-    printf("ERROR: Fee not respected\n");
-    printf("Prev_hop_amount %ld - fee %ld != Curr_hop_amount %ld\n", prev_hop->amount_to_forward, fee, curr_hop->amount_to_forward);
-    print_hop(curr_hop);
-    return 0;
-  }
+/*   fee = compute_fee(curr_hop->amount_to_forward,curr_edge->policy); */
+/*   //the check should be: prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward */
+/*   if(prev_hop->amount_to_forward - fee != curr_hop->amount_to_forward) { */
+/*     printf("ERROR: Fee not respected\n"); */
+/*     printf("Prev_hop_amount %ld - fee %ld != Curr_hop_amount %ld\n", prev_hop->amount_to_forward, fee, curr_hop->amount_to_forward); */
+/*     print_hop(curr_hop); */
+/*     return 0; */
+/*   } */
 
-  if(prev_hop->timelock - prev_edge->policy.timelock != curr_hop->timelock) {
-    printf("ERROR: Timelock not respected\n");
-    printf("Prev_hop_timelock %d - policy_timelock %d != curr_hop_timelock %d \n",prev_hop->timelock, policy.timelock, curr_hop->timelock);
-    print_hop(curr_hop);
-    return 0;
-  }
+/*   if(prev_hop->timelock - prev_edge->policy.timelock != curr_hop->timelock) { */
+/*     printf("ERROR: Timelock not respected\n"); */
+/*     printf("Prev_hop_timelock %d - policy_timelock %d != curr_hop_timelock %d \n",prev_hop->timelock, policy.timelock, curr_hop->timelock); */
+/*     print_hop(curr_hop); */
+/*     return 0; */
+/*   } */
 
-  return 1;
-}
+/*   return 1; */
+/* } */
 
 
 void add_ignored_edge(long node_id, long ignored_id, struct array* nodes){
@@ -144,12 +144,12 @@ struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_s
 
 void find_route(struct event *event, struct simulation* simulation, struct network* network) {
   struct payment *payment;
-  struct node* node, *sender;
+  struct node* node;
   struct array *path_hops;
   struct route* route;
-  int final_timelock=9;
   struct event* send_event;
   uint64_t next_event_time;
+  enum pathfind_error error;
 
 
   payment = event->payment;
@@ -173,8 +173,7 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
   if (payment->attempts==1)
     path_hops = paths[payment->id];
   else
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                         node->ignored_edges, network, 0);
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, network, 0, &error);
 
 
   if (path_hops == NULL) {
@@ -183,7 +182,7 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
     return;
   }
 
-  route = transform_path_into_route(path_hops, payment->amount, final_timelock, network);
+  route = transform_path_into_route(path_hops, payment->amount, network);
   if(route==NULL) {
     printf("No available route\n");
     payment->end_time = simulation->current_time;
@@ -206,7 +205,6 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
   struct route* route;
   struct route_hop* first_route_hop;
   struct edge* next_edge;
-  struct channel* channel;
   struct event* next_event;
   enum event_type event_type;
   struct node* node;
@@ -217,7 +215,6 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
   route = payment->route;
   first_route_hop = array_get(route->route_hops, 0);
   next_edge = array_get(network->edges, first_route_hop->path_hop->edge);
-  channel = array_get(network->channels, next_edge->channel_id);
 
   if(!is_present(next_edge->id, node->open_edges)) {
     printf("struct edge %ld has been closed\n", next_edge->id);
@@ -256,9 +253,8 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   enum event_type event_type;
   struct event* next_event;
   uint64_t next_event_time;
-  struct channel *prev_channel, *next_channel;
   struct edge* prev_edge, *next_edge;
-  int is_policy_respected, is_faulty;
+  int is_faulty;
   struct node* node;
 
   payment = event->payment;
@@ -268,8 +264,6 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   previous_route_hop = get_route_hop(node->id, route->route_hops, 0);
   prev_edge = array_get(network->edges, previous_route_hop->path_hop->edge);
   next_edge = array_get(network->edges, next_route_hop->path_hop->edge);
-  prev_channel = array_get(network->channels, prev_edge->channel_id);
-  next_channel = array_get(network->channels, next_edge->channel_id);
 
   if(next_route_hop == NULL || previous_route_hop == NULL) {
     printf("ERROR: no route hop\n");
@@ -313,8 +307,8 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
 
 
 
-  is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop, network->edges);
-  if(!is_policy_respected) return;
+  /* is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop, network->edges); */
+  /* if(!is_policy_respected) return; */
 
   next_edge->tot_flows += 1;
 
@@ -343,27 +337,22 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
 
 
 void receive_payment(struct event* event, struct simulation* simulation, struct network* network) {
-  long node_id, prev_node_id;
+  long  prev_node_id;
   struct route* route;
   struct payment* payment;
   struct route_hop* last_route_hop;
   struct edge* forward_edge,*backward_edge;
-  struct channel* channel;
   struct event* next_event;
   enum event_type event_type;
   uint64_t next_event_time;
-  struct node* node;
   int is_faulty;
 
-  node_id = event->node_id;
-  node = array_get(network->nodes, node_id);
   payment = event->payment;
   route = payment->route;
 
   last_route_hop = array_get(route->route_hops, array_len(route->route_hops) - 1);
   forward_edge = array_get(network->edges, last_route_hop->path_hop->edge);
-  backward_edge = array_get(network->edges, forward_edge->other_edge_id);
-  channel = array_get(network->channels, forward_edge->channel_id);
+  backward_edge = array_get(network->edges, forward_edge->counter_edge_id);
 
   backward_edge->balance += last_route_hop->amount_to_forward;
 
@@ -392,10 +381,9 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
 
 
 void forward_success(struct event* event, struct simulation* simulation, struct network* network) {
-  struct route_hop* prev_hop, *next_hop;
+  struct route_hop* prev_hop;
   struct payment* payment;
-  struct edge* forward_edge, * backward_edge, *next_edge;
-  struct channel *prev_channel;
+  struct edge* forward_edge, * backward_edge;
   long prev_node_id;
   struct event* next_event;
   enum event_type event_type;
@@ -405,13 +393,9 @@ void forward_success(struct event* event, struct simulation* simulation, struct 
 
   payment = event->payment;
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
-  next_hop = get_route_hop(event->node_id, payment->route->route_hops, 1);
-  next_edge = array_get(network->edges, next_hop->path_hop->edge);
   forward_edge = array_get(network->edges, prev_hop->path_hop->edge);
-  backward_edge = array_get(network->edges, forward_edge->other_edge_id);
-  prev_channel = array_get(network->channels, forward_edge->channel_id);
+  backward_edge = array_get(network->edges, forward_edge->counter_edge_id);
   node = array_get(network->nodes, event->node_id);
- 
 
   if(!is_present(backward_edge->id, node->open_edges)) {
     printf("struct edge %ld is not present\n", prev_hop->path_hop->edge);
@@ -457,8 +441,7 @@ void receive_success(struct event* event, struct simulation *simulation){
 void forward_fail(struct event* event, struct simulation* simulation, struct network* network) {
   struct payment* payment;
   struct route_hop* next_hop, *prev_hop;
-  struct edge* next_edge, *prev_edge;
-  struct channel *prev_channel;
+  struct edge* next_edge;
   long prev_node_id;
   struct event* next_event;
   enum event_type event_type;
@@ -477,8 +460,6 @@ void forward_fail(struct event* event, struct simulation* simulation, struct net
     printf("struct edge %ld is not present\n", next_hop->path_hop->edge);
 
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
-  prev_edge = array_get(network->edges, prev_hop->path_hop->edge);
-  prev_channel = array_get(network->channels, prev_edge->channel_id);
   prev_node_id = prev_hop->path_hop->sender;
   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
   next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency;

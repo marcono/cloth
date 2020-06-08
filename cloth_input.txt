@@ -1,14 +1,14 @@
-generate_network_from_file=false
+generate_network_from_file=true
 nodes_csv=nodes_ln.csv
 channels_csv=channels_ln.csv
 edges_csv=edges_ln.csv
 n_nodes=1
 n_channels_per_node=5
 sigma_topology=
-capacity_per_channel=1000
+capacity_per_channel=100000
 faulty_node_probability=0.0
 generate_payments_from_file=false
 payments_csv=
 payment_mean=0.001
-n_payments=20000
+n_payments=1000
 sigma_amount=1

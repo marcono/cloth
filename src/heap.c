@@ -68,18 +68,52 @@ struct heap* heap_initialize(long size) {
   return h;
 }
 
+
 struct heap* heap_insert(struct heap *h, void* data, int(*compare)()) {
   int i, parent, comp_res;
 
-  if(h->index>=h->size) {
-    h = resize_heap(h);
-  }
+  if(h->index >= h->size) {
+      h = resize_heap(h);
+    }
 
   i=h->index;
   (h->index)++;
   h->data[i]=data;
-  parent = get_parent(i);
 
+  parent = get_parent(i);
+  while(i>0) {
+    comp_res=(*compare)(h->data[i], h->data[parent]);
+    if(comp_res>0) break;
+    swap(&(h->data[i]),&(h->data[parent]));
+    i=parent;
+    parent=get_parent(i);
+  }
+
+  return h;
+}
+
+
+struct heap* heap_insert_or_update(struct heap *h, void* data, int(*compare)(), int(*is_key_equal)()) {
+  int i, parent, comp_res, present;
+
+  present = 0;
+  for(i=0; i<h->index; i++){
+    if(is_key_equal(h->data[i], data)){
+      present = 1;
+      break;
+    }
+  }
+
+  if(!present){
+    if(h->index>=h->size) {
+      h = resize_heap(h);
+    }
+    i=h->index;
+    (h->index)++;
+    h->data[i]=data;
+  }
+
+  parent = get_parent(i);
   while(i>0) {
     comp_res=(*compare)(h->data[i], h->data[parent]);
     if(comp_res>0) break;

@@ -10,12 +10,14 @@
 #include "../include/routing.h"
 #include "../include/network.h"
 #define INF UINT64_MAX
-#define HOPSLIMIT 20
+#define HOPSLIMIT 27
 #define FINALTIMELOCK 40
 #define TIMELOCKLIMIT 2016+FINALTIMELOCK
+#define PROBABILITYLIMIT 0.01
+#define RISKFACTOR 15
+#define PAYMENTATTEMPTPENALTY 100000
 
 struct distance **distance;
-struct dijkstra_hop ** next_node;
 struct heap** distance_heap;
 pthread_mutex_t data_mutex;
 pthread_mutex_t jobs_mutex;
@@ -28,12 +30,10 @@ void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
   struct payment *payment;
 
   distance = malloc(sizeof(struct distance*)*N_THREADS);
-  next_node = malloc(sizeof(struct dijkstra_hop*)*N_THREADS);
   distance_heap = malloc(sizeof(struct heap*)*N_THREADS);
 
   for(i=0; i<N_THREADS; i++) {
     distance[i] = malloc(sizeof(struct distance)*n_nodes);
-    next_node[i] = malloc(sizeof(struct dijkstra_hop)*n_nodes);
     distance_heap[i] = heap_initialize(n_edges);
   }
 
@@ -55,8 +55,8 @@ void* dijkstra_thread(void*arg) {
   struct payment * payment;
   struct array* hops;
   long payment_id;
-  struct node* node;
   struct thread_args *thread_args;
+  enum pathfind_error error;
 
   thread_args = (struct thread_args*) arg;
 
@@ -69,11 +69,9 @@ void* dijkstra_thread(void*arg) {
 
     pthread_mutex_lock(&data_mutex);
     payment = array_get(thread_args->payments, payment_id);
-    node = array_get(thread_args->network->nodes, payment->sender);
     pthread_mutex_unlock(&data_mutex);
 
-    hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes,
-                    node->ignored_edges, thread_args->network, thread_args->data_index);
+    hops = dijkstra(payment->sender, payment->receiver, payment->amount, thread_args->network, thread_args->data_index, &error);
 
     paths[payment->id] = hops;
   }
@@ -121,6 +119,10 @@ int compare_distance(struct distance* a, struct distance* b) {
     return 1;
 }
 
+int is_key_equal(struct distance* a, struct distance* b) {
+  return a->node == b->node;
+}
+
 
 int is_ignored(long id, struct array* ignored){
   int i;
@@ -135,28 +137,43 @@ int is_ignored(long id, struct array* ignored){
   return 0;
 }
 
+void get_balance(struct node* node, uint64_t *max_balance, uint64_t *total_balance){
+  int i;
+  struct edge* edge;
+
+  *total_balance = 0;
+  *max_balance = 0;
+  for(i=0; i<array_len(node->open_edges); i++){
+    edge = array_get(node->open_edges, i);
+    *total_balance += edge->balance;
+    if(edge->balance > *max_balance)
+      *max_balance = edge->balance;
+  }
+}
 
 
-struct array* get_best_edges(struct node* to_node, uint64_t amount, long source_node_id, struct network* network){
+struct array* get_best_edges(long to_node_id, uint64_t amount, long source_node_id, struct network* network){
   struct array* best_edges;
   struct element* explored_nodes = NULL;
   int i, j;
+  struct node* to_node;
   struct edge* edge, *best_edge = NULL, *new_best_edge;
   struct channel* channel;
-  long from_node_id;
+  long from_node_id, counter_edge_id;
   uint64_t max_balance, max_fee, fee;
   uint32_t max_timelock;
   unsigned int local_node;
   struct policy modified_policy;
 
+  to_node = array_get(network->nodes, to_node_id);
   best_edges = array_initialize(5);
 
   for(i=0; i<array_len(to_node->open_edges); i++){
     edge = array_get(to_node->open_edges, i);
-    if(is_in_list(explored_nodes, edge->counterparty))
+    from_node_id = edge->to_node_id; // search is performed from target to source
+    if(is_in_list(explored_nodes, from_node_id))
       continue;
-    explored_nodes = push(explored_nodes, edge->counterparty);
-    from_node_id = edge->counterparty;
+    explored_nodes = push(explored_nodes, from_node_id);
 
     max_balance = 0;
     max_fee = 0;
@@ -165,9 +182,10 @@ struct array* get_best_edges(struct node* to_node, uint64_t amount, long source_
     local_node = source_node_id == from_node_id;
     for(j=0; j<array_len(to_node->open_edges); j++){
       edge = array_get(to_node->open_edges, j);
-      if(edge->counterparty != from_node_id)
+      if(edge->to_node_id != from_node_id)
         continue;
-      edge = array_get(network->edges, edge->other_edge_id);
+      counter_edge_id = edge->counter_edge_id;
+      edge = array_get(network->edges, counter_edge_id);
       channel = array_get(network->channels, edge->channel_id);
 
       if(local_node){
@@ -200,7 +218,7 @@ struct array* get_best_edges(struct node* to_node, uint64_t amount, long source_
     if(!local_node){
       modified_policy = best_edge->policy;
       modified_policy.timelock = max_timelock;
-      new_best_edge = new_edge(best_edge->id, best_edge->channel_id, best_edge->other_edge_id, best_edge->counterparty, best_edge->balance, modified_policy);
+      new_best_edge = new_edge(best_edge->id, best_edge->channel_id, best_edge->counter_edge_id, best_edge->from_node_id, best_edge->to_node_id, best_edge->balance, modified_policy);
     }
     else {
       new_best_edge = best_edge;
@@ -211,15 +229,43 @@ struct array* get_best_edges(struct node* to_node, uint64_t amount, long source_
   return best_edges;
 }
 
-struct array* dijkstra(long source, long target, uint64_t amount, struct array* ignored_nodes, struct array* ignored_edges, struct network* network, long p) {
+
+double get_edge_weight(uint64_t amount, uint64_t fee, uint32_t timelock){
+  double timelock_penalty;
+  timelock_penalty = amount*((double)timelock)*RISKFACTOR/((double)1000000000);
+  return timelock_penalty + ((double) fee);
+}
+
+
+uint64_t get_probability_based_dist(double weight, double probability){
+  const double min_probability = 0.00001;
+  if(probability < min_probability)
+    return INF;
+  return weight + ((double) PAYMENTATTEMPTPENALTY)/probability;
+}
+
+
+struct array* dijkstra(long source, long target, uint64_t amount, struct network* network, long p, enum pathfind_error *error) {
   struct distance *d=NULL, to_node_dist;
-  long i, best_node_id, j,edge_id, *other_edge_id=NULL, prev_node_id, curr;
-  struct node* best_node=NULL;
-  struct edge* edge=NULL, *other_edge=NULL;
-  struct channel* channel=NULL;
-  uint64_t capacity, amt_to_send, fee, tmp_dist, weight, new_amt_to_receive;
-  struct array* hops=NULL;
+  long i, best_node_id, j, from_node_id, curr;
+  struct node *source_node;
+  struct edge* edge=NULL;
+  uint32_t edge_timelock, tmp_timelock;
+  uint64_t  amt_to_send, edge_fee, tmp_dist, amt_to_receive, total_balance, max_balance, current_dist;
+  struct array* hops=NULL, *best_edges = NULL;
   struct path_hop* hop=NULL;
+  double edge_probability, tmp_probability, edge_weight, tmp_weight, current_prob;
+
+  source_node = array_get(network->nodes, source);
+  get_balance(source_node, &max_balance, &total_balance);
+  if(amount > total_balance){
+    *error = NOLOCALBALANCE;
+    return NULL;
+  }
+  else if(amount > max_balance){
+    *error = NOPATH;
+    return NULL;
+  }
 
   while(heap_len(distance_heap[p])!=0)
     heap_pop(distance_heap[p], compare_distance);
@@ -229,8 +275,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
     distance[p][i].distance = INF;
     distance[p][i].fee = 0;
     distance[p][i].amt_to_receive = 0;
-    next_node[p][i].edge = -1;
-    next_node[p][i].node = -1;
+    distance[p][i].next_edge = -1;
   }
 
   distance[p][target].node = target;
@@ -241,88 +286,78 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct array* 
   distance[p][target].weight = 0;
   distance[p][target].probability = 1;
 
-  distance_heap[p] =  heap_insert(distance_heap[p], &distance[p][target], compare_distance);
-
+  distance_heap[p] =  heap_insert_or_update(distance_heap[p], &distance[p][target], compare_distance, is_key_equal);
 
   while(heap_len(distance_heap[p])!=0) {
+
     d = heap_pop(distance_heap[p], compare_distance);
     best_node_id = d->node;
     if(best_node_id==source) break;
 
-    best_node = array_get(network->nodes, best_node_id);
+    to_node_dist = distance[p][best_node_id];
+    amt_to_send = to_node_dist.amt_to_receive;
 
-    for(j=0; j<array_len(best_node->open_edges); j++) {
-      // need to get other direction of the edge as search is performed from target to source
-      other_edge_id = array_get(best_node->open_edges, j);
-      if(other_edge_id==NULL) continue;
-      other_edge = array_get(network->edges, *other_edge_id);
-      edge = array_get(network->edges, other_edge->other_edge_id);
+    best_edges = get_best_edges(best_node_id, amt_to_send, source, network);
 
-      prev_node_id = other_edge->counterparty;
-      edge_id = edge->id;
+    for(j=0; j<array_len(best_edges); j++) {
+      edge = array_get(best_edges, j);
 
-      if(is_ignored(prev_node_id, ignored_nodes)) continue;
-      if(is_ignored(edge_id, ignored_edges)) continue;
+      from_node_id = edge->from_node_id;
 
-      to_node_dist = distance[p][best_node_id];
-      amt_to_send = to_node_dist.amt_to_receive;
+      //TODO: implement get_probability
+      edge_probability = 1;
+      if(edge_probability == 0) continue;
 
-      if(prev_node_id==source)
-        capacity = edge->balance;
-      else{
-        channel = array_get(network->channels, edge->channel_id);
-        capacity = channel->capacity;
+      edge_fee = 0;
+      edge_timelock = 0;
+      if(from_node_id != source){
+        edge_fee = compute_fee(amt_to_send, edge->policy);
+        edge_timelock = edge->policy.timelock;
       }
 
-      if(amt_to_send > capacity || amt_to_send < edge->policy.min_htlc) continue;
+      amt_to_receive = amt_to_send + edge_fee;
 
-      if(prev_node_id==source)
-        fee = 0;
-      else
-        fee = compute_fee(amt_to_send, edge->policy);
+      tmp_timelock = to_node_dist.timelock + edge_timelock;
+      if(tmp_timelock > TIMELOCKLIMIT) continue;
 
-      new_amt_to_receive = amt_to_send + fee;
+      tmp_probability = to_node_dist.probability*edge_probability;
+      if(tmp_probability < PROBABILITYLIMIT) continue;
 
-      weight = fee + new_amt_to_receive*edge->policy.timelock*15/1000000000;
+      edge_weight = get_edge_weight(amt_to_receive, edge_fee, edge_timelock);
+      tmp_weight = to_node_dist.weight + edge_weight;
+      tmp_dist = get_probability_based_dist(tmp_weight, tmp_probability);
 
-      tmp_dist = weight + to_node_dist.distance;
+      current_dist = distance[p][from_node_id].distance;
+      current_prob = distance[p][from_node_id].probability;
+      if(tmp_dist > current_dist) continue;
+      if(tmp_dist == current_dist && tmp_probability <= current_prob) continue;
 
-      if(tmp_dist < distance[p][prev_node_id].distance) {
-        distance[p][prev_node_id].node = prev_node_id;
-        distance[p][prev_node_id].distance = tmp_dist;
-        distance[p][prev_node_id].amt_to_receive = new_amt_to_receive;
-        distance[p][prev_node_id].fee = fee;
+      distance[p][from_node_id].node = from_node_id;
+      distance[p][from_node_id].distance = tmp_dist;
+      distance[p][from_node_id].weight = tmp_weight;
+      distance[p][from_node_id].amt_to_receive = amt_to_receive;
+      distance[p][from_node_id].timelock = tmp_timelock;
+      distance[p][from_node_id].probability = tmp_probability;
+      distance[p][from_node_id].next_edge = edge->id;
 
-        next_node[p][prev_node_id].edge = edge_id;
-        next_node[p][prev_node_id].node = best_node_id;
-
-        distance_heap[p] = heap_insert(distance_heap[p], &distance[p][prev_node_id], compare_distance);
+      distance_heap[p] = heap_insert_or_update(distance_heap[p], &distance[p][from_node_id], compare_distance, is_key_equal);
       }
-      }
-
     }
 
-
-  if(next_node[p][source].node == -1) {
-    return NULL;
-  }
-
-
-  hops = array_initialize(HOPSLIMIT);
+  hops = array_initialize(5);
   curr = source;
   while(curr!=target) {
+    if(distance[p][curr].next_edge == -1) {
+      *error = NOPATH;
+      return NULL;
+    }
     hop = malloc(sizeof(struct path_hop));
     hop->sender = curr;
-    hop->edge = next_node[p][curr].edge;
-    hop->receiver = next_node[p][curr].node;
+    hop->edge = distance[p][curr].next_edge;
+    edge = array_get(network->edges, distance[p][curr].next_edge);
+    hop->receiver = edge->to_node_id;
     hops=array_insert(hops, hop);
-
-    curr = next_node[p][curr].node;
-  }
-
-
-  if(array_len(hops)>HOPSLIMIT) {
-    return NULL;
+    curr = edge->to_node_id;
   }
 
   return hops;
@@ -334,25 +369,27 @@ struct route* route_initialize(long n_hops) {
 
   r = malloc(sizeof(struct route));
   r->route_hops = array_initialize(n_hops);
-  r->total_amount = 0.0;
-  r->total_fee = 0.0;
+  r->total_amount = 0;
   r->total_timelock = 0;
 
   return r;
 }
 
 
-struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, int final_timelock, struct network* network) {
+//slightly differet w.r.t. `newRoute` in lnd because `newRoute` aims to produce the payloads for each node from the second in the path to the last node
+struct route* transform_path_into_route(struct array* path_hops, uint64_t destination_amt, struct network* network) {
   struct path_hop *path_hop;
   struct route_hop *route_hop, *next_route_hop;
   struct route *route;
   long n_hops, i;
-  uint64_t fee, current_channel_capacity;
+  uint64_t fee;
   struct edge* edge;
   struct policy current_edge_policy, next_edge_policy;
-  struct channel* channel;
 
   n_hops = array_len(path_hops);
+  if(n_hops > HOPSLIMIT)
+    return NULL;
+
   route = route_initialize(n_hops);
 
   for(i=n_hops-1; i>=0; i--) {
@@ -360,48 +397,36 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t amount
 
     edge = array_get(network->edges, path_hop->edge);
     current_edge_policy = edge->policy;
-    channel = array_get(network->channels,edge->channel_id);
-    current_channel_capacity = channel->capacity;
 
     route_hop = malloc(sizeof(struct route_hop));
     route_hop->path_hop = path_hop;
+    if(i == n_hops-1) {
+      route_hop->amount_to_forward = destination_amt;
+      fee = 0;
+      route->total_amount += destination_amt;
 
-    if(i == array_len(path_hops)-1) {
-      route_hop->amount_to_forward = amount_to_send;
-      route->total_amount += amount_to_send;
-
-      if(n_hops == 1) {
-        route_hop->timelock = 0;
-        route->total_timelock = 0;
-      }
-      else {
-        route_hop->timelock = current_edge_policy.timelock;
-        route->total_timelock += current_edge_policy.timelock;
-      }
+      route_hop->timelock = FINALTIMELOCK;
+      route->total_timelock += FINALTIMELOCK;
     }
     else {
       fee = compute_fee(next_route_hop->amount_to_forward, next_edge_policy);
       route_hop->amount_to_forward = next_route_hop->amount_to_forward + fee;
-      route->total_fee += fee;
       route->total_amount += fee;
+      route->total_fee += fee;
 
       route_hop->timelock = next_route_hop->timelock + current_edge_policy.timelock;
       route->total_timelock += current_edge_policy.timelock;
     }
-
-    if(route_hop->amount_to_forward > current_channel_capacity)
-      return NULL;
-
     route->route_hops = array_insert(route->route_hops, route_hop);
+
     next_edge_policy = current_edge_policy;
     next_route_hop = route_hop;
-
     }
 
   array_reverse(route->route_hops);
 
   return route;
-  }
+}
 
 
 void print_hop(struct route_hop* hop){

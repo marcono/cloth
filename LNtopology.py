@@ -36,7 +36,7 @@ with open(input_args[1], 'rb') as input, open('edges_ln.csv', 'wb') as csv_chann
     info_writer.writerow(['id', 'direction1', 'direction2', 'node1', 'node2', 'capacity', 'latency'])
 
     channel_writer = csv.writer(csv_channel)
-    channel_writer.writerow(['id', 'channel', 'other_direction', 'counterparty', 'balance', 'fee_base', 'fee_proportional', 'min_htlc', 'timelock'])
+    channel_writer.writerow(['id', 'channel', 'other_direction', 'from_node_id', 'to_node_id', 'balance', 'fee_base', 'fee_proportional', 'min_htlc', 'timelock'])
 
 
     info_id = 0
@@ -72,7 +72,7 @@ with open(input_args[1], 'rb') as input, open('edges_ln.csv', 'wb') as csv_chann
         balance1 = int(capacity*fraction)
         balance2 = capacity - balance1
 
-        channel_writer.writerow([channel_id, info_id, channel_id+1, peer2, long(round(balance1)), fee_base, fee_prop, min_htlc, timelock])
+        channel_writer.writerow([channel_id, info_id, channel_id+1, peer1, peer2, long(round(balance1)), fee_base, fee_prop, min_htlc, timelock])
 
         if edge["node2_policy"] is None:
             timelock = 144
@@ -85,7 +85,7 @@ with open(input_args[1], 'rb') as input, open('edges_ln.csv', 'wb') as csv_chann
             fee_prop = edge["node2_policy"]["fee_rate_milli_msat"]
             min_htlc = edge["node2_policy"]["min_htlc"]
 
-        channel_writer.writerow([channel_id+1, info_id, channel_id, peer1, long(round(balance2)), fee_base, fee_prop, min_htlc, timelock])
+        channel_writer.writerow([channel_id+1, info_id, channel_id, peer2, peer1, long(round(balance2)), fee_base, fee_prop, min_htlc, timelock])
 
         info_id+=1
         channel_id+=2
