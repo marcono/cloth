@@ -11,7 +11,6 @@
 #include "../include/network.h"
 #define INF UINT64_MAX
 #define HOPSLIMIT 27
-#define FINALTIMELOCK 40
 #define TIMELOCKLIMIT 2016+FINALTIMELOCK
 #define PROBABILITYLIMIT 0.01
 #define RISKFACTOR 15
@@ -399,7 +398,9 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
     current_edge_policy = edge->policy;
 
     route_hop = malloc(sizeof(struct route_hop));
-    route_hop->path_hop = path_hop;
+    route_hop->from_node_id = path_hop->sender;
+    route_hop->to_node_id = path_hop->receiver;
+    route_hop->edge_id = path_hop->edge;
     if(i == n_hops-1) {
       route_hop->amount_to_forward = destination_amt;
       fee = 0;

@@ -10,6 +10,7 @@
 #include "network.h"
 
 #define N_THREADS 4
+#define FINALTIMELOCK 40
 
 extern pthread_mutex_t data_mutex;
 extern pthread_mutex_t jobs_mutex;
@@ -45,7 +46,9 @@ struct path_hop{
 };
 
 struct route_hop {
-  struct path_hop* path_hop;
+  long from_node_id;
+  long to_node_id;
+  long edge_id;
   uint64_t amount_to_forward;
   uint16_t timelock;
 };

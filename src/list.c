@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "../include/list.h"
 
-struct element* push(struct element* head, long data) {
+struct element* push(struct element* head, void* data) {
 	struct element* newhead;
 
 	newhead = malloc(sizeof(struct element));
@@ -12,9 +12,17 @@ struct element* push(struct element* head, long data) {
 	return newhead;
 }
 
-struct element* pop(struct element* head, long* data) {
+void* get_by_key(struct element* head, long key, int (*is_key_equal)()){
+  struct element* iterator;
+  for(iterator=head; iterator!=NULL; iterator=iterator->next)
+    if(is_key_equal(key, iterator->data))
+      return iterator->data;
+  return NULL;
+}
+
+struct element* pop(struct element* head, void** data) {
   if(head==NULL) {
-    *data = -1;
+    *data = NULL;
     return NULL;
   }
   *data = head->data;
@@ -33,10 +41,10 @@ long list_len(struct element* head){
   return len;
 }
 
-unsigned int is_in_list(struct element* head, long value){
+unsigned int is_in_list(struct element* head, void* data, int (*is_equal)()){
   struct element* iterator;
   for(iterator=head; iterator!=NULL; iterator=iterator->next)
-    if(iterator->data==value)
+    if(is_equal(iterator->data, data))
       return 1;
   return 0;
 }

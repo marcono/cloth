@@ -11,8 +11,7 @@ struct node* new_node(long id) {
   node = malloc(sizeof(struct node));
   node->id=id;
   node->open_edges = array_initialize(10);
-  node->ignored_edges = array_initialize(10);
-  node->ignored_nodes = array_initialize(1);
+  node->results = NULL;
 
   return node;
 }
@@ -420,6 +419,9 @@ struct network* generate_network_from_files(char nodes_filename[256], char chann
 struct network* initialize_network(struct network_params net_params, gsl_rng* random_generator) {
   struct network* network;
   double faulty_prob[2];
+  long n_nodes;
+  int i;
+  struct node* node;
 
   if(net_params.network_from_file)
     network = generate_network_from_files(net_params.nodes_filename, net_params.channels_filename, net_params.edges_filename);
@@ -429,6 +431,12 @@ struct network* initialize_network(struct network_params net_params, gsl_rng* ra
   faulty_prob[0] = 1-net_params.faulty_node_prob;
   faulty_prob[1] = net_params.faulty_node_prob;
   network->faulty_node_prob = gsl_ran_discrete_preproc(2, faulty_prob);
+
+  n_nodes = array_len(network->nodes);
+  for(i=0; i<array_len(network->nodes); i++){
+    node = array_get(network->nodes, i);
+    node->results = (struct element**) malloc(n_nodes*sizeof(struct element*));
+  }
 
   return  network;
 }

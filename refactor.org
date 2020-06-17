@@ -13,6 +13,26 @@
 ** DONE configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
+** TODO provare a rendere il sistema stazionario
+il sistema simulato non e' stazionario, perche' il tempo medio di pagamento
+aumenta di batch in batch. Questo e' dovuto al fatto che via via che si eseguono
+pagamenti i canali si sbilanciano e i nuovi pagamenti prendono piu' tempo.
+*** DONE partire da canali sbilanciati
+ho provato a creare sin dall'inzio della simulazione canali sbilanciati. la
+fraction di capacity e' un numero randomico uniforme tra 0 e 1, generando in
+media un rapporto 0.2/0.8 di balance nei canali. 
+
+Al termine della simulazione questo rapporto rimane quasi identico, cioe' i
+canali in media non si sono sbilanciati durante la simulazione. Quindi e'
+probabile che lo sbilanciamento sia una caratteristica intrinseca della
+topologia (oltre che della capacita' dei canali e dei pagamenti simulati):i
+pagamenti tendono tutti a fare gli stessi percorsi, per es. passando dallo
+stesso nodo, e che i canali di questo nodo si sbilanciano.
+*** DONE creare nuovi canali
+creo un nuovo canale randomico ogni 100 ms. Anche in questo caso non e' cambiato
+nulla
+*** TODO fare altre prove
+
 ** TODO riscrivere  batch-means.py
 - rimuovere il transitorio
 - settare condizioni di fine della simulazione e dell'analisi dell'output
@@ -42,37 +62,23 @@
 ** DONE peer->node, Node -> elemento della lista
 ** DONE togliere typedef e lasciare struct x
 ** DONE cambiare nomi campi in struct
-* TODO provare a rendere il sistema stazionario
-il sistema simulato non e' stazionario, perche' il tempo medio di pagamento
-aumenta di batch in batch. Questo e' dovuto al fatto che via via che si eseguono
-pagamenti i canali si sbilanciano e i nuovi pagamenti prendono piu' tempo.
-** DONE partire da canali sbilanciati
-ho provato a creare sin dall'inzio della simulazione canali sbilanciati. la
-fraction di capacity e' un numero randomico uniforme tra 0 e 1, generando in
-media un rapporto 0.2/0.8 di balance nei canali. 
-
-Al termine della simulazione questo rapporto rimane quasi identico, cioe' i
-canali in media non si sono sbilanciati durante la simulazione. Quindi e'
-probabile che lo sbilanciamento sia una caratteristica intrinseca della
-topologia (oltre che della capacita' dei canali e dei pagamenti simulati):i
-pagamenti tendono tutti a fare gli stessi percorsi, per es. passando dallo
-stesso nodo, e che i canali di questo nodo si sbilanciano.
-** DONE creare nuovi canali
-creo un nuovo canale randomico ogni 100 ms. Anche in questo caso non e' cambiato
-nulla
-** TODO fare altre prove
 * TODO aggiornare a lnd-0.9 (0.10 con MPP)
 ** TODO find route and send payment
 *** DONE new dijsktra
 *** DONE get policy
 *** TODO edge probabilities (`applypaymentresult`)
-*** TODO fixed final timelock
-** forward payment
+*** DONE fixed final timelock
+** DONE forward payment
 - the hop must check all his edges connecting to the next node and selects the
   first for which the policies are respect (if any).
-** receive payment result
+- non-strict forwarding: A node MAY forward an HTLC along an outgoing channel
+  other than the one specified by short_channel_id, so long as the receiver has
+  the same node public key intended by short_channel_id. Thus, if
+  short_channel_id connects nodes A and B, the HTLC can be forwarded across any
+  channel connecting A and B [https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#non-strict-forwarding]
+** TODO receive payment result
 - update the results of the payment for each edge and node (see `applyPaymentResult`)
-** MPP 
+** TODO MPP 
 * TODO lanciare sonarcube
 * TODO test
 * TODO altro
@@ -89,3 +95,5 @@ nulla
 * librerie in anguirel
 - installa gsl in /usr/include, installandolo da riga di comando
 - rimuovi ogni riferimento a jsonc etc. 
+
+

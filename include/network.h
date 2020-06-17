@@ -45,11 +45,18 @@ struct graph_channel {
   long node2_id;
 };
 
+struct node_pair_result{
+  long to_node_id;
+  uint64_t fail_time;
+  uint64_t fail_amount;
+  uint64_t success_time;
+  uint64_t success_amount;
+};
+
 struct node {
   long id;
   struct array* open_edges;
-  struct array* ignored_nodes;
-  struct array* ignored_edges;
+  struct element **results;
 };
 
 struct channel {

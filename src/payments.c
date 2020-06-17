@@ -31,11 +31,13 @@ struct payment* new_payment(long id, long sender, long receiver, uint64_t amount
   p->start_time = start_time;
   p->route = NULL;
   p->is_success = 0;
-  p->uncoop_after = 0;
-  p->uncoop_before=0;
+  p->offline_node_count = 0;
+  p->no_balance_count = 0;
   p->is_timeout = 0;
   p->end_time = 0;
   p->attempts = 0;
+  p->error.type = NOERROR;
+  p->error.hop = NULL;
 
   return p;
 }
@@ -45,8 +47,6 @@ struct payment* new_payment(long id, long sender, long receiver, uint64_t amount
 void initialize_random_payments(struct payments_params pay_params, long n_nodes, gsl_rng * random_generator) {
   long i, sender_id, receiver_id;
   uint64_t  payment_amount=0, payment_time=0, next_payment_interval ;
-  double payment_class_p[]= {0.7, 0.2, 0.1, 0.0};
-  gsl_ran_discrete_t* discrete_amount;
   long payment_idIndex=0;
   int base, exp;
   int npay[8]={0};
@@ -59,7 +59,6 @@ void initialize_random_payments(struct payments_params pay_params, long n_nodes,
   }
   fprintf(payments_file, "id,sender,receiver,amount,time\n");
 
-  discrete_amount = gsl_ran_discrete_preproc(4, payment_class_p);
 
   for(i=0;i<pay_params.n_payments;i++) {
 
@@ -135,6 +134,3 @@ struct array* initialize_payments(struct payments_params pay_params, long n_node
 
   return generate_payments(pay_params);
 }
-
-
-

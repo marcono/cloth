@@ -67,7 +67,8 @@ void write_output(struct network* network, struct array* payments) {
 
   for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%"PRIu64",%"PRIu64",%"PRIu64",%u,%u,%u,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->uncoop_after, payment->uncoop_before, payment->is_timeout, payment->attempts);
+    //TODO: fixme
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%"PRIu64",%"PRIu64",%"PRIu64",%u,%u,%u,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, 0, payment->offline_node_count, payment->is_timeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)

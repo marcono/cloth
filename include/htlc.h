@@ -12,7 +12,7 @@
 #include "payments.h"
 #include "event.h"
 
-#define FAULTYLATENCY 3000 //3 seconds waiting for a peer not responding (tcp default retransmission time)
+#define OFFLINELATENCY 3000 //3 seconds waiting for a peer not responding (tcp default retransmission time)
 
 
 void connect_nodes(long node1, long node2);
@@ -33,7 +33,7 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
 
 void forward_success(struct event* event, struct simulation* simulation, struct network* network);
 
-void receive_success(struct event* event, struct simulation* simulation);
+void receive_success(struct event* event, struct simulation* simulation, struct network* network);
 
 void forward_fail(struct event* event, struct simulation* simulation, struct network* network);
 
