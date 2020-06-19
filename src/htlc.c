@@ -83,30 +83,56 @@ struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_s
   return array_get(route_hops, index);
 }
 
-//TODO check correctness
-void set_node_pair_result_success(struct element** results, struct route_hop* hop, uint64_t current_time){
+
+void set_node_pair_result_success(struct element** results, long from_node_id, long to_node_id, uint64_t success_amount, uint64_t success_time){
   struct node_pair_result* result;
 
-  result = get_by_key(results[hop->from_node_id], hop->to_node_id, is_equal_key_result);
+  result = get_by_key(results[from_node_id], to_node_id, is_equal_key_result);
 
   if(result == NULL){
     result = malloc(sizeof(struct node_pair_result));
-    result->to_node_id = hop->to_node_id;
+    result->to_node_id = to_node_id;
     result->fail_time = 0;
     result->fail_amount = 0;
-    result->success_time = current_time;
-    result->success_amount = hop->amount_to_forward;
-    results[hop->from_node_id] = push(results[hop->from_node_id], result);
-    return;
+    result->success_time = 0;
+    result->success_amount = 0;
+    results[from_node_id] = push(results[from_node_id], result);
   }
 
-  result->success_time = current_time;
-  if(hop->amount_to_forward > result->success_amount)
-    result->success_amount = hop->amount_to_forward;
+  result->success_time = success_time;
+  if(success_amount > result->success_amount)
+    result->success_amount = success_amount;
   if(result->fail_time != 0 && result->success_amount > result->fail_amount)
-    result->fail_amount = result->success_amount + 1;
-
+    result->fail_amount = success_amount + 1;
 }
+
+
+void set_node_pair_result_fail(struct element** results, long from_node_id, long to_node_id, uint64_t fail_amount, uint64_t fail_time){
+  struct node_pair_result* result;
+
+  result = get_by_key(results[from_node_id], to_node_id, is_equal_key_result);
+
+  if(result != NULL)
+    if(fail_amount > result->fail_amount && fail_time - result->fail_time < 60000)
+      return;
+
+  if(result == NULL){
+    result = malloc(sizeof(struct node_pair_result));
+    result->to_node_id = to_node_id;
+    result->fail_time = 0;
+    result->fail_amount = 0;
+    result->success_time = 0;
+    results[from_node_id] = push(results[from_node_id], result);
+  }
+
+  result->fail_amount = fail_amount;
+  result->fail_time = fail_time;
+  if(fail_amount == 0)
+    result->success_amount = 0;
+  else if(fail_amount != 0 && fail_amount <= result->success_amount)
+    result->success_amount = fail_amount - 1;
+}
+
 
 void process_success_result(struct node* node, struct payment *payment, uint64_t current_time){
   struct route_hop* hop;
@@ -117,19 +143,45 @@ void process_success_result(struct node* node, struct payment *payment, uint64_t
 
   for(i=0; i<array_len(route_hops); i++){
     hop = array_get(route_hops, i);
-    set_node_pair_result_success(node->results, hop, current_time);
+    set_node_pair_result_success(node->results, hop->from_node_id, hop->to_node_id, hop->amount_to_forward, current_time);
   }
 
 }
 
-void process_fail_result(struct node* node, struct payment *payment, uint64_t current_time){}
+
+void process_fail_result(struct node* node, struct payment *payment, uint64_t current_time){
+  struct route_hop* hop, *error_hop;
+  int i;
+  struct array* route_hops;
+
+  error_hop = payment->error.hop;
+
+  if(error_hop->from_node_id == payment->sender) //do nothing if the error was originated by the sender (see `processPaymentOutcomeSelf` in lnd)
+    return;
+
+  if(payment->error.type == OFFLINENODE) {
+    set_node_pair_result_fail(node->results, error_hop->from_node_id, error_hop->to_node_id, 0, current_time);
+    set_node_pair_result_fail(node->results, error_hop->to_node_id, error_hop->from_node_id, 0, current_time);
+  }
+  else if(payment->error.type == NOBALANCE) {
+    route_hops = payment->route->route_hops;
+    for(i=0; i<array_len(route_hops); i++){
+      hop = array_get(route_hops, i);
+      if(hop->edge_id == error_hop->edge_id) {
+        set_node_pair_result_fail(node->results, hop->from_node_id, hop->to_node_id, hop->amount_to_forward, current_time);
+        break;
+      }
+      set_node_pair_result_success(node->results, hop->from_node_id, hop->to_node_id, hop->amount_to_forward, current_time);
+    }
+  }
+
+}
 
 /*HTLC FUNCTIONS*/
 
 
 void find_route(struct event *event, struct simulation* simulation, struct network* network) {
   struct payment *payment;
-  struct node* node;
   struct array *path_hops;
   struct route* route;
   struct event* send_event;
@@ -138,7 +190,6 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
 
 
   payment = event->payment;
-  node = array_get(network->nodes, payment->sender);
 
   //  printf("FINDROUTE %ld\n", payment->id);
 
