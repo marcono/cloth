@@ -3,18 +3,118 @@
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <math.h>
 #include "../include/payments.h"
 #include "../include/htlc.h"
 #include "../include/heap.h"
 #include "../include/array.h"
 #include "../include/routing.h"
 #include "../include/network.h"
+#include "../include/utils.h"
+
 #define INF UINT64_MAX
 #define HOPSLIMIT 27
 #define TIMELOCKLIMIT 2016+FINALTIMELOCK
 #define PROBABILITYLIMIT 0.01
 #define RISKFACTOR 15
 #define PAYMENTATTEMPTPENALTY 100000
+
+#define APRIORIWEIGHT 0.5
+#define APRIORIHOPPROBABILITY 0.6
+#define PREVSUCCESSPROBABILITY 0.95
+#define PENALTYHALFLIFE 1
+#define MAXMILLISATOSHI UINT64_MAX
+
+
+
+double millisec_to_hour(double time){
+  double res;
+  res = time / 1000.0;
+  res = res / 60.0;
+  res = res / 24.0;
+  return res;
+}
+
+
+double get_weight(uint64_t age){
+  double exp;
+  exp = - millisec_to_hour(age) / PENALTYHALFLIFE;
+  return pow(2, exp);
+}
+
+double calculate_probability(struct element* node_results, long to_node_id, uint64_t amount, double node_probability, uint64_t current_time){
+  struct node_pair_result* result;
+  uint64_t time_since_last_failure;
+  double weight, probability;
+
+  result = get_by_key(node_results, to_node_id, is_equal_key_result);
+
+  if(result == NULL)
+    return node_probability;
+
+  if(amount <= result->success_amount)
+    return PREVSUCCESSPROBABILITY;
+
+  if(result->fail_time == 0 || amount < result->fail_amount)
+    return node_probability;
+
+  if(result->fail_time > current_time) {
+    fprintf(stderr, "ERROR (calculate_probability): fail_time > current_time" );
+    exit(-1);
+  }
+  time_since_last_failure = current_time - result->fail_time;
+  weight = get_weight(time_since_last_failure);
+  probability = node_probability * (1-weight);
+
+  return probability;
+}
+
+
+double get_node_probability(struct element* node_results, uint64_t amount, uint64_t current_time){
+  double apriori_factor, total_probabilities, total_weight;
+  struct element* iterator;
+  struct node_pair_result* result;
+  uint64_t age;
+
+  if(list_len(node_results) == 0)
+    return APRIORIHOPPROBABILITY;
+
+  apriori_factor = 1.0 / (1.0 - APRIORIWEIGHT) - 1;
+  total_probabilities = APRIORIHOPPROBABILITY*apriori_factor;
+  total_weight = apriori_factor;
+  for(iterator = node_results; iterator != NULL; iterator = iterator->next){
+    result = (struct node_pair_result*) iterator->data;
+    if(amount <= result->success_amount){
+      total_weight++;
+      total_probabilities += PREVSUCCESSPROBABILITY;
+      continue;
+    }
+    if(result->fail_time != 0 && amount >= result->fail_amount){
+      age = current_time - result->fail_time;
+      total_weight += get_weight(age);
+    }
+  }
+
+  return total_probabilities / total_weight;
+}
+
+
+double get_probability(long from_node_id, long to_node_id, uint64_t amount, long sender_id, uint64_t current_time,  struct network* network){
+  struct node* sender;
+  struct element* results;
+  double node_probability;
+
+  sender = array_get(network->nodes, sender_id);
+  results = sender->results[from_node_id];
+
+  if(from_node_id == sender_id)
+    node_probability = PREVSUCCESSPROBABILITY;
+  else
+    node_probability = get_node_probability(results, amount, current_time);
+
+  return calculate_probability(results, to_node_id, MAXMILLISATOSHI, node_probability, current_time);
+}
+
 
 struct distance **distance;
 struct heap** distance_heap;
@@ -44,7 +144,7 @@ void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
   for(i=0; i<array_len(payments) ;i++){
     paths[i] = NULL;
     payment = array_get(payments, i);
-    jobs = push(jobs, payment->id);
+    jobs = push(jobs, &(payment->id));
   }
 
 }
@@ -53,6 +153,7 @@ void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
 void* dijkstra_thread(void*arg) {
   struct payment * payment;
   struct array* hops;
+  void *data;
   long payment_id;
   struct thread_args *thread_args;
   enum pathfind_error error;
@@ -61,7 +162,8 @@ void* dijkstra_thread(void*arg) {
 
   while(1) {
     pthread_mutex_lock(&jobs_mutex);
-    jobs = pop(jobs, &payment_id);
+    jobs = pop(jobs, &data);
+    payment_id =  *((long*)data);
     pthread_mutex_unlock(&jobs_mutex);
 
     if(payment_id==-1) return NULL;
@@ -70,7 +172,7 @@ void* dijkstra_thread(void*arg) {
     payment = array_get(thread_args->payments, payment_id);
     pthread_mutex_unlock(&data_mutex);
 
-    hops = dijkstra(payment->sender, payment->receiver, payment->amount, thread_args->network, thread_args->data_index, &error);
+    hops = dijkstra(payment->sender, payment->receiver, payment->amount, thread_args->network, thread_args->current_time, thread_args->data_index, &error);
 
     paths[payment->id] = hops;
   }
@@ -78,7 +180,8 @@ void* dijkstra_thread(void*arg) {
   return NULL;
 }
 
-void run_dijkstra_threads(struct network*  network, struct array* payments) {
+
+void run_dijkstra_threads(struct network*  network, struct array* payments, uint64_t current_time) {
   long i;
   pthread_t tid[N_THREADS];
   struct thread_args *thread_args;
@@ -88,6 +191,7 @@ void run_dijkstra_threads(struct network*  network, struct array* payments) {
     thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
     thread_args->network = network;
     thread_args->payments = payments;
+    thread_args->current_time = current_time;
     thread_args->data_index = i;
     pthread_create(&(tid[i]), NULL, dijkstra_thread, (void*) thread_args);
    }
@@ -96,7 +200,6 @@ void run_dijkstra_threads(struct network*  network, struct array* payments) {
     pthread_join(tid[i], NULL);
 
 }
-
 
 
 int compare_distance(struct distance* a, struct distance* b) {
@@ -118,23 +221,6 @@ int compare_distance(struct distance* a, struct distance* b) {
     return 1;
 }
 
-int is_key_equal(struct distance* a, struct distance* b) {
-  return a->node == b->node;
-}
-
-
-int is_ignored(long id, struct array* ignored){
-  int i;
-  struct ignored* curr;
-
-  for(i=0; i<array_len(ignored); i++) {
-    curr = array_get(ignored, i);
-    if(curr->id==id)
-      return 1;
-  }
-
-  return 0;
-}
 
 void get_balance(struct node* node, uint64_t *max_balance, uint64_t *total_balance){
   int i;
@@ -169,10 +255,10 @@ struct array* get_best_edges(long to_node_id, uint64_t amount, long source_node_
 
   for(i=0; i<array_len(to_node->open_edges); i++){
     edge = array_get(to_node->open_edges, i);
-    from_node_id = edge->to_node_id; // search is performed from target to source
-    if(is_in_list(explored_nodes, from_node_id))
+    if(is_in_list(explored_nodes, &(edge->to_node_id), is_equal_long))
       continue;
-    explored_nodes = push(explored_nodes, from_node_id);
+    explored_nodes = push(explored_nodes, &(edge->to_node_id));
+    from_node_id = edge->to_node_id;//search is performed in reverse, from target to source
 
     max_balance = 0;
     max_fee = 0;
@@ -244,7 +330,7 @@ uint64_t get_probability_based_dist(double weight, double probability){
 }
 
 
-struct array* dijkstra(long source, long target, uint64_t amount, struct network* network, long p, enum pathfind_error *error) {
+struct array* dijkstra(long source, long target, uint64_t amount, struct network* network, uint64_t current_time, long p, enum pathfind_error *error) {
   struct distance *d=NULL, to_node_dist;
   long i, best_node_id, j, from_node_id, curr;
   struct node *source_node;
@@ -304,7 +390,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
       from_node_id = edge->from_node_id;
 
       //TODO: implement get_probability
-      edge_probability = 1;
+      edge_probability = get_probability(from_node_id, to_node_dist.node, amt_to_send, source, current_time, network);
       if(edge_probability == 0) continue;
 
       edge_fee = 0;
@@ -429,10 +515,6 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
   return route;
 }
 
-
-void print_hop(struct route_hop* hop){
-  printf("Sender %ld, Receiver %ld, Edge %ld\n", hop->path_hop->sender, hop->path_hop->receiver, hop->path_hop->edge);
-}
 
 
 /* int is_same_path(struct array*root_path, struct array*path) { */

@@ -20,6 +20,7 @@ extern struct element* jobs;
 struct thread_args{
   struct network* network;
   struct array* payments;
+  uint64_t current_time;
   int data_index;
 };
 
@@ -68,9 +69,9 @@ enum pathfind_error{
 
 void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments);
 
-void run_dijkstra_threads(struct network* network, struct array* payments);
+void run_dijkstra_threads(struct network* network, struct array* payments, uint64_t current_time);
 
-struct array* dijkstra(long source, long destination, uint64_t amount, struct network* network, long p, enum pathfind_error *error);
+struct array* dijkstra(long source, long destination, uint64_t amount, struct network* network, uint64_t current_time, long p, enum pathfind_error *error);
 
 struct route* transform_path_into_route(struct array* path_hops, uint64_t amount_to_send, struct network* network);
 

@@ -49,7 +49,7 @@ nulla
 ** DONE routing.c
 *** DONE spostare qui thread
 *** DONE elimina dijkstra_p, che diventa dijkstra (i non-thread lo chiamano con indice 0)
-* DONE connessione nodi
+* DONE creazione random network
 - usa algoritmo descritto qui https://medium.com/blockstream/letting-a-million-channels-bloom-985bdb28660b
 * DONE cambio nomi variabili
 ** DONE camel case to snake case
@@ -63,10 +63,10 @@ nulla
 ** DONE togliere typedef e lasciare struct x
 ** DONE cambiare nomi campi in struct
 * TODO aggiornare a lnd-0.9 (0.10 con MPP)
-** TODO find route and send payment
+** DONE find route and send payment
 *** DONE new dijsktra
 *** DONE get policy
-*** TODO edge probabilities (`applypaymentresult`)
+*** DONE edge probabilities (`applypaymentresult`)
 *** DONE fixed final timelock
 ** DONE forward payment
 - the hop must check all his edges connecting to the next node and selects the
@@ -76,7 +76,7 @@ nulla
   the same node public key intended by short_channel_id. Thus, if
   short_channel_id connects nodes A and B, the HTLC can be forwarded across any
   channel connecting A and B [https://github.com/lightningnetwork/lightning-rfc/blob/master/04-onion-routing.md#non-strict-forwarding]
-** TODO receive payment result
+** DONE receive payment result
 - update the results of the payment for each edge and node (see `applyPaymentResult`)
 ** TODO MPP 
 * TODO lanciare sonarcube

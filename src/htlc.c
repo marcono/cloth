@@ -31,9 +31,6 @@ uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
 }
 
 
-
-
-
 unsigned int check_balance_and_policy(struct edge* edge, struct route_hop* prev_hop, struct route_hop* next_hop, unsigned int last_hop) {
   uint64_t expected_fee, actual_fee;
   uint32_t timelock_delta;
@@ -206,7 +203,7 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
   if (payment->attempts==1)
     path_hops = paths[payment->id];
   else
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, network, 0, &error);
+    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, network, simulation->current_time, 0, &error);
 
 
   if (path_hops == NULL) {

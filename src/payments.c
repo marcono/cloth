@@ -46,7 +46,7 @@ struct payment* new_payment(long id, long sender, long receiver, uint64_t amount
 
 void initialize_random_payments(struct payments_params pay_params, long n_nodes, gsl_rng * random_generator) {
   long i, sender_id, receiver_id;
-  uint64_t  payment_amount=0, payment_time=0, next_payment_interval ;
+  uint64_t  payment_amount=0, payment_time=1, next_payment_interval ;
   long payment_idIndex=0;
   int base, exp;
   int npay[8]={0};

@@ -78,9 +78,9 @@ void write_output(struct network* network, struct array* payments) {
       for(j=0; j<array_len(hops); j++) {
         hop = array_get(hops, j);
         if(j==array_len(hops)-1)
-          fprintf(csv_payment_output,"%ld,",hop->path_hop->edge);
+          fprintf(csv_payment_output,"%ld,",hop->edge_id);
         else
-          fprintf(csv_payment_output,"%ld-",hop->path_hop->edge);
+          fprintf(csv_payment_output,"%ld-",hop->edge_id);
       }
       fprintf(csv_payment_output, "%ld", route->total_fee);
     }
@@ -113,34 +113,7 @@ void write_output(struct network* network, struct array* payments) {
           fprintf(csv_node_output,"%ld-",*id);
       }
     }
-    fprintf(csv_node_output,",");
-
-    if(array_len(node->ignored_nodes)==0)
-      fprintf(csv_node_output, "-1");
-    else {
-      for(j=0; j<array_len(node->ignored_nodes); j++) {
-        id = array_get(node->ignored_nodes, j);
-        if(j==array_len(node->ignored_nodes)-1)
-          fprintf(csv_node_output,"%ld",*id);
-        else
-          fprintf(csv_node_output,"%ld-",*id);
-      }
-    }
-    fprintf(csv_node_output,",");
-
-    if(array_len(node->ignored_edges)==0)
-      fprintf(csv_node_output, "-1");
-    else {
-      for(j=0; j<array_len(node->ignored_edges); j++) {
-        id = array_get(node->ignored_edges, j);
-        if(j==array_len(node->ignored_edges)-1)
-          fprintf(csv_node_output,"%ld",*id);
-        else
-          fprintf(csv_node_output,"%ld-",*id);
-      }
-    }
     fprintf(csv_node_output,"\n");
-  
   }
 
   fclose(csv_node_output);
@@ -314,7 +287,7 @@ int main() {
 
   printf("INITIAL DIJKSTRA THREADS EXECUTION\n");
   clock_gettime(CLOCK_MONOTONIC, &start);
-  run_dijkstra_threads(network, payments);
+  run_dijkstra_threads(network, payments, 0);
   clock_gettime(CLOCK_MONOTONIC, &finish);
   time_spent = finish.tv_sec - start.tv_sec;
   printf("Time consumed by initial dijkstra executions: %lf\n", time_spent);
@@ -347,7 +320,7 @@ int main() {
       forward_success(event, simulation, network);
       break;
     case RECEIVESUCCESS:
-      receive_success(event, simulation);
+      receive_success(event, simulation, network);
       break;
     case FORWARDFAIL:
       forward_fail(event, simulation, network);
