@@ -31,26 +31,27 @@ uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
 }
 
 
-unsigned int check_balance_and_policy(struct edge* edge, struct route_hop* prev_hop, struct route_hop* next_hop, unsigned int last_hop) {
-  uint64_t expected_fee, actual_fee;
-  uint32_t timelock_delta;
+unsigned int check_balance_and_policy(struct edge* edge, struct edge* prev_edge, struct route_hop* prev_hop, struct route_hop* next_hop) {
+  uint64_t expected_fee;
 
   if(next_hop->amount_to_forward > edge->balance)
     return 0;
 
-  if(next_hop->amount_to_forward < edge->policy.min_htlc)
-    return 0;
+  if(next_hop->amount_to_forward < edge->policy.min_htlc){
+    fprintf(stderr, "ERROR: policy.min_htlc not respected\n");
+    exit(-1);
+  }
 
   expected_fee = compute_fee(next_hop->amount_to_forward, edge->policy);
-  if(prev_hop->amount_to_forward < next_hop->amount_to_forward)
-    return 0;
-  actual_fee = prev_hop->amount_to_forward - next_hop->amount_to_forward;
-  if(actual_fee < expected_fee)
-    return 0;
+  if(prev_hop->amount_to_forward != next_hop->amount_to_forward + expected_fee){
+    fprintf(stderr, "ERROR: policy.fee not respected\n");
+    exit(-1);
+  }
 
-  timelock_delta = last_hop ? FINALTIMELOCK : edge->policy.timelock;
-  if(prev_hop->timelock < next_hop->timelock + timelock_delta)
-    return 0;
+  if(prev_hop->timelock != next_hop->timelock + prev_edge->policy.timelock){
+    fprintf(stderr, "ERROR: policy.timelock not respected\n");
+    exit(-1);
+  }
 
   return 1;
 }
@@ -253,6 +254,7 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
 
   is_next_node_offline = gsl_ran_discrete(simulation->random_generator, network->faulty_node_prob);
   if(is_next_node_offline){
+    printf("offline node\n");
     payment->offline_node_count += 1;
     payment->error.type = OFFLINENODE;
     payment->error.hop = first_route_hop;
@@ -265,6 +267,7 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
 
 
   if(first_route_hop->amount_to_forward > next_edge->balance) {
+    printf("no balance in edge %ld: %ld > %ld \n", next_edge->id, first_route_hop->amount_to_forward, next_edge->balance );
     payment->error.type = NOBALANCE;
     payment->error.hop = first_route_hop;
     payment->no_balance_count += 1;
@@ -295,8 +298,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   unsigned int is_next_node_offline;
   struct node* node;
   unsigned int is_last_hop, can_send_htlc;
-  int i;
-  struct edge *next_edge = NULL;
+  struct edge *next_edge = NULL, *prev_edge;
 
   payment = event->payment;
   node = array_get(network->nodes, event->node_id);
@@ -318,6 +320,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
 
   is_next_node_offline = gsl_ran_discrete(simulation->random_generator, network->faulty_node_prob);
   if(!is_last_hop && is_next_node_offline){ //assume that the receiver node is always online
+    printf("offline node\n" );
     payment->offline_node_count += 1;
     payment->error.type = OFFLINENODE;
     payment->error.hop = next_route_hop;
@@ -330,31 +333,40 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
     return;
   }
 
+  // BEGIN -- NON-STRICT FORWARDING (cannot simulate it because the current blokchain height is needed)
+  /* can_send_htlc = 0; */
+  /* prev_edge = array_get(network->edges,previous_route_hop->edge_id); */
+  /* for(i=0; i<array_len(node->open_edges); i++) { */
+  /*   next_edge = array_get(node->open_edges, i); */
+  /*   if(next_edge->to_node_id != next_route_hop->to_node_id) continue; */
+  /*   can_send_htlc = check_balance_and_policy(next_edge, prev_edge, previous_route_hop, next_route_hop, is_last_hop); */
+  /*   if(can_send_htlc) break; */
+  /* } */
 
-  /* if(!is_cooperative_after_lock()) { */
-  /*   printf("struct peer %ld is not cooperative after lock on channel %ld\n", event->peer_id, prev_channel->id); */
-  /*   payment->uncoop_after = 1; */
-  /*   close_channel(prev_channel->channel_info_id); */
-
-  /*   payment->is_success = 0; */
-  /*   payment->end_time = simulation->current_time; */
+  /* if(!can_send_htlc){ */
+  /*   next_edge = array_get(network->edges,next_route_hop->edge_id); */
+  /*   printf("no balance: %ld < %ld\n", next_edge->balance, next_route_hop->amount_to_forward ); */
+  /*   printf("prev_hop->timelock, next_hop->timelock: %d, %d + %d\n", previous_route_hop->timelock, next_route_hop->timelock, next_edge->policy.timelock ); */
+  /*   payment->error.type = NOBALANCE; */
+  /*   payment->error.hop = next_route_hop; */
+  /*   payment->no_balance_count += 1; */
+  /*   prev_node_id = previous_route_hop->from_node_id; */
+  /*   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
+  /*   next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency; */
+  /*   next_event = new_event(next_event_time, event_type, prev_node_id, event->payment); */
+  /*   simulation->events = heap_insert(simulation->events, next_event, compare_event); */
   /*   return; */
   /* } */
 
+  /* next_route_hop->edge_id = next_edge->id; */
+  //END -- NON-STRICT FORWARDING
 
-
-  /* is_policy_respected = check_policy_forward(previous_route_hop, next_route_hop, network->edges); */
-  /* if(!is_policy_respected) return; */
-
-  can_send_htlc = 0;
-  for(i=0; i<array_len(node->open_edges); i++) {
-    next_edge = array_get(node->open_edges, i);
-    if(next_edge->to_node_id != next_route_hop->to_node_id) continue;
-    can_send_htlc = check_balance_and_policy(next_edge, previous_route_hop, next_route_hop, is_last_hop);
-    if(can_send_htlc) break;
-  }
-
+  // STRICT FORWARDING 
+  prev_edge = array_get(network->edges,previous_route_hop->edge_id);
+  next_edge = array_get(network->edges, next_route_hop->edge_id);
+  can_send_htlc = check_balance_and_policy(next_edge, prev_edge, previous_route_hop, next_route_hop);
   if(!can_send_htlc){
+    printf("no balance: %ld < %ld\n", next_edge->balance, next_route_hop->amount_to_forward );
     payment->error.type = NOBALANCE;
     payment->error.hop = next_route_hop;
     payment->no_balance_count += 1;
@@ -365,21 +377,6 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
   }
-
-  /* if(next_route_hop->amount_to_forward > next_edge->balance ) { */
-  /*   printf("Not enough balance in edge %ld\n", next_edge->id); */
-  /*   add_ignored_edge(payment->sender, next_edge->id, network->nodes); */
-
-  /*   prev_node_id = previous_route_hop->from_node_id; */
-  /*   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL; */
-  /*   next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator);//prev_channel->latency; */
-  /*   next_event = new_event(next_event_time, event_type, prev_node_id, event->payment); */
-  /*   simulation->events = heap_insert(simulation->events, next_event, compare_event); */
-  /*   return; */
-  /* } */
-
-
-  next_route_hop->edge_id = next_edge->id;
 
   next_edge->balance -= next_route_hop->amount_to_forward;
 

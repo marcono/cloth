@@ -120,44 +120,6 @@ void write_output(struct network* network, struct array* payments) {
 
 }
 
-
-
-
-/* void read_input(struct network_params* net_params, struct payments_params* pay_params) { */
-/*   struct json_object* jpreinput, *jobj; */
-
-
-/*   jpreinput = json_object_from_file("preinput.json"); */
-
-/*   jobj = json_object_object_get(jpreinput, "n_nodes"); */
-/*   net_params->n_nodes = json_object_get_int64(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "n_channels"); */
-/*   net_params->n_channels = json_object_get_int64(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "p_uncooperative_before_lock"); */
-/*   net_params->faulty_node_prob = json_object_get_double(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "p_uncooperative_after_lock"); */
-/*   net_params->p_uncoop_after_lock = json_object_get_double(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "percentage_r_withholding"); */
-/*   net_params->RWithholding = json_object_get_double(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "gini"); */
-/*   net_params->gini = json_object_get_int(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "sigma_topology"); */
-/*   net_params->sigma_topology = json_object_get_int(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "capacity"); */
-/*   net_params->capacity_per_channel = json_object_get_int64(jobj); */
-
-/*   jobj = json_object_object_get(jpreinput, "payment_mean"); */
-/*   pay_params->payment_mean = json_object_get_double(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "n_payments"); */
-/*   pay_params->n_payments = json_object_get_int64(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "percentage_same_dest"); */
-/*   pay_params->same_destination = json_object_get_double(jobj); */
-/*   jobj = json_object_object_get(jpreinput, "sigma_amount"); */
-/*   pay_params->sigma_amount = json_object_get_double(jobj); */
-
-/*   return; */
-/* } */
-
 void read_input(struct network_params* net_params, struct payments_params* pay_params){
   FILE* input_file;
   char *parameter, *value, line[1024];

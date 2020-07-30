@@ -161,12 +161,12 @@ void* dijkstra_thread(void*arg) {
   thread_args = (struct thread_args*) arg;
 
   while(1) {
+    if(jobs == NULL) return NULL;
+
     pthread_mutex_lock(&jobs_mutex);
     jobs = pop(jobs, &data);
     payment_id =  *((long*)data);
     pthread_mutex_unlock(&jobs_mutex);
-
-    if(payment_id==-1) return NULL;
 
     pthread_mutex_lock(&data_mutex);
     payment = array_get(thread_args->payments, payment_id);
@@ -492,8 +492,13 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
       fee = 0;
       route->total_amount += destination_amt;
 
+      //my version
       route_hop->timelock = FINALTIMELOCK;
       route->total_timelock += FINALTIMELOCK;
+
+      /* //lnd version */
+      /* route->total_timelock += FINALTIMELOCK; */
+      /* route_hop->timelock = route->total_timelock; */
     }
     else {
       fee = compute_fee(next_route_hop->amount_to_forward, next_edge_policy);
@@ -501,14 +506,19 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
       route->total_amount += fee;
       route->total_fee += fee;
 
+      //my version
       route_hop->timelock = next_route_hop->timelock + current_edge_policy.timelock;
       route->total_timelock += current_edge_policy.timelock;
+
+      //lnd version
+      /* route_hop->timelock = route->total_timelock; */
+      /* route->total_timelock += next_edge_policy.timelock; */
     }
     route->route_hops = array_insert(route->route_hops, route_hop);
 
     next_edge_policy = current_edge_policy;
     next_route_hop = route_hop;
-    }
+     }
 
   array_reverse(route->route_hops);
 

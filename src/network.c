@@ -170,6 +170,8 @@ struct edge* new_edge(long id, long channel_id, long counter_edge_id, long from_
 
 /* } */
 
+
+//TODO: update edge and channel
 void write_network_files(struct network* network){
   FILE* nodes_output_file, *edges_output_file, *channels_output_file;
   long i;
@@ -194,7 +196,7 @@ void write_network_files(struct network* network){
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "edges.csv");
     exit(-1);
   }
-  fprintf(edges_output_file, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n");
+  fprintf(edges_output_file, "id,channel_id,counter_edge_id,from_node_id,to_node_id,balance,fee_base,fee_proportional,min_htlc,timelock\n");
 
   for(i=0; i<array_len(network->nodes); i++){
     node = array_get(network->nodes, i);
@@ -267,9 +269,9 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   network->edges = array_insert(network->edges, edge2);
 
   node = array_get(network->nodes, node1_id);
-  node->open_edges = array_insert(node->open_edges, &(channel->edge1));
+  node->open_edges = array_insert(node->open_edges, &(edge1->id));
   node = array_get(network->nodes, node2_id);
-  node->open_edges = array_insert(node->open_edges, &(channel->edge2));
+  node->open_edges = array_insert(node->open_edges, &(edge2->id));
 }
 
 
@@ -301,7 +303,7 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
 
   fgets(row, 256, nodes_input_file);
   while(fgets(row, 256, nodes_input_file)!=NULL) {
-    sscanf(row, "%ld", &id);
+    sscanf(row, "%ld,%*d", &id);
     node = new_node(id);
     network->nodes = array_insert(network->nodes, node);
     node_id_counter++;
@@ -387,7 +389,7 @@ struct network* generate_network_from_files(char nodes_filename[256], char chann
 
   fgets(row, 256, nodes_file);
   while(fgets(row, 256, nodes_file)!=NULL) {
-    sscanf(row, "%ld", &id);
+    sscanf(row, "%ld,*d", &id);
     node = new_node(id);
     network->nodes = array_insert(network->nodes, node);
   }
@@ -433,7 +435,7 @@ struct network* initialize_network(struct network_params net_params, gsl_rng* ra
   network->faulty_node_prob = gsl_ran_discrete_preproc(2, faulty_prob);
 
   n_nodes = array_len(network->nodes);
-  for(i=0; i<array_len(network->nodes); i++){
+  for(i=0; i<n_nodes; i++){
     node = array_get(network->nodes, i);
     node->results = (struct element**) malloc(n_nodes*sizeof(struct element*));
   }
