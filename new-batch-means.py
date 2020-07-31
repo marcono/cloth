@@ -1,0 +1,118 @@
+import json
+import csv
+import sys
+from scipy.stats import t
+from math import sqrt
+from collections import OrderedDict
+import pandas as pd
+import operator
+import numpy as np
+import matplotlib.pyplot as plt
+
+with open('payments_output.csv', 'r') as csv_pay:#, open('xk.csv', 'w') as output_csv:#, open(stats_file_path, 'wb') as stats_file :
+
+     ## INITIALIZATION
+     n_batches = 30
+     alfa_confidence = 0.95
+     percentile = t.isf(alfa_confidence/2, n_batches-1)
+     stats = ['Total', 'Success', 'FailNoPath', 'FailNoBalance', 'FailOfflineNode', 'FailTimeoutExpired', 'Time', 'Attempts', 'RouteLength']
+     batches = [{"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 } for i in range (0, n_batches)]
+     means = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
+     variances = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
+     confidence_min = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
+     confidence_max = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
+     total_mean_time = 0
+     total_mean_route = 0
+     total_mean_attempts = 0
+     total_succeeded = 0
+
+
+     ## FIND BATCH LENGTH AND EXCLUDE TRANSIENT
+
+     payments = list(csv.DictReader(csv_pay))
+     n = len(payments)
+     last_payment_time = int(payments[n-1]['start_time'])
+     remainder = last_payment_time%31
+     end_time = last_payment_time - remainder
+     batch_length = end_time/31
+     print("BATCH LENGTH: " + batch_length)
+
+
+     ## COMPUTE PAYMENT STATS
+
+     for pay in payments:
+          pay_start_time = int(pay['start_time'])
+          if pay_start_time<batch_length or pay_start_time >= end_time: continue
+          b = int(pay_start_time/batch_length) -1
+          batches[b]['Total'] += 1
+          if pay['is_success']=='1':
+               batches[b]['Success'] += 1
+               total_succeeded += 1
+               attempts = int(pay['attempts'])
+               total_mean_attempts += attempts
+               batches[b]['Attempts'] += attempts
+               time = int(pay['end_time']) - int(pay['start_time']);
+               total_mean_time += time
+               batches[b]['Time'] += time
+               routelen = len(pay['route'].split('-'))
+               total_mean_route += routelen
+               batches[b]['RouteLength'] += routelen
+          else:
+               if pay['timeout_exp'] == '1':
+                  batches[b]['FailTimeout'] += 1
+               elif pay['route'] == '-1':
+                  batches[b]['FailNoPath'] +=1
+               else:
+                    if int(pay['offline_node_count']) > int(pay['no_balance_count']):
+                         batches[b]['FailOfflineNode'] += 1
+                    else:
+                         batches[b]['FailNoBalance'] += 1
+
+     total_mean_time = float(total_mean_time)/total_succeeded
+     total_mean_route = float(total_mean_route)/total_succeeded
+     total_mean_attempts = float(total_mean_attempts)/total_succeeded
+
+
+# COMPUTE PER-BATCH STATS
+
+for i in range (0, n_batches):
+     if batches[i]['Success'] == 0:
+          batches[i]['Time'] = total_mean_time
+          batches[i]['RouteLength'] = total_mean_route
+          batches[i]['Attempts'] = total_mean_attempts
+     else:
+          batches[i]['Time'] = float(batches[i]['Time'])/batches[i]['Success']
+          batches[i]['RouteLength'] = float(batches[i]['Route'])/batches[i]['Success']
+          batches[i]['Attempts'] = float(batches[i]['Attempts'])/batches[i]['Success']
+          batches[i]['Success'] = float(batches[i]['Success'])/batches[i]['Total']
+          batches[i]['FailNoPath'] = float(batches[i]['FailNoPath'])/batches[i]['Total']
+          batches[i]['FailNoBalance'] = float(batches[i]['FailNoBalance'])/batches[i]['Total']
+          batches[i]['FailOffline'] = float(batches[i]['FailOffline'])/batches[i]['Total']
+          batches[i]['FailTimeout'] = float(batches[i]['FailTimeout'])/batches[i]['Total']
+
+
+# COMPUTE BATCH MEANS
+
+for stat in stats:
+     means[stat] = np.mean(batches[stat])
+     variances[stat] = np.variance(batches[stat])
+     confidence_min[stat] = means[stat] - percentile*sqrt( (variances[stat]**2)/n_batches ) 
+     confidence_max[stat] = means[stat] + percentile*sqrt( (variances[stat]**2)/n_batches ) 
+
+
+# WRITE OUTPUT
+
+with open('cloth_output.json', 'wb') as stats_file:
+     dict_stats = {}
+     for stat in stats:
+          dict_stats[stat] = OrderedDict([
+               ('Mean', means[stat]),
+               ('Variance', variances[stat]),
+               ('ConfidenceMin', confidence_min[stat]),
+               ('ConfidenceMax', confidence_max[stat])
+          ])
+     temp_output = []
+     for stat in stats:
+          temp_output.append((stat, dict_stats[stat]))
+     output = OrderedDict(temp_output)
+     json.dump(output, stats_file, indent=4)

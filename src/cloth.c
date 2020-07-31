@@ -61,18 +61,17 @@ void write_output(struct network* network, struct array* payments) {
   csv_payment_output = fopen("payments_output.csv", "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open payment_output.csv\n");
-    return;
+    exit(-1);
   }
-  fprintf(csv_payment_output, "id,sender,receiver,amount,time,end_time,is_success,uncoop_after,uncoop_before,is_timeout,attempts,route,total_fee\n");
+  fprintf(csv_payment_output, "id,sender_id,receiver_id,amount,start_time,end_time,is_success,no_balance_count,offline_node_count,timeout_exp,attempts,route,total_fee\n");
 
   for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
-    //TODO: fixme
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%"PRIu64",%"PRIu64",%"PRIu64",%u,%u,%u,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, 0, payment->offline_node_count, payment->is_timeout, payment->attempts);
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%u,%d,%d,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->no_balance_count, payment->offline_node_count, payment->is_timeout, payment->attempts);
     route = payment->route;
 
     if(route==NULL)
-      fprintf(csv_payment_output, "-1");
+      fprintf(csv_payment_output, "-1,");
     else {
       hops = route->route_hops;
       for(j=0; j<array_len(hops); j++) {
@@ -82,7 +81,7 @@ void write_output(struct network* network, struct array* payments) {
         else
           fprintf(csv_payment_output,"%ld-",hop->edge_id);
       }
-      fprintf(csv_payment_output, "%ld", route->total_fee);
+      fprintf(csv_payment_output, "%ld",route->total_fee);
     }
     fprintf(csv_payment_output,"\n");
   }
