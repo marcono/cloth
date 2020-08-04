@@ -17,4 +17,6 @@ long list_len(struct element* head);
 
 unsigned int is_in_list(struct element* head, void* data, int(*is_equal)());
 
+void list_free(struct element* head);
+
 #endif

@@ -12,6 +12,7 @@ struct node* new_node(long id) {
   node->id=id;
   node->open_edges = array_initialize(10);
   node->results = NULL;
+  node->explored = 0;
 
   return node;
 }
@@ -422,7 +423,7 @@ struct network* initialize_network(struct network_params net_params, gsl_rng* ra
   struct network* network;
   double faulty_prob[2];
   long n_nodes;
-  int i;
+  long i, j;
   struct node* node;
 
   if(net_params.network_from_file)
@@ -438,6 +439,8 @@ struct network* initialize_network(struct network_params net_params, gsl_rng* ra
   for(i=0; i<n_nodes; i++){
     node = array_get(network->nodes, i);
     node->results = (struct element**) malloc(n_nodes*sizeof(struct element*));
+    for(j=0; j<n_nodes; j++)
+      node->results[j] = NULL;
   }
 
   return  network;

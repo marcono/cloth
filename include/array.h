@@ -21,4 +21,6 @@ void array_delete(struct array* a, void* element,  int(*is_equal)());
 
 void array_delete_all(struct array* a);
 
+void array_free(struct array* a);
+
 #endif

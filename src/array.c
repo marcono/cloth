@@ -83,3 +83,11 @@ void array_delete(struct array* a, void* element,  int(*is_equal)()) {
 void array_delete_all(struct array* a) {
   a->index = 0;
 }
+
+void array_free(struct array* a)  {
+  /* long i; */
+  /* for(i=0; i<a->index; i++) */
+  /*   free(a->element[i]); */
+  free(a->element);
+  free(a);
+}

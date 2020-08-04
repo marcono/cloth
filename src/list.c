@@ -48,3 +48,13 @@ unsigned int is_in_list(struct element* head, void* data, int (*is_equal)()){
       return 1;
   return 0;
 }
+
+
+void list_free(struct element* head){
+  struct element* iterator, *next;
+  for(iterator=head; iterator!=NULL;){
+    next = iterator->next;
+    free(iterator);
+    iterator = next;
+  }
+}

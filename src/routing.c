@@ -27,6 +27,94 @@
 
 
 
+struct distance **distance;
+struct heap** distance_heap;
+pthread_mutex_t data_mutex;
+pthread_mutex_t jobs_mutex;
+struct array** paths;
+struct element* jobs=NULL;
+
+
+void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
+  int i;
+  struct payment *payment;
+
+  distance = malloc(sizeof(struct distance*)*N_THREADS);
+  distance_heap = malloc(sizeof(struct heap*)*N_THREADS);
+
+  for(i=0; i<N_THREADS; i++) {
+    distance[i] = malloc(sizeof(struct distance)*n_nodes);
+    distance_heap[i] = heap_initialize(n_edges);
+  }
+
+  pthread_mutex_init(&data_mutex, NULL);
+  pthread_mutex_init(&jobs_mutex, NULL);
+
+  paths = malloc(sizeof(struct array*)*array_len(payments));
+
+  for(i=0; i<array_len(payments) ;i++){
+    paths[i] = NULL;
+    payment = array_get(payments, i);
+    jobs = push(jobs, &(payment->id));
+  }
+
+}
+
+
+void* dijkstra_thread(void*arg) {
+  struct payment * payment;
+  struct array* hops;
+  void *data;
+  long payment_id;
+  struct thread_args *thread_args;
+  enum pathfind_error error;
+
+  thread_args = (struct thread_args*) arg;
+
+  while(1) {
+    if(jobs == NULL) return NULL;
+
+    pthread_mutex_lock(&jobs_mutex);
+    jobs = pop(jobs, &data);
+    payment_id =  *((long*)data);
+    pthread_mutex_unlock(&jobs_mutex);
+
+    pthread_mutex_lock(&data_mutex);
+    payment = array_get(thread_args->payments, payment_id);
+    pthread_mutex_unlock(&data_mutex);
+
+    hops = dijkstra(payment->sender, payment->receiver, payment->amount, thread_args->network, thread_args->current_time, thread_args->data_index, &error);
+
+    paths[payment->id] = hops;
+  }
+
+  return NULL;
+}
+
+
+void run_dijkstra_threads(struct network*  network, struct array* payments, uint64_t current_time) {
+  long i;
+  pthread_t tid[N_THREADS];
+  struct thread_args *thread_args;
+
+
+  for(i=0; i<N_THREADS; i++) {
+    thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
+    thread_args->network = network;
+    thread_args->payments = payments;
+    thread_args->current_time = current_time;
+    thread_args->data_index = i;
+    pthread_create(&(tid[i]), NULL, dijkstra_thread, (void*) thread_args);
+   }
+
+  for(i=0; i<N_THREADS; i++)
+    pthread_join(tid[i], NULL);
+
+}
+
+
+
+
 double millisec_to_hour(double time){
   double res;
   res = time / 1000.0;
@@ -113,92 +201,6 @@ double get_probability(long from_node_id, long to_node_id, uint64_t amount, long
     node_probability = get_node_probability(results, amount, current_time);
 
   return calculate_probability(results, to_node_id, MAXMILLISATOSHI, node_probability, current_time);
-}
-
-
-struct distance **distance;
-struct heap** distance_heap;
-pthread_mutex_t data_mutex;
-pthread_mutex_t jobs_mutex;
-struct array** paths;
-struct element* jobs=NULL;
-
-
-void initialize_dijkstra(long n_nodes, long n_edges, struct array* payments) {
-  int i;
-  struct payment *payment;
-
-  distance = malloc(sizeof(struct distance*)*N_THREADS);
-  distance_heap = malloc(sizeof(struct heap*)*N_THREADS);
-
-  for(i=0; i<N_THREADS; i++) {
-    distance[i] = malloc(sizeof(struct distance)*n_nodes);
-    distance_heap[i] = heap_initialize(n_edges);
-  }
-
-  pthread_mutex_init(&data_mutex, NULL);
-  pthread_mutex_init(&jobs_mutex, NULL);
-
-  paths = malloc(sizeof(struct array*)*array_len(payments));
-
-  for(i=0; i<array_len(payments) ;i++){
-    paths[i] = NULL;
-    payment = array_get(payments, i);
-    jobs = push(jobs, &(payment->id));
-  }
-
-}
-
-
-void* dijkstra_thread(void*arg) {
-  struct payment * payment;
-  struct array* hops;
-  void *data;
-  long payment_id;
-  struct thread_args *thread_args;
-  enum pathfind_error error;
-
-  thread_args = (struct thread_args*) arg;
-
-  while(1) {
-    if(jobs == NULL) return NULL;
-
-    pthread_mutex_lock(&jobs_mutex);
-    jobs = pop(jobs, &data);
-    payment_id =  *((long*)data);
-    pthread_mutex_unlock(&jobs_mutex);
-
-    pthread_mutex_lock(&data_mutex);
-    payment = array_get(thread_args->payments, payment_id);
-    pthread_mutex_unlock(&data_mutex);
-
-    hops = dijkstra(payment->sender, payment->receiver, payment->amount, thread_args->network, thread_args->current_time, thread_args->data_index, &error);
-
-    paths[payment->id] = hops;
-  }
-
-  return NULL;
-}
-
-
-void run_dijkstra_threads(struct network*  network, struct array* payments, uint64_t current_time) {
-  long i;
-  pthread_t tid[N_THREADS];
-  struct thread_args *thread_args;
-
-
-  for(i=0; i<N_THREADS; i++) {
-    thread_args = (struct thread_args*) malloc(sizeof(struct thread_args));
-    thread_args->network = network;
-    thread_args->payments = payments;
-    thread_args->current_time = current_time;
-    thread_args->data_index = i;
-    pthread_create(&(tid[i]), NULL, dijkstra_thread, (void*) thread_args);
-   }
-
-  for(i=0; i<N_THREADS; i++)
-    pthread_join(tid[i], NULL);
-
 }
 
 
@@ -311,6 +313,8 @@ struct array* get_best_edges(long to_node_id, uint64_t amount, long source_node_
     best_edges = array_insert(best_edges, new_best_edge);
   }
 
+  list_free(explored_nodes);
+
   return best_edges;
 }
 
@@ -333,13 +337,16 @@ uint64_t get_probability_based_dist(double weight, double probability){
 struct array* dijkstra(long source, long target, uint64_t amount, struct network* network, uint64_t current_time, long p, enum pathfind_error *error) {
   struct distance *d=NULL, to_node_dist;
   long i, best_node_id, j, from_node_id, curr;
-  struct node *source_node;
+  struct node *source_node, *best_node;
   struct edge* edge=NULL;
   uint32_t edge_timelock, tmp_timelock;
   uint64_t  amt_to_send, edge_fee, tmp_dist, amt_to_receive, total_balance, max_balance, current_dist;
-  struct array* hops=NULL, *best_edges = NULL;
+  struct array* hops=NULL; // *best_edges = NULL;
   struct path_hop* hop=NULL;
   double edge_probability, tmp_probability, edge_weight, tmp_weight, current_prob;
+  struct timespec start, finish;
+  double heap_time = 0.0, probability_time = 0.0; //best_edges_time = 0.0;
+  struct channel* channel;
 
   source_node = array_get(network->nodes, source);
   get_balance(source_node, &max_balance, &total_balance);
@@ -382,15 +389,32 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
     to_node_dist = distance[p][best_node_id];
     amt_to_send = to_node_dist.amt_to_receive;
 
-    best_edges = get_best_edges(best_node_id, amt_to_send, source, network);
+    best_node = array_get(network->nodes, best_node_id);
+    /* clock_gettime(CLOCK_MONOTONIC, &start); */
+    /* best_edges = get_best_edges(best_node_id, amt_to_send, source, network); */
+    /* clock_gettime(CLOCK_MONOTONIC, &finish); */
+    /* best_edges_time += (finish.tv_sec - start.tv_sec); */
 
-    for(j=0; j<array_len(best_edges); j++) {
-      edge = array_get(best_edges, j);
+    for(j=0; j<array_len(best_node->open_edges); j++) {
+      edge = array_get(best_node->open_edges, j);
+      edge = array_get(network->edges, edge->counter_edge_id);
 
       from_node_id = edge->from_node_id;
+      if(from_node_id == source){
+        if(edge->balance < amt_to_send)
+          continue;
+      }
+      else{
+        channel = array_get(network->channels, edge->channel_id);
+        if(channel->capacity < amt_to_send)
+          continue;
+      }
 
-      //TODO: implement get_probability
+      clock_gettime(CLOCK_MONOTONIC, &start);
       edge_probability = get_probability(from_node_id, to_node_dist.node, amt_to_send, source, current_time, network);
+      clock_gettime(CLOCK_MONOTONIC, &finish);
+      probability_time += (finish.tv_sec - start.tv_sec);
+
       if(edge_probability == 0) continue;
 
       edge_fee = 0;
@@ -425,9 +449,16 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
       distance[p][from_node_id].probability = tmp_probability;
       distance[p][from_node_id].next_edge = edge->id;
 
+      clock_gettime(CLOCK_MONOTONIC, &start);
       distance_heap[p] = heap_insert_or_update(distance_heap[p], &distance[p][from_node_id], compare_distance, is_key_equal);
-      }
+      clock_gettime(CLOCK_MONOTONIC, &finish);
+      heap_time += (finish.tv_sec - start.tv_sec);
     }
+
+    //    array_free(best_edges);
+    }
+
+  //printf("prob_time: %lf; best_edges_time: %lf; heap_time: %lf;\n", probability_time, best_edges_time, heap_time);
 
   hops = array_initialize(5);
   curr = source;

@@ -57,6 +57,7 @@ struct node {
   long id;
   struct array* open_edges;
   struct element **results;
+  unsigned int explored;
 };
 
 struct channel {

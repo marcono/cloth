@@ -9,11 +9,11 @@
 ** DONE mettere riferimento a payment in event, anziche id del payment
 ** DONE creare struct simulation 
 - contiene heap events, current time e  da passare a funzioni
-* TODO input e output
+* DONE input e output
 ** DONE configuration file per l'input
 - file che definisce l'input, con coppie [is-preinput, 0], [channel-file, x.csv]
 - fare formato json o csv
-** TODO provare a rendere il sistema stazionario
+** DONE provare a rendere il sistema stazionario
 il sistema simulato non e' stazionario, perche' il tempo medio di pagamento
 aumenta di batch in batch. Questo e' dovuto al fatto che via via che si eseguono
 pagamenti i canali si sbilanciano e i nuovi pagamenti prendono piu' tempo.
@@ -33,7 +33,7 @@ creo un nuovo canale randomico ogni 100 ms. Anche in questo caso non e' cambiato
 nulla
 *** TODO fare altre prove
 
-** TODO riscrivere  batch-means.py
+** DONE riscrivere  batch-means.py
 - rimuovere il transitorio
 - settare condizioni di fine della simulazione e dell'analisi dell'output
 - usare i for per calcolare le varie misure
