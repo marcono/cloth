@@ -17,7 +17,7 @@ struct node* new_node(long id) {
   return node;
 }
 
-struct channel* new_channel(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity, uint32_t latency) {
+struct channel* new_channel(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity) {
   struct channel* channel;
 
   channel = malloc(sizeof(struct channel));
@@ -26,7 +26,6 @@ struct channel* new_channel(long id, long direction1, long direction2, long node
   channel->edge2 = direction2;
   channel->node1 = node1;
   channel->node2 = node2;
-  channel->latency = latency;
   channel->capacity = capacity;
   channel->is_closed = 0;
 
@@ -51,128 +50,6 @@ struct edge* new_edge(long id, long channel_id, long counter_edge_id, long from_
 }
 
 
-/* void initialize_random_network(struct network_params net_params, gsl_rng *random_generator) { */
-/*   long i, j, node_idIndex, channel_idIndex, edge_idIndex, node1, node2, direction1, direction2, info; */
-/*   double min_htlcP[]={0.7, 0.2, 0.05, 0.05}, mean=net_params.n_nodes/2, fraction_capacity; */
-/*   gsl_ran_discrete_t  *min_htlcDiscrete; */
-/*   int *node_edges; */
-/*   uint32_t latency; */
-/*   uint64_t balance1, balance2, capacity; */
-/*   struct policy policy1, policy2; */
-/*   FILE *nodes_file, *channels_file, *edges_file; */
-
-
-/*   nodes_file = fopen("nodes.csv", "w"); */
-/*   if(nodes_file==NULL) { */
-/*     printf("ERROR cannot open file nodes.csv\n"); */
-/*     exit(-1); */
-/*   } */
-/*   fprintf(nodes_file, "id\n"); */
-
-/*   channels_file = fopen("channels.csv", "w"); */
-/*   if(channels_file==NULL) { */
-/*     printf("ERROR cannot open file channels.csv\n"); */
-/*     exit(-1); */
-/*   } */
-/*   fprintf(channels_file, "id,direction1,direction2,node1,node2,capacity,latency\n"); */
-
-/*   edges_file = fopen("edges.csv", "w"); */
-/*   if(edges_file==NULL) { */
-/*     printf("ERROR cannot open file edges.csv\n"); */
-/*     exit(-1); */
-/*   } */
-/*   fprintf(edges_file, "id,channel,other_direction,counterparty,balance,fee_base,fee_proportional,min_htlc,timelock\n"); */
-
-
-
-/*   node_idIndex=0; */
-/*   for(i=0; i<net_params.n_nodes; i++){ */
-/*     fprintf(nodes_file, "%ld\n", node_idIndex); */
-/*     node_idIndex++; */
-/*   } */
-
-/*   node_edges = malloc(node_idIndex*sizeof(int)); */
-/*   for(i=0;i<node_idIndex;i++)  */
-/*     node_edges[i] = 0; */
-
-/*   channel_idIndex = edge_idIndex= 0; */
-/*   for(i=0; i<node_idIndex; i++) { */
-/*     node1 = i; */
-/*     for(j=0; j<net_params.n_channels &&  (node_edges[node1] < net_params.n_channels); j++){ */
-
-/*       do { */
-/*        if(j==0 && net_params.sigma_topology!=-1) { */
-/*           node2 = mean + gsl_ran_gaussian(random_generator, net_params.sigma_topology); */
-/*           } */
-/*           else */
-/*             node2 = gsl_rng_uniform_int(random_generator,node_idIndex); */
-/*       }while(node2==node1); */
-
-/*       if(node2<0 || node2>=node_idIndex) continue; */
-
-/*       if(net_params.sigma_topology!=-1) { */
-/*         if(j!=0 && node_edges[node2]>=net_params.n_channels) continue; */
-/*       } */
-/*       else { */
-/*         if(node_edges[node2]>=net_params.n_channels) continue; */
-/*       } */
-
-
-
-/*       ++node_edges[node1]; */
-/*       ++node_edges[node2]; */
-/*       info = channel_idIndex; */
-/*       ++channel_idIndex; */
-/*       direction1 = edge_idIndex; */
-/*       ++edge_idIndex; */
-/*       direction2 = edge_idIndex; */
-/*       ++edge_idIndex; */
-
-/*       latency = gsl_rng_uniform_int(random_generator, MAXLATENCY - MINLATENCY) + MINLATENCY; */
-
-/*       capacity = net_params.capacity_per_channel + gsl_ran_ugaussian(random_generator);  */
-
-/*       fraction_capacity = (5 + gsl_ran_ugaussian(random_generator))/10; //a number between 0.1 and 1.0, mean 0.5 */
-/*       balance1 = fraction_capacity*((double) capacity); */
-/*       balance2 = capacity - balance1; */
-/*       //multiplied by 1000 to convert satoshi to millisatoshi */
-/*       capacity*=1000; */
-/*       balance1*=1000; */
-/*       balance2*=1000; */
-
-
-/*       min_htlcDiscrete = gsl_ran_discrete_preproc(4, min_htlcP); */
-
-
-/*       policy1.fee_base = gsl_rng_uniform_int(random_generator, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
-/*       policy1.fee_proportional = (gsl_rng_uniform_int(random_generator, MAXFEEPROP-MINFEEPROP)+MINFEEPROP); */
-/*       policy1.timelock = gsl_rng_uniform_int(random_generator, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
-/*       policy1.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlcDiscrete)); */
-/*       policy1.min_htlc = policy1.min_htlc == 1 ? 0 : policy1.min_htlc; */
-/*       policy2.fee_base = gsl_rng_uniform_int(random_generator, MAXFEEBASE - MINFEEBASE) + MINFEEBASE; */
-/*       policy2.fee_proportional = (gsl_rng_uniform_int(random_generator, MAXFEEPROP-MINFEEPROP)+MINFEEPROP); */
-/*       policy2.timelock = gsl_rng_uniform_int(random_generator, MAXTIMELOCK-MINTIMELOCK)+MINTIMELOCK; */
-/*       policy2.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlcDiscrete)); */
-/*       policy2.min_htlc = policy2.min_htlc == 1 ? 0 : policy2.min_htlc; */
-
-/*       fprintf(channels_file, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", info, direction1, direction2, node1, node2, capacity, latency); */
-
-/*       fprintf(edges_file, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction1, info, direction2, node2, balance1, policy1.fee_base, policy1.fee_proportional, policy1.min_htlc, policy1.timelock); */
-
-/*       fprintf(edges_file, "%ld,%ld,%ld,%ld,%ld,%d,%d,%d,%d\n", direction2, info, direction1, node1, balance2, policy2.fee_base, policy2.fee_proportional, policy2.min_htlc, policy2.timelock); */
-
-/*     } */
-
-/*   } */
-
-/*   fclose(nodes_file); */
-/*   fclose(channels_file); */
-/*   fclose(edges_file); */
-
-/* } */
-
-
-//TODO: update edge and channel
 void write_network_files(struct network* network){
   FILE* nodes_output_file, *edges_output_file, *channels_output_file;
   long i;
@@ -191,7 +68,7 @@ void write_network_files(struct network* network){
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "channels.csv");
     exit(-1);
   }
-  fprintf(channels_output_file, "id,direction1,direction2,node1,node2,capacity,latency\n");
+  fprintf(channels_output_file, "id,edge1_id,edge2_id,node1_id,node2_id,capacity,latency\n");
   edges_output_file = fopen("edges.csv", "w");
   if(edges_output_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "edges.csv");
@@ -206,7 +83,7 @@ void write_network_files(struct network* network){
 
   for(i=0; i<array_len(network->channels); i++){
     channel = array_get(network->channels, i);
-    fprintf(channels_output_file, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->latency);
+    fprintf(channels_output_file, "%ld,%ld,%ld,%ld,%ld,%ld\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity);
   }
 
   for(i=0; i<array_len(network->edges); i++){
@@ -230,7 +107,7 @@ void update_probability_per_node(double *probability_per_node, int *channels_per
 
 
 void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long node1_id, long node2_id,  uint64_t channel_capacity, struct network* network, gsl_rng*random_generator) {
-  uint64_t capacity, latency, edge1_balance, edge2_balance;
+  uint64_t capacity, edge1_balance, edge2_balance;
   struct policy edge1_policy, edge2_policy;
   double min_htlcP[]={0.7, 0.2, 0.05, 0.05}, fraction_capacity;
   gsl_ran_discrete_t* min_htlc_discrete;
@@ -238,9 +115,8 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   struct edge* edge1, *edge2;
   struct node* node;
 
-  latency = gsl_rng_uniform_int(random_generator, MAXLATENCY - MINLATENCY) + MINLATENCY;
   capacity = channel_capacity + gsl_ran_ugaussian(random_generator); //TODO: check that it doesn't produce negative numbers fow small values of channel_capacity
-  channel = new_channel(channel_id, edge1_id, edge2_id, node1_id, node2_id, capacity*1000, latency);
+  channel = new_channel(channel_id, edge1_id, edge2_id, node1_id, node2_id, capacity*1000);
 
   //  fraction_capacity = (5 + gsl_ran_ugaussian(random_generator))/10; //a number between 0.1 and 1.0, mean 0.5
   fraction_capacity = gsl_rng_uniform(random_generator);
@@ -356,11 +232,10 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
 
 
 struct network* generate_network_from_files(char nodes_filename[256], char channels_filename[256], char edges_filename[256]) {
-  char row[256];
+  char row[2048];
   struct node* node;
   long id, direction1, direction2, node_id1, node_id2, channel_id, other_direction;
   struct policy policy;
-  uint32_t latency;
   uint64_t capacity, balance;
   struct channel* channel;
   struct edge* edge;
@@ -388,25 +263,25 @@ struct network* generate_network_from_files(char nodes_filename[256], char chann
   network->channels = array_initialize(1000);
   network->edges = array_initialize(2000);
 
-  fgets(row, 256, nodes_file);
-  while(fgets(row, 256, nodes_file)!=NULL) {
-    sscanf(row, "%ld,*d", &id);
+  fgets(row, 2048, nodes_file);
+  while(fgets(row, 2048, nodes_file)!=NULL) {
+    sscanf(row, "%ld", &id);
     node = new_node(id);
     network->nodes = array_insert(network->nodes, node);
   }
   fclose(nodes_file);
 
-  fgets(row, 256, channels_file);
-  while(fgets(row, 256, channels_file)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &direction1, &direction2, &node_id1, &node_id2, &capacity, &latency);
-    channel = new_channel(id, direction1, direction2, node_id1, node_id2, capacity, latency);
+  fgets(row, 2048, channels_file);
+  while(fgets(row, 2048, channels_file)!=NULL) {
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld", &id, &direction1, &direction2, &node_id1, &node_id2, &capacity);
+    channel = new_channel(id, direction1, direction2, node_id1, node_id2, capacity);
     network->channels = array_insert(network->channels, channel);
   }
   fclose(channels_file);
 
 
-  fgets(row, 1024, edges_file);
-  while(fgets(row, 1024, edges_file)!=NULL) {
+  fgets(row, 2048, edges_file);
+  while(fgets(row, 2048, edges_file)!=NULL) {
     sscanf(row, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d", &id, &channel_id, &other_direction, &node_id1, &node_id2, &balance, &policy.fee_base, &policy.fee_proportional, &policy.min_htlc, &policy.timelock);
     edge = new_edge(id, channel_id, other_direction, node_id1, node_id2, balance, policy);
     network->edges = array_insert(network->edges, edge);

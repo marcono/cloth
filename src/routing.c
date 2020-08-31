@@ -410,6 +410,9 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
           continue;
       }
 
+      if(amt_to_send < edge->policy.min_htlc)
+        continue;
+
       clock_gettime(CLOCK_MONOTONIC, &start);
       edge_probability = get_probability(from_node_id, to_node_dist.node, amt_to_send, source, current_time, network);
       clock_gettime(CLOCK_MONOTONIC, &finish);

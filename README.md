@@ -1,28 +1,27 @@
 # CLoTH
-Simulator of HTLC payment networks
+CLoTH is a payment-channel network (PCN) simulator. Currently, it simulates the
+Lightning Network, the mainstream payment-channel network, which is built on top of the
+Bitcoin blockchain. 
 
-## Pre-requisites
-Install pre-requisites
+The key feature and novelty of CLoTH is that it exactly reproduces the code of
+the Lightning Network (specifically, the functions implementing routing and
+HTLC mechanics). This ensures the validity of the simulation results produced by
+CLoTH.
 
-```sh
-sudo apt install curl
-sudo apt install gcc
-sudo apt install make
-sudo apt install git
-sudo apt install autoconf automake libtool
-```
+CLoTH is currently based on `lnd-v0.9.1-beta`, the Golang implementation of the
+Lightning Network.
+
 ## Install libraries
 
-Install the libraries used by the simulator ([json-c](https://github.com/json-c/json-c) and [gsl-2.4](https://mirror2.mirror.garr.it/mirrors/gnuftp/gsl/gsl-2.4.tar.gz) by running in the project directory
+Before building CLoTH, install the `gsl` library: 
 
 ```sh
-./install.sh <path>
+sudo apt install gsl
 ```
-where `path` is the absolute path where to download and install the libraries.
 
 ## Build
 
-Build the simulator by typing in the project directory
+Build CLoTH:
 
 ```sh
 make build
@@ -30,20 +29,26 @@ make build
 
 ## Run
 
-Run the simulator by typing in the project directory
+Run CLoTH:
 
 ```sh
-./run.sh <seed> <is-preprocess> <path-results>
+./run.sh
 ```
-where `seed` is the seed of the random variables used in the simulator and `pre-process` is the flag (0 or 1) which specifies whether the simulator is run or not in pre-processing mode. 
 
-If the simulator is in pre-processing mode, it reads pre-input parameters from file `preinput.json`, it generates a topology and payments to be simulated using the above-mentioned parameters and stores them in files `peer.csv`, `channel.csv`, `channelInfo.csv`, `payment.csv`. Then, it runs the simulation.
+CLoTH simulates the execution of payments in a network whose topology
+reproduces the Lightning Network real one (using the [scale-free network
+model](https://en.wikipedia.org/wiki/Scale-free_network]). See `cloth_input.txt`
+for the complete list of input parameters.
 
-If the simulator is not in pre-processing mode, it reads the topology from `peerLN.csv`, `channelLN.csv`, `channelInfoLN.csv` (which contain the data on the current LN mainnet) and generates payments to be simulated using the parameters in `preinput.json`. Then, it runs the simulation.
-
-At the end, the simulator produces output measures in the file `output.json`. This file and all the others produced by the simulator are stored in path `path-results`.
+At the end of the simulation, payment-related statistics (such as probability of
+payment success, average payment time) are computed and stored in
+`cloth_output.json`.
 
 ## References
 
-[1] Conoscenti, M.; Vetrò, A.; De Martin, J.C.; Spini, F. The CLoTH Simulator for HTLC Payment Networks with Introductory Lightning Network Performance Results. Information 2018, 9, 223. [](https://www.mdpi.com/2078-2489/9/9/223)
+For more details on (an older version of) CLoTH and initial simulation results,
+please refer to my doctoral thesis:
 
+CONOSCENTI, Marco. Capabilities and Limitations of Payment Channel Networks for
+Blockchain Scalability. 2019. PhD Thesis. Politecnico di Torino. Available
+[here](https://iris.polito.it/retrieve/handle/11583/2764132/283298/phd-thesis-marco-conoscenti-final.pdf).

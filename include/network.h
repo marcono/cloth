@@ -67,7 +67,6 @@ struct channel {
   long edge1;
   long edge2;
   uint64_t capacity;
-  uint32_t latency;
   unsigned int is_closed;
 };
 
@@ -93,7 +92,7 @@ struct network {
 
 struct node* new_node(long id);
 
-struct channel* new_channel(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity, uint32_t latency);
+struct channel* new_channel(long id, long direction1, long direction2, long node1, long node2, uint64_t capacity);
 
 struct edge* new_edge(long id, long channel_id, long counter_edge_id, long from_node_id, long to_node_id, uint64_t balance, struct policy policy);
 

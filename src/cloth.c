@@ -35,11 +35,11 @@ void write_output(struct network* network, struct array* payments) {
     printf("ERROR cannot open channel_output.csv\n");
     exit(-1);
   }
-  fprintf(csv_channel_output, "id,direction1,direction2,node1,node2,capacity,latency,is_closed\n");
+  fprintf(csv_channel_output, "id,direction1,direction2,node1,node2,capacity,is_closed\n");
 
   for(i=0; i<array_len(network->channels); i++) {
     channel = array_get(network->channels, i);
-    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->latency, channel->is_closed);
+    fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->is_closed);
   }
 
   fclose(csv_channel_output);

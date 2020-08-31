@@ -1,27 +1,21 @@
 {
-    "Total": {
-        "Mean": 1611.3666666666666,
-        "Variance": 1696.6322222222223,
-        "ConfidenceMin": 1591.7737234655824,
-        "ConfidenceMax": 1630.9596098677507
-    },
     "Success": {
-        "Mean": 0.9986314749765509,
-        "Variance": 5.362019485990467e-07,
-        "ConfidenceMin": 0.9986314687844168,
-        "ConfidenceMax": 0.998631481168685
+        "Mean": 0.9985581746157437,
+        "Variance": 6.90120566980208e-06,
+        "ConfidenceMin": 0.9985580949196676,
+        "ConfidenceMax": 0.9985582543118198
     },
     "FailNoPath": {
-        "Mean": 0.0012866371054083762,
-        "Variance": 5.491472113935333e-07,
-        "ConfidenceMin": 0.0012866307637805438,
-        "ConfidenceMax": 0.0012866434470362087
+        "Mean": 0.0014418253842561834,
+        "Variance": 6.9012056698020905e-06,
+        "ConfidenceMin": 0.0014417456881800766,
+        "ConfidenceMax": 0.0014419050803322901
     },
     "FailNoBalance": {
-        "Mean": 8.188791804074127e-05,
-        "Variance": 6.78831635575989e-08,
-        "ConfidenceMin": 8.188713411659409e-05,
-        "ConfidenceMax": 8.188870196488845e-05
+        "Mean": 0.0,
+        "Variance": 0.0,
+        "ConfidenceMin": 0.0,
+        "ConfidenceMax": 0.0
     },
     "FailOfflineNode": {
         "Mean": 0.0,
@@ -36,21 +30,21 @@
         "ConfidenceMax": 0.0
     },
     "Time": {
-        "Mean": 556.4439108500035,
-        "Variance": 8.124828894573623,
-        "ConfidenceMin": 556.350084203919,
-        "ConfidenceMax": 556.537737496088
+        "Mean": 554.309260521092,
+        "Variance": 106.18546421601282,
+        "ConfidenceMin": 553.0830161164914,
+        "ConfidenceMax": 555.5355049256926
     },
     "Attempts": {
-        "Mean": 1.0069853491398295,
-        "Variance": 1.0479003335132249e-05,
-        "ConfidenceMin": 1.0069852281268519,
-        "ConfidenceMax": 1.0069854701528071
+        "Mean": 1.000406746031746,
+        "Variance": 2.3176689657344697e-06,
+        "ConfidenceMin": 1.0004067192669848,
+        "ConfidenceMax": 1.0004067727965074
     },
     "RouteLength": {
-        "Mean": 2.789285249878502,
-        "Variance": 0.00020687443886675895,
-        "ConfidenceMin": 2.789282860863913,
-        "ConfidenceMax": 2.7892876388930907
+        "Mean": 2.784749338875429,
+        "Variance": 0.002653792196609384,
+        "ConfidenceMin": 2.7847186925166634,
+        "ConfidenceMax": 2.784779985234195
     }
 }

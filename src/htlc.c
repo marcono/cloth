@@ -267,7 +267,6 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
 
 
   if(first_route_hop->amount_to_forward > next_edge->balance) {
-    printf("no balance in edge %ld: %ld > %ld \n", next_edge->id, first_route_hop->amount_to_forward, next_edge->balance );
     payment->error.type = NOBALANCE;
     payment->error.hop = first_route_hop;
     payment->no_balance_count += 1;
@@ -366,7 +365,6 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   next_edge = array_get(network->edges, next_route_hop->edge_id);
   can_send_htlc = check_balance_and_policy(next_edge, prev_edge, previous_route_hop, next_route_hop);
   if(!can_send_htlc){
-    printf("no balance: %ld < %ld\n", next_edge->balance, next_route_hop->amount_to_forward );
     payment->error.type = NOBALANCE;
     payment->error.hop = next_route_hop;
     payment->no_balance_count += 1;
