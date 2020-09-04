@@ -15,6 +15,7 @@ enum payment_error_type{
   OFFLINENODE, //it corresponds to `FailUnknownNextPeer` in lnd
 };
 
+/* register an eventual error occurred when the payment traversed a hop */
 struct payment_error{
   enum payment_error_type type;
   struct route_hop* hop;
@@ -26,16 +27,16 @@ struct payment {
   long receiver;
   uint64_t amount; //millisatoshis
   struct route* route;
-  unsigned int is_success;
-  int offline_node_count;
-  int no_balance_count;
-  unsigned int is_timeout;
   uint64_t start_time;
   uint64_t end_time;
   int attempts;
   struct payment_error error;
+  /* attributes used for computing stats */
+  unsigned int is_success;
+  int offline_node_count;
+  int no_balance_count;
+  unsigned int is_timeout;
 };
-
 
 struct array* initialize_payments(struct payments_params pay_params, long n_nodes, gsl_rng* random_generator);
 

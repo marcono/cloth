@@ -3,6 +3,7 @@
 #include "network.h"
 #include "array.h"
 #include "routing.h"
+#include "htlc.h"
 
 int is_equal_result(struct node_pair_result *a, struct node_pair_result *b);
 

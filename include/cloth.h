@@ -20,9 +20,9 @@ struct network_params{
 };
 
 struct payments_params{
-  double payment_mean;
+  double inverse_payment_rate;
   long n_payments;
-  double sigma_amount;
+  double average_amount;
   unsigned int payments_from_file;
   char payments_filename[256];
 };

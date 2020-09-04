@@ -18,19 +18,20 @@
 #include "../include/event.h"
 #include "../include/utils.h"
 
+/* Functions in this file simulate the HTLC mechanism for exchanging payments, as implemented in the Lightning Network.
+   They are a (high-level) copy of functions in lnd-v0.9.1-beta (see files `routing/missioncontrol.go`, `htlcswitch/switch.go`, `htlcswitch/link.go`) */
+
+
 /* AUXILIARY FUNCTIONS */
 
-
-
-
-
+/* compute the fees to be paid to a hop for forwarding the payment */ 
 uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy) {
   uint64_t fee;
   fee = (policy.fee_proportional*amount_to_forward) / 1000000;
   return policy.fee_base + fee;
 }
 
-
+/* check whether there is sufficient balance in an edge for forwarding the payment; check also that the policies in the edge are respected */
 unsigned int check_balance_and_policy(struct edge* edge, struct edge* prev_edge, struct route_hop* prev_hop, struct route_hop* next_hop) {
   uint64_t expected_fee;
 
@@ -56,19 +57,17 @@ unsigned int check_balance_and_policy(struct edge* edge, struct edge* prev_edge,
   return 1;
 }
 
-
+/* retrieve a hop from a payment route */
 struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_sender) {
   struct route_hop *route_hop;
   long i, index = -1;
 
   for (i = 0; i < array_len(route_hops); i++) {
     route_hop = array_get(route_hops, i);
-
     if (is_sender && route_hop->from_node_id == node_id) {
       index = i;
       break;
     }
-
     if (!is_sender && route_hop->to_node_id == node_id) {
       index = i;
       break;
@@ -82,6 +81,10 @@ struct route_hop *get_route_hop(long node_id, struct array *route_hops, int is_s
 }
 
 
+/* FUNCTIONS MANAGING NODE PAIR RESULTS */
+
+/* set the result of a node pair as success: it means that a payment was successfully forwarded in an edge connecting the two nodes of the node pair.
+ This information is used by the sender node to find a route that maximizes the possibilities of successfully sending a payment */
 void set_node_pair_result_success(struct element** results, long from_node_id, long to_node_id, uint64_t success_amount, uint64_t success_time){
   struct node_pair_result* result;
 
@@ -104,7 +107,8 @@ void set_node_pair_result_success(struct element** results, long from_node_id, l
     result->fail_amount = success_amount + 1;
 }
 
-
+/* set the result of a node pair as success: it means that a payment failed when passing through  an edge connecting the two nodes of the node pair.
+   This information is used by the sender node to find a route that maximizes the possibilities of successfully sending a payment */
 void set_node_pair_result_fail(struct element** results, long from_node_id, long to_node_id, uint64_t fail_amount, uint64_t fail_time){
   struct node_pair_result* result;
 
@@ -131,22 +135,19 @@ void set_node_pair_result_fail(struct element** results, long from_node_id, long
     result->success_amount = fail_amount - 1;
 }
 
-
+/* process a payment which succeeded */
 void process_success_result(struct node* node, struct payment *payment, uint64_t current_time){
   struct route_hop* hop;
   int i;
   struct array* route_hops;
-
   route_hops = payment->route->route_hops;
-
   for(i=0; i<array_len(route_hops); i++){
     hop = array_get(route_hops, i);
     set_node_pair_result_success(node->results, hop->from_node_id, hop->to_node_id, hop->amount_to_forward, current_time);
   }
-
 }
 
-
+/* process a payment which failed (different processments depending on the error type) */
 void process_fail_result(struct node* node, struct payment *payment, uint64_t current_time){
   struct route_hop* hop, *error_hop;
   int i;
@@ -172,12 +173,12 @@ void process_fail_result(struct node* node, struct payment *payment, uint64_t cu
       set_node_pair_result_success(node->results, hop->from_node_id, hop->to_node_id, hop->amount_to_forward, current_time);
     }
   }
-
 }
+
 
 /*HTLC FUNCTIONS*/
 
-
+/* find a route for a payment (a modified version of dijkstra is used: see `routing.c` */
 void find_route(struct event *event, struct simulation* simulation, struct network* network) {
   struct payment *payment;
   struct array *path_hops;
@@ -186,13 +187,9 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
   uint64_t next_event_time;
   enum pathfind_error error;
 
-
   payment = event->payment;
 
-  //  printf("FINDROUTE %ld\n", payment->id);
-
   ++(payment->attempts);
-
 
   if(simulation->current_time > payment->start_time + 60000) {
     payment->end_time = simulation->current_time;
@@ -200,21 +197,18 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
     return;
   }
 
-
   if (payment->attempts==1)
     path_hops = paths[payment->id];
   else
     path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, network, simulation->current_time, 0, &error);
 
-
   if (path_hops == NULL) {
-    printf("No available path\n");
     payment->end_time = simulation->current_time;
     return;
   }
 
   route = transform_path_into_route(path_hops, payment->amount, network);
-  if(route==NULL) {
+  if(route == NULL) {
     printf("No available route\n");
     payment->end_time = simulation->current_time;
     return;
@@ -225,11 +219,9 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
   next_event_time = simulation->current_time;
   send_event = new_event(next_event_time, SENDPAYMENT, payment->sender, event->payment );
   simulation->events = heap_insert(simulation->events, send_event, compare_event);
-
 }
 
-
-
+/* send an HTLC for the payment (behavior of the payment sender) */
 void send_payment(struct event* event, struct simulation* simulation, struct network *network) {
   struct payment* payment;
   uint64_t next_event_time;
@@ -252,19 +244,17 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
     exit(-1);
   }
 
+  /* simulate the case that the next node in the route is offline */
   is_next_node_offline = gsl_ran_discrete(simulation->random_generator, network->faulty_node_prob);
   if(is_next_node_offline){
-    printf("offline node\n");
     payment->offline_node_count += 1;
     payment->error.type = OFFLINENODE;
     payment->error.hop = first_route_hop;
-
-    next_event_time = simulation->current_time + OFFLINELATENCY;//prev_channel->latency + FAULTYLATENCY;
+    next_event_time = simulation->current_time + OFFLINELATENCY;
     next_event = new_event(next_event_time, RECEIVEFAIL, event->node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
   }
-
 
   if(first_route_hop->amount_to_forward > next_edge->balance) {
     payment->error.type = NOBALANCE;
@@ -286,6 +276,7 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
 
+/* forward an HTLC for the payment (behavior of an intermediate hop node in a route) */
 void forward_payment(struct event *event, struct simulation* simulation, struct network* network) {
   struct payment* payment;
   struct route* route;
@@ -306,27 +297,20 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   previous_route_hop = get_route_hop(node->id, route->route_hops, 0);
   is_last_hop = next_route_hop->to_node_id == payment->receiver;
 
-  if(next_route_hop == NULL || previous_route_hop == NULL) {
-    printf("ERROR: no route hop\n");
-    exit(-1);
-  }
-
   if(!is_present(next_route_hop->edge_id, node->open_edges)) {
     printf("ERROR (forward_payment): edge %ld is not an edge of node %ld \n", next_edge->id, node->id);
     exit(-1);
   }
 
-
+  /* simulate the case that the next node in the route is offline */
   is_next_node_offline = gsl_ran_discrete(simulation->random_generator, network->faulty_node_prob);
-  if(!is_last_hop && is_next_node_offline){ //assume that the receiver node is always online
-    printf("offline node\n" );
+  if(is_next_node_offline && !is_last_hop){ //assume that the receiver node is always online
     payment->offline_node_count += 1;
     payment->error.type = OFFLINENODE;
     payment->error.hop = next_route_hop;
-
     prev_node_id = previous_route_hop->from_node_id;
     event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
-    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator) + OFFLINELATENCY;//prev_channel->latency + FAULTYLATENCY;
+    next_event_time = simulation->current_time + 100 + gsl_ran_ugaussian(simulation->random_generator) + OFFLINELATENCY;
     next_event = new_event(next_event_time, event_type, prev_node_id, event->payment);
     simulation->events = heap_insert(simulation->events, next_event, compare_event);
     return;
@@ -386,7 +370,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
 
-
+/* receive a payment (behavior of the payment receiver node) */
 void receive_payment(struct event* event, struct simulation* simulation, struct network* network) {
   long  prev_node_id;
   struct route* route;
@@ -411,7 +395,6 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
     exit(-1);
   }
 
-
   backward_edge->balance += last_route_hop->amount_to_forward;
 
   payment->is_success = 1;
@@ -423,7 +406,7 @@ void receive_payment(struct event* event, struct simulation* simulation, struct 
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
 
-
+/* forward an HTLC success back to the payment sender (behavior of a intermediate hop node in the route) */
 void forward_success(struct event* event, struct simulation* simulation, struct network* network) {
   struct route_hop* prev_hop;
   struct payment* payment;
@@ -433,7 +416,6 @@ void forward_success(struct event* event, struct simulation* simulation, struct 
   enum event_type event_type;
   struct node* node;
   uint64_t next_event_time;
-
 
   payment = event->payment;
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
@@ -455,18 +437,17 @@ void forward_success(struct event* event, struct simulation* simulation, struct 
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
 
-
+/* receive an HTLC success (behavior of the payment sender node) */
 void receive_success(struct event* event, struct simulation *simulation, struct network* network){
   struct node* node;
   struct payment* payment;
   payment = event->payment;
   node = array_get(network->nodes, event->node_id);
-  printf("RECEIVE SUCCESS %ld\n", event->payment->id);
   event->payment->end_time = simulation->current_time;
   process_success_result(node, payment, simulation->current_time);
 }
 
-
+/* forward an HTLC fail back to the payment sender (behavior of a intermediate hop node in the route) */
 void forward_fail(struct event* event, struct simulation* simulation, struct network* network) {
   struct payment* payment;
   struct route_hop* next_hop, *prev_hop;
@@ -487,8 +468,9 @@ void forward_fail(struct event* event, struct simulation* simulation, struct net
     exit(-1);
   }
 
+  /* since the payment failed, the balance must be brought back to the state before the payment occurred */ 
   next_edge->balance += next_hop->amount_to_forward;
-  
+
   prev_hop = get_route_hop(event->node_id, payment->route->route_hops, 0);
   prev_node_id = prev_hop->from_node_id;
   event_type = prev_node_id == payment->sender ? RECEIVEFAIL : FORWARDFAIL;
@@ -497,7 +479,7 @@ void forward_fail(struct event* event, struct simulation* simulation, struct net
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
 
-
+/* receive an HTLC fail (behavior of the payment sender node) */
 void receive_fail(struct event* event, struct simulation* simulation, struct network* network) {
   struct payment* payment;
   struct route_hop* first_hop, *error_hop;
@@ -506,10 +488,7 @@ void receive_fail(struct event* event, struct simulation* simulation, struct net
   struct node* node;
   uint64_t next_event_time;
 
-
   payment = event->payment;
-  printf("RECEIVE FAIL %ld\n", payment->id);
-
   node = array_get(network->nodes, event->node_id);
 
   error_hop = payment->error.hop;
@@ -529,101 +508,3 @@ void receive_fail(struct event* event, struct simulation* simulation, struct net
   next_event = new_event(next_event_time, FINDROUTE, payment->sender, payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }
-
-
-
-
-
-//FUNCTIONS FOR UNCOOPERATIVE-AFTER-LOCK BEHAVIOR
-
-/* void close_channel(long channel_id) { */
-/*   long i; */
-/*   struct node *node; */
-/*   struct channel *channel; */
-/*   struct edge* direction1, *direction2; */
-
-/*   channel = array_get(channels, channel_id); */
-/*   direction1 = array_get(edges, channel->edge1); */
-/*   direction2 = array_get(edges, channel->edge2); */
-
-/*   channel->is_closed = 1; */
-/*   direction1->is_closed = 1; */
-/*   direction2->is_closed = 1; */
-
-/*   printf("struct channel %ld, struct edge_direction1 %ld, struct edge_direction2 %ld are now closed\n", channel->id, channel->edge1, channel->edge2); */
-
-/*   for(i = 0; i < node_index; i++) { */
-/*     node = array_get(nodes, i); */
-/*     array_delete(node->open_edges, &(channel->edge1), is_equal); */
-/*     array_delete(node->open_edges, &(channel->edge2), is_equal); */
-/*   } */
-/* } */
-
-/* int is_cooperative_after_lock() { */
-/*   return gsl_ran_discrete(random_generator, uncoop_after_discrete); */
-/* } */
-
-/* unsigned int is_any_channel_closed(struct array* hops) { */
-/*   int i; */
-/*   struct edge* edge; */
-/*   struct path_hop* hop; */
-
-/*   for(i=0;i<array_len(hops);i++) { */
-/*     hop = array_get(hops, i); */
-/*     edge = array_get(edges, hop->edge); */
-/*     if(edge->is_closed) */
-/*       return 1; */
-/*   } */
-
-/*   return 0; */
-/* } */
-
-
-//old versions for route finding (to be placed in find_route())
-  /*
-  // dijkstra version
-  path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
-                      payment->ignored_edges);
-*/  
-
-  /* floyd_warshall version
-  if(payment->attempts == 0) {
-    path_hops = get_path(payment->sender, payment->receiver);
-  }
-  else {
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, payment->ignored_nodes,
-                        payment->ignored_edges);
-                        }*/
-
-  //dijkstra parallel OLD OLD version
-  /* if(payment->attempts > 0) */
-  /*   pthread_create(&tid, NULL, &dijkstra_thread, payment); */
-
-  /* pthread_mutex_lock(&(cond_mutex[payment->id])); */
-  /* while(!cond_paths[payment->id]) */
-  /*   pthread_cond_wait(&(cond_var[payment->id]), &(cond_mutex[payment->id])); */
-  /* cond_paths[payment->id] = 0; */
-  /* pthread_mutex_unlock(&(cond_mutex[payment->id])); */
-
-
-  //dijkstra parallel OLD version
-  /* if(payment->attempts==1) { */
-  /*   path_hops = paths[payment->id]; */
-  /*   if(path_hops!=NULL) */
-  /*     if(is_any_channel_closed(path_hops)) { */
-  /*       path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
-  /*                            node->ignored_edges, network, 0); */
-  /*     } */
-  /* } */
-  /* else { */
-  /*   path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
-  /*                        node->ignored_edges, network, 0); */
-  /* } */
-
-  /* if(path_hops!=NULL) */
-  /*   if(is_any_channel_closed(path_hops)) { */
-  /*     path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, node->ignored_nodes, */
-  /*                          node->ignored_edges, network, 0); */
-  /*     paths[payment->id] = path_hops; */
-  /*   } */
-

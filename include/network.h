@@ -18,7 +18,7 @@
 #define MINBALANCE 1E2
 #define MAXBALANCE 1E11
 
-
+/* a policy that must be respected when forwarding a payment through an edge (see edge below) */
 struct policy {
   uint64_t fee_base;
   uint64_t fee_proportional;
@@ -26,33 +26,7 @@ struct policy {
   uint32_t timelock;
 };
 
-struct ignored{
-  long id;
-  uint64_t time;
-};
-
-/* struct random_network_node{ */
-/*   long id; */
-/*   int n_channels; */
-/*   int channel_count; */
-/*   unsigned int in_network; */
-/*   unsigned int left; */
-/*   struct element* connections; */
-/* }; */
-
-struct graph_channel {
-  long node1_id;
-  long node2_id;
-};
-
-struct node_pair_result{
-  long to_node_id;
-  uint64_t fail_time;
-  uint64_t fail_amount;
-  uint64_t success_time;
-  uint64_t success_amount;
-};
-
+/* a node of the payment-channel network */
 struct node {
   long id;
   struct array* open_edges;
@@ -60,6 +34,7 @@ struct node {
   unsigned int explored;
 };
 
+/* a bidirectional payment channel of the payment-channel network open between two nodes */
 struct channel {
   long id;
   long node1;
@@ -70,6 +45,7 @@ struct channel {
   unsigned int is_closed;
 };
 
+/* an edge represents one of the two direction of a payment channel */
 struct edge {
   long id;
   long channel_id;
@@ -82,11 +58,18 @@ struct edge {
   uint64_t tot_flows;
 };
 
+
+struct graph_channel {
+  long node1_id;
+  long node2_id;
+};
+
+
 struct network {
   struct array* nodes;
   struct array* channels;
   struct array* edges;
-  gsl_ran_discrete_t* faulty_node_prob;
+  gsl_ran_discrete_t* faulty_node_prob; //the probability that a nodes in the network has a fault and goes offline
 };
 
 
