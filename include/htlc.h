@@ -24,7 +24,7 @@ struct node_pair_result{
 
 uint64_t compute_fee(uint64_t amount_to_forward, struct policy policy);
 
-void find_route(struct event* event, struct simulation* simulation, struct network* network);
+void find_path(struct event* event, struct simulation* simulation, struct network* network, struct array** payments);
 
 void send_payment(struct event* event, struct simulation* simulation, struct network* network);
 

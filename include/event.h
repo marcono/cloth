@@ -7,7 +7,7 @@
 #include "payments.h"
 
 enum event_type {
-  FINDROUTE,
+  FINDPATH,
   SENDPAYMENT,
   FORWARDPAYMENT,
   RECEIVEPAYMENT,

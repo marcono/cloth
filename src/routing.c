@@ -468,6 +468,11 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
     curr = edge->to_node_id;
   }
 
+  if(array_len(hops) > HOPSLIMIT){
+    *error = NOPATH;
+    return NULL;
+  }
+
   return hops;
 }
 
@@ -494,9 +499,6 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
   struct policy current_edge_policy, next_edge_policy;
 
   n_hops = array_len(path_hops);
-  if(n_hops > HOPSLIMIT)
-    return NULL;
-
   route = route_initialize(n_hops);
 
   for(i=n_hops-1; i>=0; i--) {

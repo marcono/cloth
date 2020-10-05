@@ -31,13 +31,18 @@ struct payment {
   uint64_t end_time;
   int attempts;
   struct payment_error error;
+  /* attributes for multi-path-payment (mpp)*/
+  unsigned int is_mpp;
+  long shards_id[2];
   /* attributes used for computing stats */
   unsigned int is_success;
   int offline_node_count;
   int no_balance_count;
   unsigned int is_timeout;
+
 };
 
+struct payment* new_payment(long id, long sender, long receiver, uint64_t amount, uint64_t start_time);
 struct array* initialize_payments(struct payments_params pay_params, long n_nodes, gsl_rng* random_generator);
 
 #endif

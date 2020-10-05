@@ -68,10 +68,11 @@ void write_output(struct network* network, struct array* payments) {
     printf("ERROR cannot open payment_output.csv\n");
     exit(-1);
   }
-  fprintf(csv_payment_output, "id,sender_id,receiver_id,amount,start_time,end_time,is_success,no_balance_count,offline_node_count,timeout_exp,attempts,route,total_fee\n");
+  fprintf(csv_payment_output, "id,sender_id,receiver_id,amount,start_time,end_time,mpp,is_success,no_balance_count,offline_node_count,timeout_exp,attempts,route,total_fee\n");
   for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%u,%d,%d,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_success, payment->no_balance_count, payment->offline_node_count, payment->is_timeout, payment->attempts);
+    if (payment->id == -1) continue;
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%u,%u,%d,%d,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_mpp, payment->is_success, payment->no_balance_count, payment->offline_node_count, payment->is_timeout, payment->attempts);
     route = payment->route;
     if(route==NULL)
       fprintf(csv_payment_output, "-1,");
@@ -208,6 +209,39 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
 }
 
 
+unsigned int has_shards(struct payment* payment){
+  return (payment->shards_id[0] != -1 && payment->shards_id[1] != -1);
+}
+
+void post_process_payment_stats(struct array* payments){
+  long i;
+  struct payment* payment, *shard1, *shard2;
+  for(i = 0; i < array_len(payments); i++){
+    payment = array_get(payments, i);
+    if(payment->id == -1) continue;
+    if(!has_shards(payment)) continue;
+    shard1 = array_get(payments, payment->shards_id[0]);
+    shard2 = array_get(payments, payment->shards_id[1]);
+    payment->end_time = shard1->end_time > shard2->end_time ? shard1->end_time : shard2->end_time;
+    payment->is_success = shard1->is_success && shard2->is_success ? 1 : 0;
+    payment->no_balance_count = shard1->no_balance_count + shard2->no_balance_count;
+    payment->offline_node_count = shard1->offline_node_count + shard2->offline_node_count;
+    payment->is_timeout = shard1->is_timeout || shard2->is_timeout ? 1 : 0;
+    payment->attempts = shard1->attempts + shard2->attempts;
+    if(shard1->route != NULL && shard2->route != NULL){
+      payment->route = array_len(shard1->route->route_hops) > array_len(shard2->route->route_hops) ? shard1->route : shard2->route;
+      payment->route->total_fee = shard1->route->total_fee + shard2->route->total_fee;
+    }
+    else{
+      payment->route = NULL;
+    }
+    //a trick to avoid processing already processed shards
+    shard1->id = -1;
+    shard2->id = -1;
+  }
+}
+
+
 gsl_rng* initialize_random_generator(){
   gsl_rng_env_setup();
   return gsl_rng_alloc (gsl_rng_default);
@@ -256,8 +290,8 @@ int main() {
     event = heap_pop(simulation->events, compare_event);
     simulation->current_time = event->time;
     switch(event->type){
-    case FINDROUTE:
-      find_route(event, simulation, network);
+    case FINDPATH:
+      find_path(event, simulation, network, &payments);
       break;
     case SENDPAYMENT:
       send_payment(event, simulation, network);
@@ -289,6 +323,7 @@ int main() {
     }
   }
   end = clock();
+  post_process_payment_stats(payments);
 
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulation events: %lf s\n", time_spent);

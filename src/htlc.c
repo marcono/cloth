@@ -176,16 +176,35 @@ void process_fail_result(struct node* node, struct payment *payment, uint64_t cu
 }
 
 
+void generate_send_payment_event(struct payment* payment, struct array* path, struct simulation* simulation, struct network* network){
+  struct route* route;
+  uint64_t next_event_time;
+  struct event* send_payment_event;
+  route = transform_path_into_route(path, payment->amount, network);
+  payment->route = route;
+  next_event_time = simulation->current_time;
+  send_payment_event = new_event(next_event_time, SENDPAYMENT, payment->sender, payment );
+  simulation->events = heap_insert(simulation->events, send_payment_event, compare_event);
+}
+
+
+struct payment* create_payment_shard(long shard_id, uint64_t shard_amount, struct payment* payment){
+  struct payment* shard;
+  shard = new_payment(shard_id, payment->sender, payment->receiver, shard_amount, payment->start_time);
+  shard->attempts = 1;
+  shard->is_mpp = 1;
+  return shard;
+}
+
 /*HTLC FUNCTIONS*/
 
-/* find a route for a payment (a modified version of dijkstra is used: see `routing.c` */
-void find_route(struct event *event, struct simulation* simulation, struct network* network) {
-  struct payment *payment;
-  struct array *path_hops;
-  struct route* route;
-  struct event* send_event;
-  uint64_t next_event_time;
+/* find a path for a payment (a modified version of dijkstra is used: see `routing.c`) */
+void find_path(struct event *event, struct simulation* simulation, struct network* network, struct array** payments) {
+  struct payment *payment, *shard1, *shard2;
+  struct array *path, *shard1_path, *shard2_path;
+  uint64_t shard1_amount, shard2_amount;
   enum pathfind_error error;
+  long shard1_id, shard2_id;
 
   payment = event->payment;
 
@@ -198,27 +217,46 @@ void find_route(struct event *event, struct simulation* simulation, struct netwo
   }
 
   if (payment->attempts==1)
-    path_hops = paths[payment->id];
+    path = paths[payment->id];
   else
-    path_hops = dijkstra(payment->sender, payment->receiver, payment->amount, network, simulation->current_time, 0, &error);
+    path = dijkstra(payment->sender, payment->receiver, payment->amount, network, simulation->current_time, 0, &error);
 
-  if (path_hops == NULL) {
-    payment->end_time = simulation->current_time;
+  if (path != NULL) {
+    generate_send_payment_event(payment, path, simulation, network);
     return;
   }
 
-  route = transform_path_into_route(path_hops, payment->amount, network);
-  if(route == NULL) {
-    printf("No available route\n");
-    payment->end_time = simulation->current_time;
+  //if a path is not found, try to split the payment in two shards (multi-path payment)
+  if(path == NULL && !(payment->is_mpp) && payment->attempts == 1 ){
+    printf("payment split\n");
+    shard1_amount = payment->amount/2;
+    shard2_amount = payment->amount - shard1_amount;
+    shard1_path = dijkstra(payment->sender, payment->receiver, shard1_amount, network, simulation->current_time, 0, &error);
+    if(shard1_path == NULL){
+      payment->end_time = simulation->current_time;
+      return;
+    }
+    shard2_path = dijkstra(payment->sender, payment->receiver, shard2_amount, network, simulation->current_time, 0, &error);
+    if(shard2_path == NULL){
+      payment->end_time = simulation->current_time;
+      return;
+    }
+    shard1_id = array_len(*payments);
+    shard2_id = array_len(*payments) + 1;
+    shard1 = create_payment_shard(shard1_id, shard1_amount, payment);
+    shard2 = create_payment_shard(shard2_id, shard2_amount, payment);
+    *payments = array_insert(*payments, shard1);
+    *payments = array_insert(*payments, shard2);
+    payment->is_mpp = 1;
+    payment->shards_id[0] = shard1_id;
+    payment->shards_id[1] = shard2_id;
+    generate_send_payment_event(shard1, shard1_path, simulation, network);
+    generate_send_payment_event(shard2, shard2_path, simulation, network);
     return;
   }
 
-  payment->route = route;
-
-  next_event_time = simulation->current_time;
-  send_event = new_event(next_event_time, SENDPAYMENT, payment->sender, event->payment );
-  simulation->events = heap_insert(simulation->events, send_event, compare_event);
+  payment->end_time = simulation->current_time;
+  return;
 }
 
 /* send an HTLC for the payment (behavior of the payment sender) */
@@ -505,6 +543,6 @@ void receive_fail(struct event* event, struct simulation* simulation, struct net
   process_fail_result(node, payment, simulation->current_time);
 
   next_event_time = simulation->current_time;
-  next_event = new_event(next_event_time, FINDROUTE, payment->sender, payment);
+  next_event = new_event(next_event_time, FINDPATH, payment->sender, payment);
   simulation->events = heap_insert(simulation->events, next_event, compare_event);
 }

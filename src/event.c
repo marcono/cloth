@@ -39,7 +39,7 @@ struct heap* initialize_events(struct array* payments){
   events = heap_initialize(array_len(payments)*10);
   for(i=0; i<array_len(payments); i++){
     payment = array_get(payments, i);
-    event = new_event(payment->start_time, FINDROUTE, payment->sender, payment);
+    event = new_event(payment->start_time, FINDPATH, payment->sender, payment);
     events = heap_insert(events, event, compare_event);
   }
   /* events that open new channels during a simulation; currently NOT USED */

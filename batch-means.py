@@ -89,11 +89,12 @@ for i in range (0, n_batches):
           batches['Time'][i] = float(batches['Time'][i])/batches['Success'][i]
           batches['RouteLength'][i] = float(batches['RouteLength'][i])/batches['Success'][i]
           batches['Attempts'][i] = float(batches['Attempts'][i])/batches['Success'][i]
-          batches['Success'][i] = float(batches['Success'][i])/batches['Total'][i]
-          batches['FailNoPath'][i] = float(batches['FailNoPath'][i])/batches['Total'][i]
-          batches['FailNoBalance'][i] = float(batches['FailNoBalance'][i])/batches['Total'][i]
-          batches['FailOfflineNode'][i] = float(batches['FailOfflineNode'][i])/batches['Total'][i]
-          batches['FailTimeoutExpired'][i] = float(batches['FailTimeoutExpired'][i])/batches['Total'][i]
+
+     batches['Success'][i] = float(batches['Success'][i])/batches['Total'][i]
+     batches['FailNoPath'][i] = float(batches['FailNoPath'][i])/batches['Total'][i]
+     batches['FailNoBalance'][i] = float(batches['FailNoBalance'][i])/batches['Total'][i]
+     batches['FailOfflineNode'][i] = float(batches['FailOfflineNode'][i])/batches['Total'][i]
+     batches['FailTimeoutExpired'][i] = float(batches['FailTimeoutExpired'][i])/batches['Total'][i]
 
 
 
