@@ -155,23 +155,20 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
         exit(-1);
       }
     }
-    else if(strcmp(parameter, "nodes_csv")==0){
+    else if(strcmp(parameter, "nodes_filename")==0){
       strcpy(net_params->nodes_filename, value);
     }
-    else if(strcmp(parameter, "channels_csv")==0){
+    else if(strcmp(parameter, "channels_filename")==0){
       strcpy(net_params->channels_filename, value);
     }
-    else if(strcmp(parameter, "edges_csv")==0){
+    else if(strcmp(parameter, "edges_filename")==0){
       strcpy(net_params->edges_filename, value);
     }
-    else if(strcmp(parameter, "n_nodes")==0){
+    else if(strcmp(parameter, "n_additional_nodes")==0){
       net_params->n_nodes = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "n_channels_per_node")==0){
       net_params->n_channels = strtol(value, NULL, 10);
-    }
-    else if(strcmp(parameter, "sigma_topology")==0){
-      net_params->sigma_topology = strtol(value, NULL, 10);
     }
     else if(strcmp(parameter, "capacity_per_channel")==0){
       net_params->capacity_per_channel = strtol(value, NULL, 10);
@@ -189,7 +186,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
         exit(-1);
       }
     }
-    else if(strcmp(parameter, "payments_csv")==0){
+    else if(strcmp(parameter, "payments_filename")==0){
       strcpy(pay_params->payments_filename, value);
     }
     else if(strcmp(parameter, "payment_rate")==0){

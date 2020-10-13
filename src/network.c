@@ -68,7 +68,7 @@ void write_network_files(struct network* network){
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "channels.csv");
     exit(-1);
   }
-  fprintf(channels_output_file, "id,edge1_id,edge2_id,node1_id,node2_id,capacity,latency\n");
+  fprintf(channels_output_file, "id,edge1_id,edge2_id,node1_id,node2_id,capacity\n");
   edges_output_file = fopen("edges.csv", "w");
   if(edges_output_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "edges.csv");
@@ -152,7 +152,7 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
 
 
 /* generate a random payment-channel network;
-   the starting point of the network is a recent snapshot of the Lightning Network (files "nodes_ln.csv", "channels_ln.csv");
+   the model of the network is a snapshot of the Lightning Network (files "nodes_ln.csv", "channels_ln.csv");
    starting from this network, a random network is generated using the scale-free network model */
 struct network* generate_random_network(struct network_params net_params, gsl_rng* random_generator){
   FILE* nodes_input_file, *channels_input_file;

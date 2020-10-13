@@ -1,0 +1,1 @@
+id,channel_id,counter_edge_id,from_node_id,to_node_id,balance(millisat),fee_base(millisat),fee_proportional,min_htlc(millisat),timelock

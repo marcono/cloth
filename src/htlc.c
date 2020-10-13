@@ -226,9 +226,8 @@ void find_path(struct event *event, struct simulation* simulation, struct networ
     return;
   }
 
-  //if a path is not found, try to split the payment in two shards (multi-path payment)
+  //  if a path is not found, try to split the payment in two shards (multi-path payment)
   if(path == NULL && !(payment->is_mpp) && payment->attempts == 1 ){
-    printf("payment split\n");
     shard1_amount = payment->amount/2;
     shard2_amount = payment->amount - shard1_amount;
     shard1_path = dijkstra(payment->sender, payment->receiver, shard1_amount, network, simulation->current_time, 0, &error);

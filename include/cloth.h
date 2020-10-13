@@ -10,7 +10,6 @@
 struct network_params{
   long n_nodes;
   long n_channels;
-  int sigma_topology;
   long capacity_per_channel;
   double faulty_node_prob;
   unsigned int network_from_file;
