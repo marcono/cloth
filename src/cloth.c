@@ -117,11 +117,26 @@ void write_output(struct network* network, struct array* payments) {
 }
 
 
+void initialize_input_parameters(struct network_params *net_params, struct payments_params *pay_params) {
+  net_params->n_nodes = net_params->n_channels = net_params->capacity_per_channel = 0;
+  net_params->faulty_node_prob = 0.0;
+  net_params->network_from_file = 0;
+  strcpy(net_params->nodes_filename, "\0");
+  strcpy(net_params->channels_filename, "\0");
+  strcpy(net_params->edges_filename, "\0");
+  pay_params->inverse_payment_rate = pay_params->average_amount = 0.0;
+  pay_params->n_payments = 0;
+  pay_params->payments_from_file = 0;
+  strcpy(pay_params->payments_filename, "\0");
+}
+
 
 /* parse the input parameters in "cloth_input.txt" */
 void read_input(struct network_params* net_params, struct payments_params* pay_params){
   FILE* input_file;
   char *parameter, *value, line[1024];
+
+  initialize_input_parameters(net_params, pay_params);
 
   input_file = fopen("cloth_input.txt","r");
 
@@ -334,6 +349,8 @@ int main() {
   printf("Time consumed by simulation events: %lf s\n", time_spent);
 
   write_output(network, payments);
+
+  free(simulation);
 
   return 0;
 }
