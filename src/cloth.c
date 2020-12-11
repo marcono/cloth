@@ -135,11 +135,13 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
     value = strtok(NULL, "=");
     if(parameter==NULL || value==NULL){
       fprintf(stderr, "ERROR: wrong format in file <cloth_input.txt>\n");
+      fclose(input_file);
       exit(-1);
     }
 
     if(value[0]==' ' || parameter[strlen(parameter)-1]==' '){
       fprintf(stderr, "ERROR: no space allowed after/before <=> character in <cloth_input.txt>. Space detected in parameter <%s>\n", parameter);
+      fclose(input_file);
       exit(-1);
     }
 
@@ -152,6 +154,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
         net_params->network_from_file=0;
       else{
         fprintf(stderr, "ERROR: wrong value of parameter <%s> in <cloth_input.txt>. Possible values are <true> or <false>\n", parameter);
+        fclose(input_file);
         exit(-1);
       }
     }
@@ -183,6 +186,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
         pay_params->payments_from_file=0;
       else{
         fprintf(stderr, "ERROR: wrong value of parameter <%s> in <cloth_input.txt>. Possible values are <true> or <false>\n", parameter);
+        fclose(input_file);
         exit(-1);
       }
     }
@@ -200,9 +204,11 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
     }
     else{
       fprintf(stderr, "ERROR: unknown parameter <%s>\n", parameter);
+      fclose(input_file);
       exit(-1);
     }
   }
+  fclose(input_file);
 }
 
 
@@ -249,6 +255,7 @@ int main() {
   struct event* event;
   clock_t  begin, end;
   double time_spent=0.0;
+  long time_spent_thread = 0;
   struct network_params net_params;
   struct payments_params pay_params;
   struct timespec start, finish;
@@ -276,8 +283,8 @@ int main() {
   clock_gettime(CLOCK_MONOTONIC, &start);
   run_dijkstra_threads(network, payments, 0);
   clock_gettime(CLOCK_MONOTONIC, &finish);
-  time_spent = finish.tv_sec - start.tv_sec;
-  printf("Time consumed by initial dijkstra executions: %lf s\n", time_spent);
+  time_spent_thread = finish.tv_sec - start.tv_sec;
+  printf("Time consumed by initial dijkstra executions: %ld s\n", time_spent_thread);
 
   printf("EXECUTION OF THE SIMULATION\n");
   /* core of the discrete-event simulation: extract next event, advance simulation time, execute the event */

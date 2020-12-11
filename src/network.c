@@ -66,12 +66,15 @@ void write_network_files(struct network* network){
   channels_output_file = fopen("channels.csv", "w");
   if(channels_output_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "channels.csv");
+    fclose(nodes_output_file);
     exit(-1);
   }
   fprintf(channels_output_file, "id,edge1_id,edge2_id,node1_id,node2_id,capacity\n");
   edges_output_file = fopen("edges.csv", "w");
   if(edges_output_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "edges.csv");
+    fclose(nodes_output_file);
+    fclose(channels_output_file);
     exit(-1);
   }
   fprintf(edges_output_file, "id,channel_id,counter_edge_id,from_node_id,to_node_id,balance,fee_base,fee_proportional,min_htlc,timelock\n");
@@ -106,7 +109,7 @@ void update_probability_per_node(double *probability_per_node, int *channels_per
 }
 
 /* generate a channel (connecting node1_id and node2_id) with random values */ 
-void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long node1_id, long node2_id,  uint64_t channel_capacity, struct network* network, gsl_rng*random_generator) {
+void generate_random_channel(struct channel channel_data, uint64_t mean_channel_capacity, struct network* network, gsl_rng*random_generator) {
   uint64_t capacity, edge1_balance, edge2_balance;
   struct policy edge1_policy, edge2_policy;
   double min_htlcP[]={0.7, 0.2, 0.05, 0.05}, fraction_capacity;
@@ -115,8 +118,8 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   struct edge* edge1, *edge2;
   struct node* node;
 
-  capacity = abs(channel_capacity + gsl_ran_ugaussian(random_generator)); 
-  channel = new_channel(channel_id, edge1_id, edge2_id, node1_id, node2_id, capacity*1000);
+  capacity = fabs(mean_channel_capacity + gsl_ran_ugaussian(random_generator)); 
+  channel = new_channel(channel_data.id, channel_data.edge1, channel_data.edge2, channel_data.node1, channel_data.node2, capacity*1000);
 
   fraction_capacity = gsl_rng_uniform(random_generator);
   edge1_balance = fraction_capacity*((double) capacity);
@@ -137,16 +140,16 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
   edge2_policy.min_htlc = gsl_pow_int(10, gsl_ran_discrete(random_generator, min_htlc_discrete));
   edge2_policy.min_htlc = edge2_policy.min_htlc == 1 ? 0 : edge2_policy.min_htlc;
 
-  edge1 = new_edge(edge1_id, channel_id, edge2_id, node1_id, node2_id, edge1_balance, edge1_policy);
-  edge2 = new_edge(edge2_id, channel_id, edge1_id, node2_id, node1_id, edge2_balance, edge2_policy);
+  edge1 = new_edge(channel_data.edge1, channel_data.id, channel_data.edge2, channel_data.node1, channel_data.node2, edge1_balance, edge1_policy);
+  edge2 = new_edge(channel_data.edge2, channel_data.id, channel_data.edge1, channel_data.node2, channel_data.node1, edge2_balance, edge2_policy);
 
   network->channels = array_insert(network->channels, channel);
   network->edges = array_insert(network->edges, edge1);
   network->edges = array_insert(network->edges, edge2);
 
-  node = array_get(network->nodes, node1_id);
+  node = array_get(network->nodes, channel_data.node1);
   node->open_edges = array_insert(node->open_edges, &(edge1->id));
-  node = array_get(network->nodes, node2_id);
+  node = array_get(network->nodes, channel_data.node2);
   node->open_edges = array_insert(node->open_edges, &(edge2->id));
 }
 
@@ -157,12 +160,13 @@ void generate_random_channel(long channel_id, long edge1_id, long edge2_id, long
 struct network* generate_random_network(struct network_params net_params, gsl_rng* random_generator){
   FILE* nodes_input_file, *channels_input_file;
   char row[256];
-  long node_id_counter=0, id, node1_id, node2_id, edge1_id, edge2_id, channel_id_counter=0, tot_nodes, i, tot_channels, node_to_connect_id, edge_id_counter=0, j;
+  long node_id_counter=0, id, channel_id_counter=0, tot_nodes, i, tot_channels, node_to_connect_id, edge_id_counter=0, j;
   double *probability_per_node;
   int *channels_per_node;
   struct network* network;
   struct node* node;
   gsl_ran_discrete_t* connection_probability;
+  struct channel channel;
 
   nodes_input_file = fopen("nodes_ln.csv", "r");
   if(nodes_input_file==NULL) {
@@ -172,6 +176,7 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
   channels_input_file = fopen("channels_ln.csv", "r");
   if(channels_input_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", "channels_ln.csv");
+    fclose(nodes_input_file);
     exit(-1);
   }
 
@@ -187,8 +192,14 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
     network->nodes = array_insert(network->nodes, node);
     node_id_counter++;
   }
-
   tot_nodes = node_id_counter + net_params.n_nodes;
+  if(tot_nodes == 0){
+    fprintf(stderr, "ERROR: it is not possible to generate a network with 0 nodes\n");
+    fclose(nodes_input_file);
+    fclose(channels_input_file);
+    exit(-1);
+  }
+
   channels_per_node = malloc(sizeof(int)*(tot_nodes));
   for(i = 0; i < tot_nodes; i++){
     channels_per_node[i] = 0;
@@ -196,15 +207,21 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
 
   fgets(row, 256, channels_input_file);
   while(fgets(row, 256, channels_input_file)!=NULL) {
-    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%*d,%*d", &id, &edge1_id, &edge2_id, &node1_id, &node2_id);
-    generate_random_channel(id, edge1_id, edge2_id, node1_id, node2_id, net_params.capacity_per_channel, network, random_generator);
-    channels_per_node[node1_id] += 1;
-    channels_per_node[node2_id] += 1;
+    sscanf(row, "%ld,%ld,%ld,%ld,%ld,%*d,%*d", &(channel.id), &(channel.edge1), &(channel.edge2), &(channel.node1), &(channel.node2));
+    generate_random_channel(channel, net_params.capacity_per_channel, network, random_generator);
+    channels_per_node[channel.node1] += 1;
+    channels_per_node[channel.node2] += 1;
     ++channel_id_counter;
     edge_id_counter+=2;
   }
-
   tot_channels = channel_id_counter;
+  if(tot_channels == 0){
+    fprintf(stderr, "ERROR: it is not possible to generate a network with 0 channels\n");
+    fclose(nodes_input_file);
+    fclose(channels_input_file);
+    exit(-1);
+  }
+
   probability_per_node = malloc(sizeof(double)*tot_nodes);
   for(i=0; i<tot_nodes; i++){
     probability_per_node[i] = ((double)channels_per_node[i])/tot_channels;
@@ -218,7 +235,12 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
     for(j=0; j<net_params.n_channels; j++){
       connection_probability = gsl_ran_discrete_preproc(node_id_counter, probability_per_node);
       node_to_connect_id = gsl_ran_discrete(random_generator, connection_probability);
-      generate_random_channel(channel_id_counter, edge_id_counter, edge_id_counter+1, node->id, node_to_connect_id, net_params.capacity_per_channel, network, random_generator);
+      channel.id = channel_id_counter;
+      channel.edge1 = edge_id_counter;
+      channel.edge2 = edge_id_counter + 1;
+      channel.node1 = node->id;
+      channel.node2 = node_to_connect_id;
+      generate_random_channel(channel, net_params.capacity_per_channel, network, random_generator);
       channel_id_counter++;
       edge_id_counter += 2;
       update_probability_per_node(probability_per_node, channels_per_node, tot_nodes, node->id, node_to_connect_id, channel_id_counter);
@@ -255,11 +277,14 @@ struct network* generate_network_from_files(char nodes_filename[256], char chann
   channels_file = fopen(channels_filename, "r");
   if(channels_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", channels_filename);
+    fclose(nodes_file);
     exit(-1);
   }
   edges_file = fopen(edges_filename, "r");
   if(edges_file==NULL) {
     fprintf(stderr, "ERROR: cannot open file <%s>\n", edges_filename);
+    fclose(nodes_file);
+    fclose(channels_file);
     exit(-1);
   }
 
@@ -329,13 +354,13 @@ struct network* initialize_network(struct network_params net_params, gsl_rng* ra
 /* open a new channel during the simulation */
 /* currenlty NOT USED */
 void open_channel(struct network* network, gsl_rng* random_generator){
-  long channel_id, edge1_id, edge2_id, node1_id, node2_id;
-  channel_id = array_len(network->channels);
-  edge1_id = array_len(network->edges);
-  edge2_id = array_len(network->edges) + 1;
-  node1_id = gsl_rng_uniform_int(random_generator, array_len(network->nodes));
+  struct channel channel;
+  channel.id = array_len(network->channels);
+  channel.edge1 = array_len(network->edges);
+  channel.edge2 = array_len(network->edges) + 1;
+  channel.node1 = gsl_rng_uniform_int(random_generator, array_len(network->nodes));
   do{
-    node2_id = gsl_rng_uniform_int(random_generator, array_len(network->nodes));
-  } while(node2_id==node1_id);
-  generate_random_channel(channel_id, edge1_id, edge2_id, node1_id, node2_id, 1000, network, random_generator);
+    channel.node2 = gsl_rng_uniform_int(random_generator, array_len(network->nodes));
+  } while(channel.node2==channel.node1);
+  generate_random_channel(channel, 1000, network, random_generator);
 }

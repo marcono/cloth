@@ -70,7 +70,8 @@ struct heap* heap_initialize(long size) {
 
 
 struct heap* heap_insert(struct heap *h, void* data, int(*compare)()) {
-  int i, parent, comp_res;
+  long i, parent;
+  int comp_res;
 
   if(h->index >= h->size) {
       h = resize_heap(h);
@@ -94,7 +95,8 @@ struct heap* heap_insert(struct heap *h, void* data, int(*compare)()) {
 
 
 struct heap* heap_insert_or_update(struct heap *h, void* data, int(*compare)(), int(*is_key_equal)()) {
-  int i, parent, comp_res, present;
+  long i, parent;
+  int comp_res, present;
 
   present = 0;
   for(i=0; i<h->index; i++){
@@ -135,7 +137,6 @@ void* heap_pop(struct heap* h, int(*compare)()) {
   h->data[0]=h->data[h->index];
 
   heapify(h, 0, compare);
-  
 
   return min;
 }
@@ -145,11 +146,6 @@ long heap_len(struct heap*h){
 }
 
 void heap_free(struct heap *h) {
-  long i;
-
-  //  for(i=0; i<h->size; i++)
-  // free(h->data[i]);
-
   free(h->data);
   free(h);
 }

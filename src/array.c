@@ -85,9 +85,6 @@ void array_delete_all(struct array* a) {
 }
 
 void array_free(struct array* a)  {
-  /* long i; */
-  /* for(i=0; i<a->index; i++) */
-  /*   free(a->element[i]); */
   free(a->element);
   free(a);
 }

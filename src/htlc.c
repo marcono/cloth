@@ -267,7 +267,7 @@ void send_payment(struct event* event, struct simulation* simulation, struct net
   struct edge* next_edge;
   struct event* next_event;
   enum event_type event_type;
-  unsigned int is_next_node_offline;
+  unsigned long is_next_node_offline;
   struct node* node;
 
   payment = event->payment;
@@ -322,7 +322,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   enum event_type event_type;
   struct event* next_event;
   uint64_t next_event_time;
-  unsigned int is_next_node_offline;
+  unsigned long is_next_node_offline;
   struct node* node;
   unsigned int is_last_hop, can_send_htlc;
   struct edge *next_edge = NULL, *prev_edge;
@@ -335,7 +335,7 @@ void forward_payment(struct event *event, struct simulation* simulation, struct 
   is_last_hop = next_route_hop->to_node_id == payment->receiver;
 
   if(!is_present(next_route_hop->edge_id, node->open_edges)) {
-    printf("ERROR (forward_payment): edge %ld is not an edge of node %ld \n", next_edge->id, node->id);
+    printf("ERROR (forward_payment): edge %ld is not an edge of node %ld \n", next_route_hop->edge_id, node->id);
     exit(-1);
   }
 

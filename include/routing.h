@@ -21,7 +21,7 @@ struct thread_args{
   struct network* network;
   struct array* payments;
   uint64_t current_time;
-  int data_index;
+  long data_index;
 };
 
 struct distance{
@@ -51,14 +51,14 @@ struct route_hop {
   long to_node_id;
   long edge_id;
   uint64_t amount_to_forward;
-  uint16_t timelock;
+  uint32_t timelock;
 };
 
 
 struct route {
   uint64_t total_amount;
   uint64_t total_fee;
-  uint32_t total_timelock;
+  uint64_t total_timelock;
   struct array *route_hops;
 };
 

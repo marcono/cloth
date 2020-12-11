@@ -120,7 +120,7 @@ double millisec_to_hour(double time){
 }
 
 
-double get_weight(uint64_t age){
+double get_weight(double age){
   double exp;
   exp = - millisec_to_hour(age) / PENALTYHALFLIFE;
   return pow(2, exp);
@@ -147,7 +147,7 @@ double calculate_probability(struct element* node_results, long to_node_id, uint
     exit(-1);
   }
   time_since_last_failure = current_time - result->fail_time;
-  weight = get_weight(time_since_last_failure);
+  weight = get_weight((double)time_since_last_failure);
   probability = node_probability * (1-weight);
 
   return probability;
@@ -175,7 +175,7 @@ double get_node_probability(struct element* node_results, uint64_t amount, uint6
     }
     if(result->fail_time != 0 && amount >= result->fail_amount){
       age = current_time - result->fail_time;
-      total_weight += get_weight(age);
+      total_weight += get_weight((double)age);
     }
   }
 
@@ -284,19 +284,13 @@ struct array* get_best_edges(long to_node_id, uint64_t amount, long source_node_
       channel = array_get(network->channels, edge->channel_id);
 
       if(local_node){
-        if(edge->balance < amount)
-          continue;
-        if(amount < edge->policy.min_htlc)
-          continue;
-        if(edge->balance < max_balance)
+        if(edge->balance < amount || amount < edge->policy.min_htlc || edge->balance < max_balance)
           continue;
         max_balance = edge->balance;
         best_edge = edge;
       }
       else {
-        if(amount > channel->capacity)
-          continue;
-        if(amount < edge->policy.min_htlc)
+        if(amount > channel->capacity || amount < edge->policy.min_htlc)
           continue;
         if(edge->policy.timelock > max_timelock)
           max_timelock = edge->policy.timelock;
@@ -339,12 +333,11 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
   long i, best_node_id, j, from_node_id, curr;
   struct node *source_node, *best_node;
   struct edge* edge=NULL;
-  uint32_t edge_timelock, tmp_timelock;
+  uint64_t edge_timelock, tmp_timelock;
   uint64_t  amt_to_send, edge_fee, tmp_dist, amt_to_receive, total_balance, max_balance, current_dist;
   struct array* hops=NULL; // *best_edges = NULL;
   struct path_hop* hop=NULL;
   double edge_probability, tmp_probability, edge_weight, tmp_weight, current_prob;
-  //  struct timespec start, finish;
   struct channel* channel;
 
   source_node = array_get(network->nodes, source);
@@ -389,10 +382,7 @@ struct array* dijkstra(long source, long target, uint64_t amount, struct network
     amt_to_send = to_node_dist.amt_to_receive;
 
     best_node = array_get(network->nodes, best_node_id);
-    /* clock_gettime(CLOCK_MONOTONIC, &start); */
     /* best_edges = get_best_edges(best_node_id, amt_to_send, source, network); */
-    /* clock_gettime(CLOCK_MONOTONIC, &finish); */
-    /* best_edges_time += (finish.tv_sec - start.tv_sec); */
 
     for(j=0; j<array_len(best_node->open_edges); j++) {
       edge = array_get(best_node->open_edges, j);
@@ -483,6 +473,7 @@ struct route* route_initialize(long n_hops) {
   r->route_hops = array_initialize(n_hops);
   r->total_amount = 0;
   r->total_timelock = 0;
+  r->total_fee = 0;
   return r;
 }
 
@@ -513,7 +504,6 @@ struct route* transform_path_into_route(struct array* path_hops, uint64_t destin
     route_hop->edge_id = path_hop->edge;
     if(i == n_hops-1) {
       route_hop->amount_to_forward = destination_amt;
-      fee = 0;
       route->total_amount += destination_amt;
       //my version
       route_hop->timelock = FINALTIMELOCK;
