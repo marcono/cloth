@@ -250,6 +250,8 @@ struct network* generate_random_network(struct network_params net_params, gsl_rn
 
   fclose(nodes_input_file);
   fclose(channels_input_file);
+  free(channels_per_node);
+  free(probability_per_node);
 
   write_network_files(network);
 

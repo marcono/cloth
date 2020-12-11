@@ -117,6 +117,7 @@ void write_output(struct network* network, struct array* payments) {
 }
 
 
+
 /* parse the input parameters in "cloth_input.txt" */
 void read_input(struct network_params* net_params, struct payments_params* pay_params){
   FILE* input_file;
