@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <dirent.h>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_cdf.h>
@@ -25,7 +26,7 @@
 
 
 /* write the final values of nodes, channels, edges and payments in csv files */
-void write_output(struct network* network, struct array* payments) {
+void write_output(struct network* network, struct array* payments, char output_dir_name[]) {
   FILE* csv_channel_output, *csv_edge_output, *csv_payment_output, *csv_node_output;
   long i,j, *id;
   struct channel* channel;
@@ -35,36 +36,47 @@ void write_output(struct network* network, struct array* payments) {
   struct route* route;
   struct array* hops;
   struct route_hop* hop;
+  DIR* results_dir;
+  char output_filename[512];
 
-  csv_channel_output = fopen("channels_output.csv", "w");
+  results_dir = opendir(output_dir_name);
+  if(!results_dir){
+    printf("cloth.c: Cannot find the output directory. The output will be stored in the current directory.\n");
+    strcpy(output_dir_name, "./");
+  }
+
+  strcpy(output_filename, output_dir_name);
+  strcat(output_filename, "channels_output.csv");
+  csv_channel_output = fopen(output_filename, "w");
   if(csv_channel_output  == NULL) {
     printf("ERROR cannot open channel_output.csv\n");
     exit(-1);
   }
   fprintf(csv_channel_output, "id,edge1,edge2,node1,node2,capacity,is_closed\n");
-
   for(i=0; i<array_len(network->channels); i++) {
     channel = array_get(network->channels, i);
     fprintf(csv_channel_output, "%ld,%ld,%ld,%ld,%ld,%ld,%d\n", channel->id, channel->edge1, channel->edge2, channel->node1, channel->node2, channel->capacity, channel->is_closed);
   }
-
   fclose(csv_channel_output);
 
-  csv_edge_output = fopen("edges_output.csv", "w");
-  if(csv_channel_output  == NULL) {
+  strcpy(output_filename, output_dir_name);
+  strcat(output_filename, "edges_output.csv");
+  csv_edge_output = fopen(output_filename, "w");
+  if(csv_edge_output  == NULL) {
     printf("ERROR cannot open edge_output.csv\n");
     exit(-1);
   }
   fprintf(csv_edge_output, "id,channel_id,counter_edge_id,from_node_id,to_node_id,balance,fee_base,fee_proportional,min_htlc,timelock,is_closed,tot_flows\n");
-
   for(i=0; i<array_len(network->edges); i++) {
     edge = array_get(network->edges, i);
     fprintf(csv_edge_output, "%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld,%d,%d,%ld\n", edge->id, edge->channel_id, edge->counter_edge_id, edge->from_node_id, edge->to_node_id, edge->balance, edge->policy.fee_base, edge->policy.fee_proportional, edge->policy.min_htlc, edge->policy.timelock, edge->is_closed, edge->tot_flows);
   }
   fclose(csv_edge_output);
 
-  csv_payment_output = fopen("payments_output.csv", "w");
-  if(csv_channel_output  == NULL) {
+  strcpy(output_filename, output_dir_name);
+  strcat(output_filename, "payments_output.csv");
+  csv_payment_output = fopen(output_filename, "w");
+  if(csv_payment_output  == NULL) {
     printf("ERROR cannot open payment_output.csv\n");
     exit(-1);
   }
@@ -72,7 +84,7 @@ void write_output(struct network* network, struct array* payments) {
   for(i=0; i<array_len(payments); i++)  {
     payment = array_get(payments, i);
     if (payment->id == -1) continue;
-    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%u,%u,%d,%d,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_mpp, payment->is_success, payment->no_balance_count, payment->offline_node_count, payment->is_timeout, payment->attempts);
+    fprintf(csv_payment_output, "%ld,%ld,%ld,%ld,%ld,%ld,%u,%u,%d,%d,%u,%d,", payment->id, payment->sender, payment->receiver, payment->amount, payment->start_time, payment->end_time, payment->is_shard, payment->is_success, payment->no_balance_count, payment->offline_node_count, payment->is_timeout, payment->attempts);
     route = payment->route;
     if(route==NULL)
       fprintf(csv_payment_output, "-1,");
@@ -91,9 +103,11 @@ void write_output(struct network* network, struct array* payments) {
   }
   fclose(csv_payment_output);
 
-  csv_node_output = fopen("nodes_output.csv", "w");
-  if(csv_channel_output  == NULL) {
-    printf("ERROR cannot open node_output.csv\n");
+  strcpy(output_filename, output_dir_name);
+  strcat(output_filename, "nodes_output.csv");
+  csv_node_output = fopen(output_filename, "w");
+  if(csv_node_output  == NULL) {
+    printf("ERROR cannot open nodes_output.csv\n");
     return;
   }
   fprintf(csv_node_output, "id,open_edges\n");
@@ -128,6 +142,7 @@ void initialize_input_parameters(struct network_params *net_params, struct payme
   pay_params->n_payments = 0;
   pay_params->payments_from_file = 0;
   strcpy(pay_params->payments_filename, "\0");
+  pay_params->mpp = 0;
 }
 
 
@@ -141,7 +156,7 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
   input_file = fopen("cloth_input.txt","r");
 
   if(input_file==NULL){
-    fprintf(stderr, "ERROR: cannot open file <cloth_input.txt> in cloth directory.\n");
+    fprintf(stderr, "ERROR: cannot open file <cloth_input.txt> in current directory.\n");
     exit(-1);
   }
 
@@ -218,6 +233,9 @@ void read_input(struct network_params* net_params, struct payments_params* pay_p
     else if(strcmp(parameter, "average_payment_amount")==0){
       pay_params->average_amount = strtod(value, NULL);
     }
+    else if(strcmp(parameter, "mpp")==0){
+      pay_params->mpp = strtoul(value, NULL, 10);
+    }
     else{
       fprintf(stderr, "ERROR: unknown parameter <%s>\n", parameter);
       fclose(input_file);
@@ -232,6 +250,8 @@ unsigned int has_shards(struct payment* payment){
   return (payment->shards_id[0] != -1 && payment->shards_id[1] != -1);
 }
 
+
+/* process stats of payments that were split (mpp payments) */
 void post_process_payment_stats(struct array* payments){
   long i;
   struct payment* payment, *shard1, *shard2;
@@ -267,7 +287,7 @@ gsl_rng* initialize_random_generator(){
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
   struct event* event;
   clock_t  begin, end;
   double time_spent=0.0;
@@ -279,6 +299,13 @@ int main() {
   long n_nodes, n_edges;
   struct array* payments;
   struct simulation* simulation;
+  char output_dir_name[256];
+
+  if(argc != 2) {
+    fprintf(stderr, "ERROR cloth.c: please specify the output directory\n");
+    return -1;
+  }
+  strcpy(output_dir_name, argv[1]);
 
   read_input(&net_params, &pay_params);
 
@@ -311,7 +338,7 @@ int main() {
     simulation->current_time = event->time;
     switch(event->type){
     case FINDPATH:
-      find_path(event, simulation, network, &payments);
+      find_path(event, simulation, network, &payments, pay_params.mpp);
       break;
     case SENDPAYMENT:
       send_payment(event, simulation, network);
@@ -343,12 +370,14 @@ int main() {
     }
   }
   end = clock();
-  post_process_payment_stats(payments);
+
+  if(pay_params.mpp)
+    post_process_payment_stats(payments);
 
   time_spent = (double) (end - begin)/CLOCKS_PER_SEC;
   printf("Time consumed by simulation events: %lf s\n", time_spent);
 
-  write_output(network, payments);
+  write_output(network, payments, output_dir_name);
 
   free(simulation);
 

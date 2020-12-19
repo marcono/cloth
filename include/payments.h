@@ -32,7 +32,7 @@ struct payment {
   int attempts;
   struct payment_error error;
   /* attributes for multi-path-payment (mpp)*/
-  unsigned int is_mpp;
+  unsigned int is_shard;
   long shards_id[2];
   /* attributes used for computing stats */
   unsigned int is_success;

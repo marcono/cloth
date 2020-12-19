@@ -24,6 +24,7 @@ struct payments_params{
   double average_amount;
   unsigned int payments_from_file;
   char payments_filename[256];
+  unsigned int mpp;
 };
 
 struct simulation{

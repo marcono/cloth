@@ -192,14 +192,14 @@ struct payment* create_payment_shard(long shard_id, uint64_t shard_amount, struc
   struct payment* shard;
   shard = new_payment(shard_id, payment->sender, payment->receiver, shard_amount, payment->start_time);
   shard->attempts = 1;
-  shard->is_mpp = 1;
+  shard->is_shard = 1;
   return shard;
 }
 
 /*HTLC FUNCTIONS*/
 
 /* find a path for a payment (a modified version of dijkstra is used: see `routing.c`) */
-void find_path(struct event *event, struct simulation* simulation, struct network* network, struct array** payments) {
+void find_path(struct event *event, struct simulation* simulation, struct network* network, struct array** payments, unsigned int mpp) {
   struct payment *payment, *shard1, *shard2;
   struct array *path, *shard1_path, *shard2_path;
   uint64_t shard1_amount, shard2_amount;
@@ -227,7 +227,7 @@ void find_path(struct event *event, struct simulation* simulation, struct networ
   }
 
   //  if a path is not found, try to split the payment in two shards (multi-path payment)
-  if(path == NULL && !(payment->is_mpp) && payment->attempts == 1 ){
+  if(mpp && path == NULL && !(payment->is_shard) && payment->attempts == 1 ){
     shard1_amount = payment->amount/2;
     shard2_amount = payment->amount - shard1_amount;
     shard1_path = dijkstra(payment->sender, payment->receiver, shard1_amount, network, simulation->current_time, 0, &error);
@@ -246,7 +246,7 @@ void find_path(struct event *event, struct simulation* simulation, struct networ
     shard2 = create_payment_shard(shard2_id, shard2_amount, payment);
     *payments = array_insert(*payments, shard1);
     *payments = array_insert(*payments, shard2);
-    payment->is_mpp = 1;
+    payment->is_shard = 1;
     payment->shards_id[0] = shard1_id;
     payment->shards_id[1] = shard2_id;
     generate_send_payment_event(shard1, shard1_path, simulation, network);

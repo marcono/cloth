@@ -33,7 +33,7 @@ struct payment* new_payment(long id, long sender, long receiver, uint64_t amount
   p->attempts = 0;
   p->error.type = NOERROR;
   p->error.hop = NULL;
-  p->is_mpp = 0;
+  p->is_shard = 0;
   p->shards_id[0] = p->shards_id[1] = -1;
   return p;
 }

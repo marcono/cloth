@@ -8,10 +8,22 @@ import pandas as pd
 import operator
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+import os.path
+from os import path
 
 print('COMPUTE SIMULATION OUTPUT STATS')
 
-with open('payments_output.csv', 'r') as csv_pay:#, open('xk.csv', 'w') as output_csv:#, open(stats_file_path, 'wb') as stats_file :
+input_args = list(sys.argv)
+if len(input_args) < 2:
+     print("batch-means.py: Please specify the output directory")
+     exit()
+output_dir_name = input_args[1]
+if not path.exists(output_dir_name):
+     print("batch-means.py: Cannot find the output directory. The output will be stored in the current directory" )
+     output_dir_name = './'
+
+with open(output_dir_name + 'payments_output.csv', 'r') as csv_pay:#, open('xk.csv', 'w') as output_csv:#, open(stats_file_path, 'wb') as stats_file :
 
      ## INITIALIZATION
      n_batches = 30
@@ -36,10 +48,9 @@ with open('payments_output.csv', 'r') as csv_pay:#, open('xk.csv', 'w') as outpu
      last_payment_time = int(payments[n-1]['start_time'])
      remainder = last_payment_time%31
      end_time = last_payment_time - remainder
-     print("SIMULATION END TIME: " + str(end_time))
      batch_length = end_time/31
-     print("BATCH LENGTH: " + str(batch_length))
-
+     print("Batch length: " + str(batch_length) + " ms")
+     print("Total simulated time: " + str(end_time-batch_length) + " ms")
 
      ## COMPUTE PAYMENT STATS
 
@@ -95,11 +106,6 @@ for i in range (0, n_batches):
      batches['FailOfflineNode'][i] = float(batches['FailOfflineNode'][i])/batches['Total'][i]
      batches['FailTimeoutExpired'][i] = float(batches['FailTimeoutExpired'][i])/batches['Total'][i]
 
-
-
-print('SIMULATION OUTPUT STATS SAVED IN <cloth_output.json>')
-
-
 # COMPUTE BATCH MEANS
 
 for stat in stats:
@@ -110,7 +116,7 @@ for stat in stats:
 
 # WRITE OUTPUT
 
-with open('cloth_output.json', 'w') as stats_file:
+with open(output_dir_name + 'cloth_output.json', 'w') as stats_file:
      dict_stats = {}
      for stat in stats:
           dict_stats[stat] = OrderedDict([
@@ -125,3 +131,6 @@ with open('cloth_output.json', 'w') as stats_file:
           temp_output.append((stat, dict_stats[stat]))
      output = OrderedDict(temp_output)
      json.dump(output, stats_file, indent=4)
+
+
+print('SIMULATION OUTPUT STATS SAVED IN <' + output_dir_name + 'cloth_output.json>')
