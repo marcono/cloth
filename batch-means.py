@@ -7,6 +7,7 @@ from collections import OrderedDict
 import pandas as pd
 import operator
 import numpy as np
+import scipy.stats
 import matplotlib.pyplot as plt
 import sys
 import os.path
@@ -28,10 +29,10 @@ with open(output_dir_name + 'payments_output.csv', 'r') as csv_pay:#, open('xk.c
      ## INITIALIZATION
      n_batches = 30
      alfa_confidence = 0.95
-     percentile = t.isf(alfa_confidence/2, n_batches-1)
      stats = ['Total', 'Success', 'FailNoPath', 'FailNoBalance', 'FailOfflineNode', 'FailTimeoutExpired', 'Time', 'Attempts', 'RouteLength']
      batches = {stat: [0]*n_batches for stat in stats}
      means = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
+     h = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
      variances = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
      confidence_min = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
      confidence_max = {"Total": 0, "Success": 0, "FailNoPath":0, "FailNoBalance":0, "FailOfflineNode":0, "FailTimeoutExpired":0, "Time":0, "Attempts":0,  "RouteLength":0 }
@@ -110,9 +111,10 @@ for i in range (0, n_batches):
 
 for stat in stats:
      means[stat] = np.mean(batches[stat])
+     h[stat] = scipy.stats.sem(batches[stat]) * scipy.stats.t.isf((alfa_confidence) / 2., n_batches-1)
+     confidence_min[stat] = means[stat] - h[stat]
+     confidence_max[stat] = means[stat] + h[stat]
      variances[stat] = np.var(batches[stat])
-     confidence_min[stat] = means[stat] - percentile*sqrt( (variances[stat]**2)/n_batches )
-     confidence_max[stat] = means[stat] + percentile*sqrt( (variances[stat]**2)/n_batches )
 
 # WRITE OUTPUT
 

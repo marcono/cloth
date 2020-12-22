@@ -9,7 +9,7 @@
 #include "list.h"
 #include "network.h"
 
-#define N_THREADS 4
+#define N_THREADS 3
 #define FINALTIMELOCK 40
 
 extern pthread_mutex_t data_mutex;
