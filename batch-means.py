@@ -122,10 +122,10 @@ with open(output_dir_name + 'cloth_output.json', 'w') as stats_file:
      dict_stats = {}
      for stat in stats:
           dict_stats[stat] = OrderedDict([
-               ('Mean', means[stat]),
-               ('Variance', variances[stat]),
-               ('ConfidenceMin', confidence_min[stat]),
-               ('ConfidenceMax', confidence_max[stat])
+               ('Mean', '{0:.10f}'.format(means[stat])),
+               ('Variance', '{0:.10f}'.format(variances[stat])),
+               ('ConfidenceMin', '{0:.10f}'.format(confidence_min[stat])),
+               ('ConfidenceMax', '{0:.10f}'.format(confidence_max[stat]))
           ])
      temp_output = []
      for stat in stats:
