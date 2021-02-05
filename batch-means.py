@@ -4,11 +4,9 @@ import sys
 from scipy.stats import t
 from math import sqrt
 from collections import OrderedDict
-import pandas as pd
 import operator
 import numpy as np
 import scipy.stats
-import matplotlib.pyplot as plt
 import sys
 import os.path
 from os import path

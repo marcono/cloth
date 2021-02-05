@@ -16,12 +16,17 @@ probability of payment success, average payment time) in `cloth_output.json`.
 CLoTH is currently based on `lnd-v0.10.0-beta`, the Golang implementation of the
 Lightning Network.
 
-## Install libraries
+## Install requirements
 
-Install the `gsl` library: 
+Install the requirements: 
 
 ```sh
-sudo apt install gsl
+sudo apt-get install gcc
+sudo apt-get install libgsl-dev
+sudo apt-get install python
+sudo apt-get install python-pip
+pip install numpy
+pip install scipy
 ```
 
 ## Build
@@ -37,7 +42,7 @@ make build
 Run CLoTH:
 
 ```sh
-./run-cloth.sh <seed> <output-directory>
+./run-simulation.sh <seed> <output-directory>
 ```
 
 where `seed` is the seed used for random variables of the simulator and
