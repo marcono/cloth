@@ -90,8 +90,11 @@ following:
 
 ## References
 
-For more details on (an older version of) CLoTH and initial simulation results,
-please refer to my doctoral thesis:
+I published a paper that describes the code and the functioning of CLoTH:
+
+"CLoTH: A Lightning Network Simulator", Conoscenti Marco, Vetrò Antonio, De Martin Juan Carlos, in SoftwareX, 2021. Available [here](https://www.sciencedirect.com/science/article/pii/S2352711021000613).
+
+The description of an old version of CLoTH and previous simulation results are in my doctoral thesis:
 
 CONOSCENTI, Marco. Capabilities and Limitations of Payment Channel Networks for
 Blockchain Scalability. 2019. PhD Thesis. Politecnico di Torino. Available
