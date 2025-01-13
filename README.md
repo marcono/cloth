@@ -18,24 +18,11 @@ Lightning Network.
 
 ## Install requirements
 
-Install the requirements: 
-
-```sh
-sudo apt-get install gcc
-sudo apt-get install libgsl-dev
-sudo apt-get install python
-sudo apt-get install python-pip
-pip install numpy
-pip install scipy
-```
-
-## Build
-
-Build CLoTH:
-
-```sh
-make build
-```
+1. Have Docker Desktop for Mac/Windows
+2. cd to this project folder
+3. Build the image: run ```docker build -t cloth_simulation .```
+4. Run the container: ```docker run -it --rm cloth_simulation```
+5. the rest is the same as the original
 
 ## Run
 
@@ -44,6 +31,10 @@ Run CLoTH:
 ```sh
 ./run-simulation.sh <seed> <output-directory>
 ```
+additional notes:
+<seed>: any random number
+<output-directory>: the output folder
+example: ./run-simulation.sh 42 ./output
 
 where `seed` is the seed used for random variables of the simulator and
 `output-directory` is the path of the directory where to store the output files
